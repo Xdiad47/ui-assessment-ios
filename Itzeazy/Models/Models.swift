@@ -4,6 +4,7 @@ struct ServiceItem: Identifiable {
     let id = UUID()
     let title: String
     let iconName: String
+    var isAsset: Bool = false
 }
 
 struct PopularItem: Identifiable {

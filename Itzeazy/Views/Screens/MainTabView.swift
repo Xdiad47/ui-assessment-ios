@@ -10,7 +10,7 @@ enum Tab {
 struct MainTabView: View {
     @State private var selectedTab: Tab = .home
     @State private var homeNavID = UUID()
-    
+
     var body: some View {
         ZStack(alignment: .bottom) {
             // Main Content
@@ -46,11 +46,10 @@ struct MainTabView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            
-            // Custom Tab Bar
+
+            // Tab bar — full width, attached to bottom
             CustomTabBar(selectedTab: $selectedTab) { tappedTab in
                 if tappedTab == .home {
-                    // Reset Home navigation stack to root whether already on Home or switching to it
                     homeNavID = UUID()
                 }
                 selectedTab = tappedTab
@@ -65,22 +64,21 @@ struct CustomTabBar: View {
     var onTabTapped: (Tab) -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            TabBarButton(imageName: "house.fill",    title: "Home",    tab: .home,    selectedTab: $selectedTab, onTabTapped: onTabTapped)
-            TabBarButton(imageName: "bag.fill",      title: "Orders",  tab: .orders,  selectedTab: $selectedTab, onTabTapped: onTabTapped)
-            TabBarButton(imageName: "phone.fill",    title: "Call",    tab: .call,    selectedTab: $selectedTab, onTabTapped: onTabTapped)
-            TabBarButton(imageName: "person.fill",   title: "Profile", tab: .profile, selectedTab: $selectedTab, onTabTapped: onTabTapped)
+        HStack(spacing: 42) {
+            TabBarButton(imageName: "house.fill",    title: "HOME",    tab: .home,    selectedTab: $selectedTab, onTabTapped: onTabTapped)
+            TabBarButton(imageName: "bag.fill",      title: "ORDERS",  tab: .orders,  selectedTab: $selectedTab, onTabTapped: onTabTapped)
+            TabBarButton(imageName: "phone.fill",    title: "CALL",    tab: .call,    selectedTab: $selectedTab, onTabTapped: onTabTapped)
+            TabBarButton(imageName: "person.fill",   title: "PROFILE", tab: .profile, selectedTab: $selectedTab, onTabTapped: onTabTapped)
         }
-        .padding(.horizontal, 26)
-        .padding(.top, 12)
-        .padding(.bottom, 24)
+        .padding(EdgeInsets(top: 12, leading: 37, bottom: 32, trailing: 37))
         .frame(maxWidth: .infinity)
         .background(Color.white)
         .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
         .overlay(
             RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
-                .stroke(Color.red, lineWidth: 1.5)
+                .stroke(Color(red: 0.72, green: 0.72, blue: 0.72), lineWidth: 0.5)
         )
+        .shadow(color: Color.black.opacity(0.04), radius: 30)
     }
 }
 
@@ -95,19 +93,16 @@ struct TabBarButton: View {
 
     var body: some View {
         Button(action: { onTabTapped(tab) }) {
-            VStack(spacing: 7) {
+            VStack(spacing: 0) {
                 Image(systemName: imageName)
                     .font(.system(size: 22))
                     .foregroundColor(isSelected ? .red : Color(red: 0.58, green: 0.64, blue: 0.72))
 
                 Text(title)
-                    .font(Font.custom("Plus Jakarta Sans", size: 14))
+                    .font(Font.custom("Plus Jakarta Sans", size: 10).weight(.bold))
+                    .tracking(0.5)
                     .foregroundColor(isSelected ? .red : Color(red: 0.58, green: 0.64, blue: 0.72))
-
-                Rectangle()
-                    .fill(isSelected ? Color.red : Color.clear)
-                    .frame(width: 75, height: 6)
-                    .cornerRadius(8)
+                    .padding(.top, 4)
             }
             .frame(maxWidth: .infinity)
         }
