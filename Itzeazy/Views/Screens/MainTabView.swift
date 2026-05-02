@@ -47,12 +47,29 @@ struct MainTabView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Tab bar — full width, attached to bottom
-            CustomTabBar(selectedTab: $selectedTab) { tappedTab in
-                if tappedTab == .home {
-                    homeNavID = UUID()
+            // Card stack: red base card + white tab bar on top
+            ZStack(alignment: .bottom) {
+                // White fill — covers bottom safe area gap
+                Color.white
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+
+                // Red card — peeks below white bar
+                Rectangle()
+                    .fill(Color(red: 0.718, green: 0.718, blue: 0.718))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 102)
+                    .clipShape(RoundedCorner(radius: 34, corners: [.topLeft, .topRight]))
+                    .padding(.bottom, 2)
+
+                // White tab bar on top
+                CustomTabBar(selectedTab: $selectedTab) { tappedTab in
+                    if tappedTab == .home {
+                        homeNavID = UUID()
+                    }
+                    selectedTab = tappedTab
                 }
-                selectedTab = tappedTab
+                .padding(.bottom, 1)
             }
         }
         .edgesIgnoringSafeArea(.bottom)
@@ -64,13 +81,15 @@ struct CustomTabBar: View {
     var onTabTapped: (Tab) -> Void
 
     var body: some View {
-        HStack(spacing: 42) {
-            TabBarButton(imageName: "house.fill",    title: "HOME",    tab: .home,    selectedTab: $selectedTab, onTabTapped: onTabTapped)
-            TabBarButton(imageName: "bag.fill",      title: "ORDERS",  tab: .orders,  selectedTab: $selectedTab, onTabTapped: onTabTapped)
-            TabBarButton(imageName: "phone.fill",    title: "CALL",    tab: .call,    selectedTab: $selectedTab, onTabTapped: onTabTapped)
-            TabBarButton(imageName: "person.fill",   title: "PROFILE", tab: .profile, selectedTab: $selectedTab, onTabTapped: onTabTapped)
+        HStack(spacing: 0) {
+            TabBarButton(imageName: "house.fill",   title: "Home",    tab: .home,    isAsset: false, selectedTab: $selectedTab, onTabTapped: onTabTapped)
+            TabBarButton(imageName: "orders_icon",  title: "Orders",  tab: .orders,  isAsset: true,  selectedTab: $selectedTab, onTabTapped: onTabTapped)
+            TabBarButton(imageName: "call_icon",    title: "Call",    tab: .call,    isAsset: true,  selectedTab: $selectedTab, onTabTapped: onTabTapped)
+            TabBarButton(imageName: "profile_icon", title: "Profile", tab: .profile, isAsset: true,  selectedTab: $selectedTab, onTabTapped: onTabTapped)
         }
-        .padding(EdgeInsets(top: 12, leading: 37, bottom: 32, trailing: 37))
+        .padding(.horizontal, 10)
+        .padding(.top, 12)
+        .padding(.bottom, 24)
         .frame(maxWidth: .infinity)
         .background(Color.white)
         .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
@@ -86,6 +105,7 @@ struct TabBarButton: View {
     var imageName: String
     var title: String
     var tab: Tab
+    var isAsset: Bool
     @Binding var selectedTab: Tab
     var onTabTapped: (Tab) -> Void
 
@@ -93,16 +113,27 @@ struct TabBarButton: View {
 
     var body: some View {
         Button(action: { onTabTapped(tab) }) {
-            VStack(spacing: 0) {
-                Image(systemName: imageName)
-                    .font(.system(size: 22))
-                    .foregroundColor(isSelected ? .red : Color(red: 0.58, green: 0.64, blue: 0.72))
+            VStack(spacing: 7) {
+                if isAsset {
+                    Image(imageName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                        .colorMultiply(isSelected ? .red : Color(red: 0.58, green: 0.64, blue: 0.72))
+                } else {
+                    Image(systemName: imageName)
+                        .font(.system(size: 24))
+                        .foregroundColor(isSelected ? .red : Color(red: 0.58, green: 0.64, blue: 0.72))
+                }
 
                 Text(title)
-                    .font(Font.custom("Plus Jakarta Sans", size: 10).weight(.bold))
-                    .tracking(0.5)
+                    .font(Font.custom("Plus Jakarta Sans", size: 14))
                     .foregroundColor(isSelected ? .red : Color(red: 0.58, green: 0.64, blue: 0.72))
-                    .padding(.top, 4)
+
+                Rectangle()
+                    .fill(isSelected ? Color.red : Color.clear)
+                    .frame(width: 75, height: 6)
+                    .cornerRadius(8, corners: [.topLeft, .topRight])
             }
             .frame(maxWidth: .infinity)
         }
