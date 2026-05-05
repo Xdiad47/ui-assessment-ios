@@ -17,8 +17,13 @@ struct MainTabView: View {
             Group {
                 switch selectedTab {
                 case .home:
-                    HomeView()
-                        .id(homeNavID)
+                    NavigationView {
+                        HomeView()
+                            .id(homeNavID)
+                            .navigationBarTitleDisplayMode(.inline)
+                            .navigationBarHidden(true)
+                    }
+                    .navigationViewStyle(StackNavigationViewStyle())
                 case .orders:
                     NavigationView {
                         Text("Orders Screen")

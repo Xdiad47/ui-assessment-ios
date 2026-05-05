@@ -2,12 +2,12 @@ import SwiftUI
 
 struct HomeValuePropositionView: View {
 
-    // (label, SF Symbol name)
+    // (label, Asset image name)
     let props: [(String, String)] = [
-        ("Reliable",              "checkmark.seal.fill"),
-        ("Expert\nConsultation",  "brain.head.profile"),
-        ("Timely Delivery",       "bolt.fill"),
-        ("Door Step\nDelivery",   "building.2.fill")
+        ("Reliable",              "vehicle_noc"),
+        ("Expert\nConsultation",  "expert_consultation"),
+        ("Timely Delivery",       "timely_delivery"),
+        ("Door Step\nDelivery",   "door_step")
     ]
 
     var body: some View {
@@ -66,7 +66,7 @@ private struct PropCard: View {
         VStack(alignment: .leading, spacing: 16) {
 
             // Icon
-            Image(systemName: icon)
+            Image(icon)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 32, height: 32)
@@ -80,6 +80,7 @@ private struct PropCard: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: 127)
         .padding(24)
         .background(Color.white)
         .cornerRadius(24)

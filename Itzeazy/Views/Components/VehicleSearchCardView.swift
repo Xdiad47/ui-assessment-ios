@@ -2,90 +2,94 @@ import SwiftUI
 
 struct VehicleSearchCardView: View {
     @State private var vehicleNo: String = ""
-    @State private var chassisNo: String = ""
     var onCheckStatus: (() -> Void)? = nil
+    var isEmbedded: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
-                inputField(
-                    label: "VEHICLE NO",
-                    placeholder: "HR-2620120142433",
-                    text: $vehicleNo
-                )
-                inputField(
-                    label: "CHASSIS NO (LAST 5 DIGITS)",
-                    placeholder: "6933345345",
-                    text: $chassisNo
-                )
-            }
+        ZStack {
+            VStack(spacing: 24) {
 
-            HStack(spacing: 8) {
-                Button(action: { vehicleNo = ""; chassisNo = "" }) {
-                    Text("Reset")
-                        .font(Font.custom("Inter", size: 12).weight(.bold))
-                        .foregroundColor(.white)
-                        .padding(.vertical, 9)
-                        .frame(minWidth: 100)
+                // Title
+                Text("Check RTO Vehicle Information Detail")
+                    .font(Font.custom("Plus Jakarta Sans", size: 16).weight(.heavy))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+
+                VStack(spacing: 18) {
+
+                    // Vehicle No field
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("VEHICLE NO")
+                            .font(Font.custom("Inter", size: 12).weight(.semibold))
+                            .tracking(0.45)
+                            .foregroundColor(.white)
+
+                        ZStack(alignment: .leading) {
+                            if vehicleNo.isEmpty {
+                                Text("HR-654365124512445")
+                                    .font(Font.custom("Inter", size: 14))
+                                    .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
+                                    .padding(.horizontal, 9)
+                            }
+                            TextField("", text: $vehicleNo)
+                                .font(Font.custom("Inter", size: 14))
+                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                .padding(EdgeInsets(top: 13, leading: 9, bottom: 14, trailing: 16))
+                        }
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .inset(by: 0.5)
+                                .stroke(Color(red: 0.72, green: 0.72, blue: 0.72), lineWidth: 0.5)
+                        )
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // Action buttons — Reset compact, Check Status fills remaining width
+                    HStack(spacing: 16) {
+
+                        // Reset — natural compact size
+                        Button(action: { vehicleNo = "" }) {
+                            Text("Reset")
+                                .font(Font.custom("Inter", size: 12).weight(.semibold))
+                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                .padding(.vertical, 10)
+                                .padding(.horizontal, 24)
+                        }
+                        .background(Color(red: 0.88, green: 0.89, blue: 0.89))
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .inset(by: 0.5)
+                                .stroke(Color(red: 0.88, green: 0.89, blue: 0.89).opacity(0.30), lineWidth: 0.5)
+                        )
+
+                        // Check Status — fills remaining space
+                        Button(action: { onCheckStatus?() }) {
+                            Text("Check Status")
+                                .font(Font.custom("Inter", size: 12).weight(.bold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .background(Color(red: 0.93, green: 0.13, blue: 0.14))
+                        .clipShape(Capsule())
+                        .shadow(
+                            color: Color(red: 0.93, green: 0.13, blue: 0.14).opacity(0.20),
+                            radius: 6, y: 4
+                        )
+                    }
                 }
-                .background(Color(red: 0.15, green: 0.15, blue: 0.16))
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(Color(red: 0.88, green: 0.89, blue: 0.89).opacity(0.30), lineWidth: 0.50)
-                )
-
-                Button(action: { onCheckStatus?() }) {
-                    Text("Check Status")
-                        .font(Font.custom("Inter", size: 12).weight(.bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                }
-                .background(Color(red: 0.93, green: 0.13, blue: 0.14))
-                .clipShape(Capsule())
-                .shadow(
-                    color: Color(red: 0.93, green: 0.13, blue: 0.14).opacity(0.20),
-                    radius: 6, y: 4
-                )
             }
-            .padding(.top, 4)
-        }
-        .padding(16)
-        .background(Color(red: 0.10, green: 0.11, blue: 0.11))
-        .cornerRadius(20)
-        .padding(.horizontal)
-    }
-
-    @ViewBuilder
-    private func inputField(label: String, placeholder: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(Font.custom("Inter", size: 9).weight(.semibold))
-                .tracking(0.45)
-                .foregroundColor(Color(red: 0.44, green: 0.44, blue: 0.48))
-                .fixedSize(horizontal: false, vertical: true)
-
-            ZStack(alignment: .leading) {
-                if text.wrappedValue.isEmpty {
-                    Text(placeholder)
-                        .font(Font.custom("Plus Jakarta Sans", size: 12).weight(.semibold))
-                        .foregroundColor(Color.white.opacity(0.40))
-                        .padding(.horizontal, 12)
-                }
-                TextField("", text: text)
-                    .font(Font.custom("Plus Jakarta Sans", size: 12).weight(.semibold))
-                    .foregroundColor(Color.white.opacity(0.80))
-                    .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-            }
-            .background(Color.white.opacity(0.10))
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.white.opacity(0.20), lineWidth: 0.50)
-            )
+            .padding(.horizontal, 20)
+            .padding(.top, isEmbedded ? 20 : 60)
+            .padding(.bottom, 32)
         }
         .frame(maxWidth: .infinity)
+        .background(isEmbedded ? Color.clear : Color(red: 0.10, green: 0.11, blue: 0.11))
+        .cornerRadius(isEmbedded ? 0 : 20)
+        .padding(.horizontal, isEmbedded ? 0 : 16)
     }
 }
 

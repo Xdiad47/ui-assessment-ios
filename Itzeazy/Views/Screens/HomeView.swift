@@ -2,13 +2,9 @@ import SwiftUI
 
 struct HomeView: View {
     var body: some View {
-        NavigationView {
-            ZStack(alignment: .top) {
-                // Base background: white for the page, dark for the status bar and bounce area
-                Color.white.edgesIgnoringSafeArea(.all)
-                Color(red: 0.11, green: 0.11, blue: 0.11)
-                    .frame(height: 150)
-                    .edgesIgnoringSafeArea(.top)
+        ZStack(alignment: .top) {
+                // Base background: completely dark for status bar and bounce area. Prevents white gaps.
+                Color(red: 0.11, green: 0.11, blue: 0.11).ignoresSafeArea()
                 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
@@ -16,7 +12,6 @@ struct HomeView: View {
                         // Dark Section (Header & Hero)
                         VStack(spacing: 24) {
                             HomeHeaderView()
-                                //.padding(.top, 0)
                                 .padding(.horizontal, 0)
                             HomeHeroCardView()
                                 .padding(.horizontal, 10)
@@ -31,19 +26,17 @@ struct HomeView: View {
                                 .padding(.top, 32)
 
                             HomeUtilitiesGridView()
-                                //.padding(.bottom, 32)
                             
                             HomeWorkflowView()
                             
                             HomeValuePropositionView()
                         }
-                        .background(Color.white)
-
                     }
+                    .background(Color.white) // Entire scrollable area gets white bg, sitting behind dark header's corners
                 }
             }
+            .navigationTitle("")
             .navigationBarHidden(true)
-        }
     }
 }
 
@@ -261,7 +254,14 @@ struct HomeUtilitiesGridView: View {
             
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(utilities, id: \.0) { utility in
-                    ServiceBoxView(title: utility.0, iconName: utility.1)
+                    if utility.0.contains("Vehicle") {
+                        NavigationLink(destination: VehicleSearchResultsView()) {
+                            ServiceBoxView(title: utility.0, iconName: utility.1)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    } else {
+                        ServiceBoxView(title: utility.0, iconName: utility.1)
+                    }
                 }
             }
             .padding(12)

@@ -3,7 +3,6 @@ import SwiftUI
 struct RTOServicesView: View {
     @StateObject private var viewModel = RTOServicesViewModel()
     @Environment(\.presentationMode) var presentationMode
-    @State private var navigateToVehicleSearch = false
 
     var body: some View {
         ZStack {
@@ -127,14 +126,8 @@ struct RTOServicesView: View {
 
                     // Get Started — full-width, inside dark section
                     ZStack {
-                        NavigationLink(
-                            destination: VehicleSearchResultsView(),
-                            isActive: $navigateToVehicleSearch
-                        ) { EmptyView() }
-                            .hidden()
-
                         Button(action: {
-                            navigateToVehicleSearch = true
+                            // Action for Get Started
                         }) {
                             Text("Get Started")
                                 .font(Font.custom("Inter", size: 16).weight(.semibold))
