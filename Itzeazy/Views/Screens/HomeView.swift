@@ -254,8 +254,13 @@ struct HomeUtilitiesGridView: View {
             
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(utilities, id: \.0) { utility in
-                    if utility.0.contains("Vehicle") {
+                    if utility.0 == "Vehicle\nInfo" {
                         NavigationLink(destination: VehicleSearchResultsView()) {
+                            ServiceBoxView(title: utility.0, iconName: utility.1)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    } else if utility.0.contains("Challan") {
+                        NavigationLink(destination: ChallanDetailsView()) {
                             ServiceBoxView(title: utility.0, iconName: utility.1)
                         }
                         .buttonStyle(PlainButtonStyle())

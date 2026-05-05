@@ -178,13 +178,19 @@ struct VehicleSearchResultsView: View {
 
             // Challan detail popup overlay
             if let challan = selectedChallan {
-                Color.black.opacity(0.45)
-                    .ignoresSafeArea()
-                    .onTapGesture { selectedChallan = nil }
-                ChallanDetailPopup(challan: challan) {
-                    selectedChallan = nil
+                ZStack(alignment: .center) {
+                    Color.black.opacity(0.45)
+                        .ignoresSafeArea()
+                        .onTapGesture { selectedChallan = nil }
+                    
+                    ChallanDetailPopup(challan: challan) {
+                        selectedChallan = nil
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea()
+                .zIndex(100)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: selectedChallan != nil)
