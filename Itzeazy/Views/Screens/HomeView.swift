@@ -264,6 +264,11 @@ struct HomeUtilitiesGridView: View {
                             ServiceBoxView(title: utility.0, iconName: utility.1)
                         }
                         .buttonStyle(PlainButtonStyle())
+                    } else if utility.0 == "DL Info" {
+                        NavigationLink(destination: DLInfoView()) {
+                            ServiceBoxView(title: utility.0, iconName: utility.1)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     } else {
                         ServiceBoxView(title: utility.0, iconName: utility.1)
                     }

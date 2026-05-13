@@ -81,3 +81,28 @@ struct VehicleSearchResult {
     let financeDetail: FinanceDetail
     let pendingChallans: [Challan]
 }
+
+struct DLInfo {
+    let dlNumber: String
+    let currentStatus: String
+    let holderName: String
+    let oldNewDLNumber: String
+    let sourceOfData: String
+
+    let initialIssueDate: String
+    let initialIssuingOffice: String
+
+    let nonTransportFrom: String
+    let nonTransportTo: String
+    let transportFrom: String
+    let transportTo: String
+
+    let covDetails: [COVDetail]
+}
+
+struct COVDetail: Identifiable {
+    let id = UUID()
+    let category: String
+    let classOfVehicle: String
+    let issueDate: String
+}
