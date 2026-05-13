@@ -188,7 +188,17 @@ struct RTOServicesView: View {
                                 spacing: 8
                             ) {
                                 ForEach(viewModel.rtoServices) { service in
-                                    RTOServiceGridCell(service: service)
+                                    NavigationLink(
+                                        destination: RTOServiceDetailView(
+                                            serviceTitle: service.title,
+                                            city: viewModel.selectedLocation.isEmpty
+                                                ? "Bengaluru"
+                                                : viewModel.selectedLocation
+                                        )
+                                    ) {
+                                        RTOServiceGridCell(service: service)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
                             }
                             .padding(.horizontal, 15)
