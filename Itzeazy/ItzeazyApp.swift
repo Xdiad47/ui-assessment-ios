@@ -2,13 +2,27 @@ import SwiftUI
 
 @main
 struct ItzeazyApp: App {
+    @State private var showSplash = true
+    @AppStorage("hasSeenOnboarding") var hasSeenOnboarding: Bool = false
+    @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
+    
     init() {
         UIScrollView.appearance().keyboardDismissMode = .onDrag
     }
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            if showSplash {
+                SplashScreenView {
+                    showSplash = false
+                }
+            } else if !hasSeenOnboarding {
+                OnboardingView()
+            } else if !isLoggedIn {
+                LoginView()
+            } else {
+                MainTabView()
+            }
         }
     }
 }
