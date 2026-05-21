@@ -42,10 +42,9 @@ struct MainTabView: View {
                     .navigationViewStyle(StackNavigationViewStyle())
                 case .profile:
                     NavigationView {
-                        Text("Profile Screen")
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color(white: 0.98).edgesIgnoringSafeArea(.all))
+                        ProfileView()
                             .navigationBarTitleDisplayMode(.inline)
+                            .navigationBarHidden(true)
                     }
                     .navigationViewStyle(StackNavigationViewStyle())
                 }
