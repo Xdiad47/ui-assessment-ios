@@ -127,6 +127,16 @@ private struct ProfileMenuCardView: View {
                         ProfileMenuRowView(item: item)
                     }
                     .buttonStyle(PlainButtonStyle())
+                } else if item.title == "My Address" {
+                    NavigationLink(destination: MyAddressView()) {
+                        ProfileMenuRowView(item: item)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } else if item.title == "Video Tutorials" {
+                    NavigationLink(destination: VideoTutorialsView()) {
+                        ProfileMenuRowView(item: item)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 } else {
                     ProfileMenuRowView(item: item)
                 }
