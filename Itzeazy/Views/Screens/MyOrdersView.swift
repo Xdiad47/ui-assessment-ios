@@ -3,6 +3,7 @@ import SwiftUI
 struct MyOrdersView: View {
     @Environment(\.presentationMode) private var presentationMode
     @StateObject private var viewModel = MyOrdersViewModel()
+    @State private var naturalHeight: CGFloat = 0
 
     private let backgroundColor = Color(red: 0.96, green: 0.96, blue: 0.96)
     private let strokeColor = Color(red: 0.72, green: 0.72, blue: 0.72)
@@ -10,12 +11,7 @@ struct MyOrdersView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .top) {
-                backgroundColor.ignoresSafeArea()
-
-                Color(red: 0.10, green: 0.11, blue: 0.11)
-                    .frame(height: proxy.safeAreaInsets.top)
-                    .frame(maxWidth: .infinity)
-                    .ignoresSafeArea(edges: .top)
+                Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 16) {
@@ -37,10 +33,24 @@ struct MyOrdersView: View {
                         .padding(.horizontal, 16)
                         .padding(.bottom, 30)
                     }
+                    .background(GeometryReader { geo in
+                        Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)
+                    })
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
+                    .background(backgroundColor)
                 }
+                .scrollDisabled(naturalHeight <= proxy.size.height)
+                .onPreferenceChange(ContentHeightKey.self) { naturalHeight = $0 }
             }
         }
         .navigationBarHidden(true)
+    }
+
+    private struct ContentHeightKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = max(value, nextValue())
+        }
     }
 
     private var welcomeCard: some View {

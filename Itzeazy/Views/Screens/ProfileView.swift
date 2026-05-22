@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
+    @State private var naturalHeight: CGFloat = 0
 
     private let backgroundColor = Color(red: 0.96, green: 0.96, blue: 0.96)
     private let strokeColor = Color(red: 0.72, green: 0.72, blue: 0.72)
@@ -9,49 +10,58 @@ struct ProfileView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .top) {
-                backgroundColor.ignoresSafeArea()
-
-                Color(red: 0.10, green: 0.11, blue: 0.11)
-                    .frame(height: proxy.safeAreaInsets.top)
-                    .frame(maxWidth: .infinity)
-                    .ignoresSafeArea(edges: .top)
+                Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
 
                 ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 14) {
-                    ProfileHeaderView(strokeColor: strokeColor)
-
                     VStack(spacing: 14) {
-                        ForEach(Array(viewModel.primarySections.enumerated()), id: \.offset) { _, section in
-                            ProfileMenuCardView(items: section, strokeColor: strokeColor)
-                        }
+                        ProfileHeaderView(strokeColor: strokeColor)
 
-                        ProfileSocialCardView(items: viewModel.socialItems, strokeColor: strokeColor)
-
-                        Button(action: {
-                            // Logout action
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "rectangle.portrait.and.arrow.right")
-                                    .font(.system(size: 15, weight: .semibold))
-                                Text("Logout")
-                                    .font(Font.custom("Inter", size: 14).weight(.semibold))
+                        VStack(spacing: 14) {
+                            ForEach(Array(viewModel.primarySections.enumerated()), id: \.offset) { _, section in
+                                ProfileMenuCardView(items: section, strokeColor: strokeColor)
                             }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.red)
-                            .clipShape(Capsule())
+
+                            ProfileSocialCardView(items: viewModel.socialItems, strokeColor: strokeColor)
+
+                            Button(action: {
+                                // Logout action
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .font(.system(size: 15, weight: .semibold))
+                                    Text("Logout")
+                                        .font(Font.custom("Inter", size: 14).weight(.semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(Color.red)
+                                .clipShape(Capsule())
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.top, 6)
+                            .padding(.bottom, 120)
                         }
                         .padding(.horizontal, 14)
-                        .padding(.top, 6)
-                        .padding(.bottom, 120)
                     }
-                    .padding(.horizontal, 14)
+                    .background(GeometryReader { geo in
+                        Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)
+                    })
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
+                    .background(backgroundColor)
                 }
-                }
+                .scrollDisabled(naturalHeight <= proxy.size.height)
+                .onPreferenceChange(ContentHeightKey.self) { naturalHeight = $0 }
             }
         }
         .navigationBarHidden(true)
+    }
+
+    private struct ContentHeightKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = max(value, nextValue())
+        }
     }
 }
 
