@@ -137,6 +137,11 @@ private struct ProfileMenuCardView: View {
                         ProfileMenuRowView(item: item)
                     }
                     .buttonStyle(PlainButtonStyle())
+                } else if item.title == "FAQs" {
+                    NavigationLink(destination: FAQsView()) {
+                        ProfileMenuRowView(item: item)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 } else {
                     ProfileMenuRowView(item: item)
                 }

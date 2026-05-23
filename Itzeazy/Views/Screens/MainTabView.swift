@@ -62,7 +62,7 @@ struct MainTabView: View {
                 Rectangle()
                     .fill(Color(red: 0.718, green: 0.718, blue: 0.718))
                     .frame(maxWidth: .infinity)
-                    .frame(height: 102)
+                    .frame(height: 82)
                     .clipShape(RoundedCorner(radius: 34, corners: [.topLeft, .topRight]))
                     .padding(.bottom, 2)
 
@@ -92,8 +92,8 @@ struct CustomTabBar: View {
             TabBarButton(imageName: "profile_icon", title: "Profile", tab: .profile, isAsset: true,  selectedTab: $selectedTab, onTabTapped: onTabTapped)
         }
         .padding(.horizontal, 10)
-        .padding(.top, 12)
-        .padding(.bottom, 24)
+        .padding(.top, 10)
+        .padding(.bottom, 20)
         .frame(maxWidth: .infinity)
         .background(Color.white)
         .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
@@ -117,26 +117,26 @@ struct TabBarButton: View {
 
     var body: some View {
         Button(action: { onTabTapped(tab) }) {
-            VStack(spacing: 7) {
+            VStack(spacing: 5) {
                 if isAsset {
                     Image(imageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 24, height: 24)
+                        .frame(width: 20, height: 20)
                         .colorMultiply(isSelected ? .red : Color(red: 0.58, green: 0.64, blue: 0.72))
                 } else {
                     Image(systemName: imageName)
-                        .font(.system(size: 24))
+                        .font(.system(size: 20))
                         .foregroundColor(isSelected ? .red : Color(red: 0.58, green: 0.64, blue: 0.72))
                 }
 
                 Text(title)
-                    .font(Font.custom("Plus Jakarta Sans", size: 14))
+                    .font(Font.custom("PlusJakartaSans-Regular", size: 10))
                     .foregroundColor(isSelected ? .red : Color(red: 0.58, green: 0.64, blue: 0.72))
 
                 Rectangle()
                     .fill(isSelected ? Color.red : Color.clear)
-                    .frame(width: 75, height: 6)
+                    .frame(width: 60, height: 4)
                     .cornerRadius(8, corners: [.topLeft, .topRight])
             }
             .frame(maxWidth: .infinity)
