@@ -142,6 +142,11 @@ private struct ProfileMenuCardView: View {
                         ProfileMenuRowView(item: item)
                     }
                     .buttonStyle(PlainButtonStyle())
+                } else if item.title == "Help & Support" {
+                    NavigationLink(destination: HelpSupportView()) {
+                        ProfileMenuRowView(item: item)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 } else {
                     ProfileMenuRowView(item: item)
                 }
