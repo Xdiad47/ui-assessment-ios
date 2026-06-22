@@ -1,213 +1,644 @@
 import SwiftUI
 
+
+//Run the code on iphone 
+
 struct LoginView: View {
-    @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
+    private let countryDropdownWidth: CGFloat = 220
+
     @State private var emailOrMobile: String = ""
+    @State private var selectedCountry = countries.first(where: { $0.isoCode == "IN" }) ?? countries[0]
+    @State private var isCountryPickerPresented = false
+    @State private var navigateToPassword = false
     @State private var navigateToCreateAccount = false
-    @FocusState private var isInputFocused: Bool
-    @State private var errorMessage: String? = nil
-    
+    @State private var emailOrMobileError: String?
+    @State private var keyboardHeight: CGFloat = 0
+    @State private var countryButtonFrame: CGRect = .zero
+    @FocusState private var isContactFieldFocused: Bool
+
+    private var trimmedInput: String {
+        emailOrMobile.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isEmailInput: Bool {
+        let value = trimmedInput
+        return value.contains("@") || value.rangeOfCharacter(from: .letters) != nil
+    }
+
+    private var shouldShowCountrySelector: Bool {
+        !isEmailInput
+    }
+
+    private var formattedContactInfo: String {
+        shouldShowCountrySelector ? "\(selectedCountry.phoneCode) \(trimmedInput)" : trimmedInput
+    }
+
+    private var isKeyboardPresented: Bool {
+        keyboardHeight > 0
+    }
+
     var body: some View {
-        NavigationView {
+        NavigationStack {
             GeometryReader { geometry in
                 ZStack(alignment: .top) {
-                    // Background
                     Color.white
-                        .edgesIgnoringSafeArea(.all)
+                        .ignoresSafeArea()
                         .onTapGesture {
-                            isInputFocused = false
+                            isContactFieldFocused = false
+                            isCountryPickerPresented = false
                         }
-                    
-                    // Top Illustration Section & White Status Bar
-                    VStack(spacing: 0) {
-                        Color.white
-                            .frame(height: geometry.safeAreaInsets.top)
-                        
-                        ZStack(alignment: .top) {
-                            Color(hex: "#191c1d")
-                            
-                            Image("login_img")
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: geometry.size.width, height: 320)
-                                .clipped()
-                                .opacity(0.9)
-                            
-                            // Top gradient overlay
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color(hex: "#191c1d"), Color(hex: "#191c1d").opacity(0)]),
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: 160)
-                            
-                            HStack {
-                                Text("Itzeazy")
-                                    .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
-                                    .foregroundColor(.white)
-                                    .tracking(-1.2)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 24)
-                            .padding(.top, 16)
-                        }
-                        .frame(height: 320)
-                        .onTapGesture {
-                            isInputFocused = false
-                        }
-                        
-                        Spacer()
-                    }
-                    .edgesIgnoringSafeArea(.top)
-                    
-                    // Bottom Card Section
+
+                    heroSection(in: geometry)
+                        .opacity(isKeyboardPresented ? 0.42 : 1)
+                        .offset(y: isKeyboardPresented ? -52 : 0)
+                        .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
+
                     VStack(spacing: 0) {
                         Spacer()
-                            .frame(height: geometry.safeAreaInsets.top + 218) // Adjust to overlap image dynamically
-                        
+                            .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : 288)
+
                         VStack(spacing: 32) {
-                            // Headline
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Login")
-                                    .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
-                                    .foregroundColor(.red)
-                                    .tracking(-0.9)
-                                
-                                Text("Welcome back to your Digital Concierge.")
-                                    .font(Font.custom("Inter", size: 16).weight(.medium))
-                                    .foregroundColor(Color(hex: "#5f5e5e"))
+                            headerSection
+                            contactSection
+                            footerSection
+                        }
+                        .padding(.horizontal, 32)
+                        .padding(.top, 18)
+                        .padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 48)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .background(Color.white)
+                        .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 40))
+                        .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: -10)
+                    }
+                    .offset(y: isKeyboardPresented ? -12 : 0)
+                    .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
+                    .ignoresSafeArea(edges: .bottom)
+
+                    if isCountryPickerPresented && shouldShowCountrySelector {
+                        Color.black.opacity(0.08)
+                            .ignoresSafeArea()
+                            .transition(.opacity)
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isCountryPickerPresented = false
+                                }
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            // Form
-                            VStack(spacing: 28) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Email or Mobile Number")
+
+                        CountryCodeDropdownView(
+                            selectedCountry: $selectedCountry,
+                            isPresented: $isCountryPickerPresented,
+                            width: countryDropdownWidth
+                        )
+                        .position(
+                            x: countryButtonFrame.minX + (countryDropdownWidth / 2),
+                            y: countryButtonFrame.maxY + 12 + 130
+                        )
+                        .transition(.scale(scale: 0.96, anchor: .topLeading).combined(with: .opacity))
+                        .zIndex(5)
+                    }
+
+                }
+                .coordinateSpace(name: "loginRoot")
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .preferredColorScheme(.light)
+            .navigationDestination(isPresented: $navigateToPassword) {
+                PasswordEntryView(
+                    contactInfo: formattedContactInfo,
+                    isPhoneContact: shouldShowCountrySelector
+                )
+            }
+            .navigationDestination(isPresented: $navigateToCreateAccount) {
+                CreateAccountView()
+            }
+            .onChange(of: emailOrMobile) { _, newValue in
+                handleContactInputChange(newValue)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+                updateKeyboardHeight(from: notification)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    keyboardHeight = 0
+                }
+            }
+        }
+    }
+
+    private func heroSection(in geometry: GeometryProxy) -> some View {
+        VStack(spacing: 0) {
+            Color.white
+                .frame(height: max(geometry.safeAreaInsets.top, 59))
+
+            ZStack(alignment: .top) {
+                Color(hex: "#191c1d")
+
+                Image("login_img")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width, height: 320)
+                    .clipped()
+                    .opacity(0.9)
+
+                LinearGradient(
+                    gradient: Gradient(colors: [Color(hex: "#191c1d"), Color(hex: "#191c1d").opacity(0)]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 160)
+
+                HStack {
+                    Text("Itzeazy")
+                        .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
+                        .foregroundColor(.white)
+                        .tracking(-1.2)
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+            }
+            .frame(height: 320)
+            .onTapGesture {
+                isContactFieldFocused = false
+                isCountryPickerPresented = false
+            }
+
+            Spacer()
+        }
+        .ignoresSafeArea(edges: .top)
+    }
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Login")
+                .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
+                .foregroundColor(.red)
+                .tracking(-0.9)
+
+            Text("Welcome back to your Digital Concierge.")
+                .font(Font.custom("Inter", size: 16).weight(.medium))
+                .foregroundColor(Color(hex: "#5f5e5e"))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var contactSection: some View {
+        VStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Email or Mobile Number")
+                    .font(Font.custom("Inter", size: 14).weight(.semibold))
+                    .foregroundColor(Color(hex: "#191c1d"))
+
+                HStack(alignment: .top, spacing: 12) {
+                    if shouldShowCountrySelector {
+                        Button {
+                            isContactFieldFocused = false
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isCountryPickerPresented.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text("\(selectedCountry.isoCode) \(selectedCountry.phoneCode)")
+                                    .font(Font.custom("Inter", size: 14))
+                                    .foregroundColor(Color(hex: "#0d0d0d"))
+                                    .lineLimit(1)
+
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(Color(hex: "#0d0d0d"))
+                            }
+                            .frame(width: 88, height: 51)
+                            .background(Color(hex: "#f3f3f3"))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color(hex: "#b7b7b7"), lineWidth: 1)
+                            )
+                            .cornerRadius(16)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(width: 88, height: 51, alignment: .topLeading)
+                        .background {
+                            GeometryReader { proxy in
+                                Color.clear
+                                    .onAppear {
+                                        countryButtonFrame = proxy.frame(in: .named("loginRoot"))
+                                    }
+                                    .onChange(of: proxy.frame(in: .named("loginRoot"))) { _, newValue in
+                                        countryButtonFrame = newValue
+                                    }
+                            }
+                        }
+                        .zIndex(3)
+                    }
+
+                    ZStack(alignment: .leading) {
+                        if emailOrMobile.isEmpty {
+                            Text("Enter your Email / Mobile number")
+                                .font(Font.custom("Inter", size: 12))
+                                .foregroundColor(Color(hex: "#c2c5cb"))
+                                .padding(.horizontal, 20)
+                        }
+
+                        TextField("", text: $emailOrMobile)
+                            .font(Font.custom("Inter", size: 14))
+                            .foregroundColor(Color(hex: "#191c1d"))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
+                            .keyboardType(.default)
+                            .focused($isContactFieldFocused)
+                            .padding(.horizontal, 20)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 51)
+                    .background(Color(hex: "#f3f4f5"))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(
+                                isContactFieldFocused ? Color.red : Color(hex: "#b7b7b7"),
+                                lineWidth: isContactFieldFocused ? 1.5 : 1
+                            )
+                    )
+                    .cornerRadius(24)
+                }
+                .animation(.easeInOut(duration: 0.2), value: shouldShowCountrySelector)
+
+                if let emailOrMobileError {
+                    Text(emailOrMobileError)
+                        .font(Font.custom("Inter", size: 12))
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 4)
+                }
+            }
+
+            Button {
+                isContactFieldFocused = false
+                isCountryPickerPresented = false
+
+                guard validateContactInput() else {
+                    return
+                }
+
+                navigateToPassword = true
+            } label: {
+                Text("Continue")
+                    .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.red)
+                    .clipShape(Capsule())
+            }
+        }
+    }
+
+    private var footerSection: some View {
+        VStack(spacing: 32) {
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(Color(hex: "#e1e3e4"))
+                    .frame(width: 48, height: 1)
+
+                Text("OR")
+                    .font(Font.custom("Inter", size: 12).weight(.medium))
+                    .foregroundColor(Color(hex: "#5f5e5e"))
+                    .tracking(1.2)
+
+                Rectangle()
+                    .fill(Color(hex: "#e1e3e4"))
+                    .frame(width: 48, height: 1)
+            }
+            .frame(maxWidth: .infinity)
+
+            Button {
+                navigateToCreateAccount = true
+            } label: {
+                HStack(spacing: 9) {
+                    Text("New to ItzEazy?")
+                        .font(Font.custom("Inter", size: 15).weight(.medium))
+                        .foregroundColor(Color(hex: "#191c1d"))
+
+                    Text("Create your itzEazy account")
+                        .font(Font.custom("Inter", size: 15).weight(.bold))
+                        .foregroundColor(.red)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func handleContactInputChange(_ newValue: String) {
+        if newValue.rangeOfCharacter(from: .letters) == nil && !newValue.contains("@") {
+            let digitsOnly = newValue.filter(\.isNumber)
+            if digitsOnly != newValue {
+                emailOrMobile = String(digitsOnly.prefix(15))
+                return
+            }
+
+            if digitsOnly.count > 15 {
+                emailOrMobile = String(digitsOnly.prefix(15))
+                return
+            }
+        }
+
+        emailOrMobileError = nil
+    }
+
+    private func updateKeyboardHeight(from notification: Notification) {
+        guard
+            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+        else {
+            return
+        }
+
+        withAnimation(.easeInOut(duration: 0.28)) {
+            keyboardHeight = frame.height
+        }
+    }
+
+    private func validateContactInput() -> Bool {
+        let value = trimmedInput
+
+        guard !value.isEmpty else {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                emailOrMobileError = "Please enter your Email or Mobile number."
+            }
+            return false
+        }
+
+        if shouldShowCountrySelector {
+            let isPhoneValid = (6...15).contains(value.count)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                emailOrMobileError = isPhoneValid ? nil : "Please enter a valid Mobile number."
+            }
+            return isPhoneValid
+        } else {
+            let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+            let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+            let isEmailValid = emailPredicate.evaluate(with: value)
+
+            withAnimation(.easeInOut(duration: 0.2)) {
+                emailOrMobileError = isEmailValid ? nil : "Please enter a valid Email address."
+            }
+            return isEmailValid
+        }
+    }
+}
+
+private struct PasswordEntryView: View {
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+
+    let contactInfo: String
+    let isPhoneContact: Bool
+
+    @State private var password = ""
+    @State private var passwordError: String?
+    @State private var navigateToOTP = false
+    @State private var navigateToForgotPassword = false
+    @State private var keyboardHeight: CGFloat = 0
+    @FocusState private var isPasswordFieldFocused: Bool
+
+    private var isKeyboardPresented: Bool {
+        keyboardHeight > 0
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
+                Color.white
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        isPasswordFieldFocused = false
+                    }
+
+                VStack(spacing: 0) {
+                    Color.white
+                        .frame(height: max(geometry.safeAreaInsets.top, 59))
+
+                    ZStack(alignment: .top) {
+                        Color(hex: "#191c1d")
+
+                        Image("login_img")
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geometry.size.width, height: 320)
+                            .clipped()
+                            .opacity(0.9)
+
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color(hex: "#191c1d"), Color(hex: "#191c1d").opacity(0)]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 160)
+
+                        HStack {
+                            Text("Itzeazy")
+                                .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
+                                .foregroundColor(.white)
+                                .tracking(-1.2)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 16)
+                    }
+                    .frame(height: 320)
+
+                    Spacer()
+                }
+                .opacity(isKeyboardPresented ? 0.42 : 1)
+                .offset(y: isKeyboardPresented ? -52 : 0)
+                .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
+                .ignoresSafeArea(edges: .top)
+
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : 288)
+
+                    VStack(spacing: 32) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Login")
+                                .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
+                                .foregroundColor(.red)
+                                .tracking(-0.9)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 8) {
+                                    Text(contactInfo)
+                                        .font(Font.custom("Inter", size: 16).weight(.medium))
+                                        .foregroundColor(Color(hex: "#5f5e5e"))
+
+                                    Button("Change") {
+                                        dismiss()
+                                    }
+                                    .font(Font.custom("Inter", size: 14).weight(.semibold))
+                                    .foregroundColor(.red)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        VStack(spacing: 20) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Password")
                                         .font(Font.custom("Inter", size: 14).weight(.semibold))
                                         .foregroundColor(Color(hex: "#191c1d"))
-                                    
-                                    HStack {
-                                        TextField("Enter your Email / Mobile number", text: $emailOrMobile)
-                                            .font(Font.custom("Inter", size: 16))
-                                            .foregroundColor(Color(hex: "#191c1d"))
-                                            .keyboardType(.emailAddress)
-                                            .autocapitalization(.none)
-                                            .disableAutocorrection(true)
-                                            .focused($isInputFocused)
-                                        
-                                        Image(systemName: "person")
-                                            .foregroundColor(isInputFocused ? .red : Color.gray.opacity(0.4))
-                                            .scaleEffect(isInputFocused ? 1.1 : 1.0)
-                                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isInputFocused)
+
+                                    Spacer()
+
+                                    Button("Forgot Password") {
+                                        navigateToForgotPassword = true
                                     }
+                                    .font(Font.custom("Inter", size: 14).weight(.semibold))
+                                    .foregroundColor(.red)
+                                }
+
+                                SecureField("Enter your password", text: $password)
+                                    .font(Font.custom("Inter", size: 14))
+                                    .foregroundColor(Color(hex: "#191c1d"))
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled(true)
+                                    .focused($isPasswordFieldFocused)
                                     .padding(.horizontal, 20)
                                     .padding(.vertical, 18)
                                     .background(Color(hex: "#f3f4f5"))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 24)
-                                            .stroke(isInputFocused ? Color.red : Color(hex: "#b7b7b7"), lineWidth: isInputFocused ? 1.5 : 1)
+                                            .stroke(
+                                                isPasswordFieldFocused ? Color.red : Color(hex: "#b7b7b7"),
+                                                lineWidth: isPasswordFieldFocused ? 1.5 : 1
+                                            )
                                     )
                                     .cornerRadius(24)
-                                    .animation(.easeInOut(duration: 0.2), value: isInputFocused)
-                                    
-                                    if let errorMessage = errorMessage {
-                                        Text(errorMessage)
-                                            .font(Font.custom("Inter", size: 12))
-                                            .foregroundColor(.red)
-                                            .padding(.horizontal, 4)
-                                            .transition(.opacity.combined(with: .move(edge: .top)))
-                                    }
-                                }
-                                
-                                Button(action: {
-                                    isInputFocused = false
-                                    withAnimation {
-                                        isLoggedIn = true
-                                    }
-                                }) {
-                                    Text("Continue")
-                                        .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 16)
-                                        .background(Color.red)
-                                        .clipShape(Capsule())
-                                        .shadow(color: Color.red.opacity(0.3), radius: 10, x: 0, y: 5)
+
+                                if let passwordError {
+                                    Text(passwordError)
+                                        .font(Font.custom("Inter", size: 12))
+                                        .foregroundColor(.red)
+                                        .padding(.horizontal, 4)
                                 }
                             }
-                            
-                            // Footer Links
-                            VStack(spacing: 32) {
-                                HStack {
-                                    Rectangle()
-                                        .fill(Color(hex: "#e1e3e4"))
-                                        .frame(height: 1)
-                                    Text("OR")
-                                        .font(Font.custom("Inter", size: 12).weight(.medium))
-                                        .foregroundColor(Color(hex: "#5f5e5e"))
-                                        .tracking(1.2)
-                                        .padding(.horizontal, 8)
-                                    Rectangle()
-                                        .fill(Color(hex: "#e1e3e4"))
-                                        .frame(height: 1)
+
+                            Button {
+                                isPasswordFieldFocused = false
+
+                                guard validatePassword() else {
+                                    return
                                 }
-                                
-                                NavigationLink(destination: CreateAccountView(), isActive: $navigateToCreateAccount) {
-                                    HStack(spacing: 4) {
-                                        Text("New to ItzEazy?")
-                                            .font(Font.custom("Inter", size: 15).weight(.medium))
-                                            .foregroundColor(Color(hex: "#191c1d"))
-                                        Text("Create your itzEazy account")
-                                            .font(Font.custom("Inter", size: 15).weight(.bold))
-                                            .foregroundColor(.red)
-                                    }
+
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isLoggedIn = true
+                                }
+                            } label: {
+                                Text("Login")
+                                    .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Color.red)
+                                    .clipShape(Capsule())
+                            }
+
+                            if isPhoneContact {
+                                Button {
+                                    navigateToOTP = true
+                                } label: {
+                                    Text("Get OTP on your phone")
+                                        .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
+                                        .foregroundColor(.red)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 16)
+                                        .background(Color.white)
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(Color.red, lineWidth: 1)
+                                        )
                                 }
                             }
                         }
-                        .padding(.horizontal, 32)
-                        .padding(.top, 32)
-                        .padding(.bottom, 48)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .background(Color.white)
-                        .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 40))
-                        .shadow(color: Color.black.opacity(0.05), radius: 15, x: 0, y: -10)
+
+                        VStack(spacing: 32) {
+                            HStack(spacing: 8) {
+                                Rectangle()
+                                    .fill(Color(hex: "#e1e3e4"))
+                                    .frame(width: 48, height: 1)
+
+                                Text("OR")
+                                    .font(Font.custom("Inter", size: 12).weight(.medium))
+                                    .foregroundColor(Color(hex: "#5f5e5e"))
+                                    .tracking(1.2)
+
+                                Rectangle()
+                                    .fill(Color(hex: "#e1e3e4"))
+                                    .frame(width: 48, height: 1)
+                            }
+                            .frame(maxWidth: .infinity)
+
+                            NavigationLink(destination: CreateAccountView()) {
+                                HStack(spacing: 9) {
+                                    Text("New to ItzEazy?")
+                                        .font(Font.custom("Inter", size: 15).weight(.medium))
+                                        .foregroundColor(Color(hex: "#191c1d"))
+
+                                    Text("Create your itzEazy account")
+                                        .font(Font.custom("Inter", size: 15).weight(.bold))
+                                        .foregroundColor(.red)
+                                }
+                            }
+                        }
                     }
-                    .edgesIgnoringSafeArea(.bottom)
+                    .padding(.horizontal, 32)
+                    .padding(.top, 18)
+                    .padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 48)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .background(Color.white)
+                    .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 40))
+                    .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: -10)
                 }
+                    .offset(y: isKeyboardPresented ? -12 : 0)
+                .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
+                .ignoresSafeArea(edges: .bottom)
             }
-            .navigationBarHidden(true)
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+        .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
-    }
-    
-    private func validateInput() -> Bool {
-        let input = emailOrMobile.trimmingCharacters(in: .whitespacesAndNewlines)
-        if input.isEmpty {
-            withAnimation {
-                errorMessage = "Please enter your Email or Mobile number."
-            }
-            return false
+        .navigationDestination(isPresented: $navigateToOTP) {
+            EnterOTPView(contactInfo: contactInfo, isPhoneContact: isPhoneContact)
         }
-        
-        let mobileRegex = "^[0-9]{10}$"
-        let mobilePredicate = NSPredicate(format: "SELF MATCHES %@", mobileRegex)
-        let isMobile = mobilePredicate.evaluate(with: input)
-        
-        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
-        let isEmail = emailPredicate.evaluate(with: input)
-        
-        if isMobile || isEmail {
-            withAnimation {
-                errorMessage = nil
+        .navigationDestination(isPresented: $navigateToForgotPassword) {
+            ForgotPasswordView()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            updateKeyboardHeight(from: notification)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeInOut(duration: 0.28)) {
+                keyboardHeight = 0
             }
-            return true
-        } else {
-            withAnimation {
-                errorMessage = "Please enter a valid Email or 10-digit Mobile number."
-            }
-            return false
+        }
+    }
+
+    private func validatePassword() -> Bool {
+        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isValid = !trimmedPassword.isEmpty
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            passwordError = isValid ? nil : "Please enter your password."
+        }
+
+        return isValid
+    }
+
+    private func updateKeyboardHeight(from notification: Notification) {
+        guard
+            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+        else {
+            return
+        }
+
+        withAnimation(.easeInOut(duration: 0.28)) {
+            keyboardHeight = frame.height
         }
     }
 }
@@ -215,5 +646,3 @@ struct LoginView: View {
 #Preview {
     LoginView()
 }
-
-

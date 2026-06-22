@@ -1,20 +1,17 @@
 import SwiftUI
 import Combine
 
-struct EnterOTPView: View {
-    @Environment(\.presentationMode) var presentationMode
-    @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
-    
-    // We'll receive the contact info (email or mobile) from the previous screen
+struct ForgotPasswordOTPView: View {
+    @Environment(\.presentationMode) private var presentationMode
+
     var contactInfo: String = "john.doe@email.com"
     var isPhoneContact: Bool = false
-    
+
     @State private var otpText: String = ""
+    @State private var navigateToCreatePassword = false
     @FocusState private var isKeyboardShowing: Bool
     @State private var keyboardHeight: CGFloat = 0
-    
-    // Timer properties
-    @State private var timeRemaining = 299 // 4:59 in seconds
+    @State private var timeRemaining = 299
 
     private var isKeyboardPresented: Bool {
         keyboardHeight > 0
@@ -27,35 +24,30 @@ struct EnterOTPView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .top) {
-                // Background
                 Color.white
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
                         isKeyboardShowing = false
                     }
-                
-                // Top Hero Section & White Status Bar
+
                 VStack(spacing: 0) {
                     Color.white
                         .frame(height: geometry.safeAreaInsets.top)
-                    
+
                     ZStack(alignment: .top) {
-                        // Background gradient
                         LinearGradient(
                             gradient: Gradient(colors: [Color(hex: "#191c1d"), Color(hex: "#2e3132")]),
                             startPoint: .top,
                             endPoint: .bottom
                         )
-                        
-                        // Hero illustration
+
                         Image("otp_image")
                             .resizable()
                             .scaledToFill()
                             .frame(width: geometry.size.width, height: 320)
                             .clipped()
                             .opacity(0.9)
-                        
-                        // Back arrow button
+
                         HStack {
                             Button(action: {
                                 presentationMode.wrappedValue.dismiss()
@@ -70,8 +62,7 @@ struct EnterOTPView: View {
                         }
                         .padding(.horizontal, 24)
                         .padding(.top, 22)
-                        
-                        // Itzeazy branding
+
                         HStack {
                             Text("Itzeazy")
                                 .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
@@ -86,37 +77,35 @@ struct EnterOTPView: View {
                     .onTapGesture {
                         isKeyboardShowing = false
                     }
-                    
+
                     Spacer()
                 }
                 .opacity(isKeyboardPresented ? 0.42 : 1)
                 .offset(y: isKeyboardPresented ? -52 : 0)
                 .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
                 .edgesIgnoringSafeArea(.top)
-                
-                // Bottom Form Card
+
                 VStack(spacing: 0) {
                     Spacer()
                         .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : geometry.safeAreaInsets.top + 218)
-                    
+
                     VStack(spacing: 16) {
-                        // Header
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Enter OTP")
                                 .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
                                 .foregroundColor(.red)
                                 .tracking(-0.7)
-                            
+
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Enter the \(otpLength)-digit verification code sent to")
                                     .font(Font.custom("Inter", size: 16).weight(.medium))
                                     .foregroundColor(Color(hex: "#5f5e5e"))
-                                
+
                                 HStack(spacing: 6) {
                                     Text(contactInfo)
                                         .font(Font.custom("Inter", size: 16).weight(.bold))
                                         .foregroundColor(Color(hex: "#191c1d"))
-                                    
+
                                     Button(action: {
                                         presentationMode.wrappedValue.dismiss()
                                     }) {
@@ -128,10 +117,8 @@ struct EnterOTPView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        // OTP Input Area
+
                         ZStack {
-                            // Invisible text field for handling input
                             TextField("", text: $otpText)
                                 .keyboardType(.numberPad)
                                 .textContentType(.oneTimeCode)
@@ -142,8 +129,7 @@ struct EnterOTPView: View {
                                         otpText = String(newValue.prefix(otpLength))
                                     }
                                 }
-                            
-                            // Visual OTP Boxes
+
                             HStack(spacing: 8) {
                                 ForEach(0..<otpLength, id: \.self) { index in
                                     OTPBox(index: index, text: otpText, isFocused: isKeyboardShowing)
@@ -154,18 +140,17 @@ struct EnterOTPView: View {
                             }
                         }
                         .padding(.top, 8)
-                        
-                        // Timer Section
+
                         HStack(spacing: 8) {
                             Image(systemName: "clock")
                                 .foregroundColor(Color(hex: "#5f5e5e"))
                                 .font(.system(size: 14))
-                            
+
                             HStack(spacing: 0) {
                                 Text("This code will expire in ")
                                     .font(Font.custom("Inter", size: 14).weight(.medium))
                                     .foregroundColor(Color(hex: "#5f5e5e"))
-                                
+
                                 Text(timeString(time: timeRemaining))
                                     .font(Font.custom("Inter", size: 14).weight(.bold))
                                     .foregroundColor(.red)
@@ -176,14 +161,11 @@ struct EnterOTPView: View {
                         .background(Color(hex: "#f3f4f5"))
                         .clipShape(Capsule())
                         .padding(.top, 8)
-                        
-                        // Action Buttons
+
                         VStack(spacing: 16) {
                             Button(action: {
                                 isKeyboardShowing = false
-                                withAnimation {
-                                    isLoggedIn = true
-                                }
+                                navigateToCreatePassword = true
                             }) {
                                 Text("Verify & Continue")
                                     .font(Font.custom("Inter", size: 18).weight(.bold))
@@ -195,9 +177,8 @@ struct EnterOTPView: View {
                                     .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 15, x: 0, y: 10)
                                     .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 6, x: 0, y: 4)
                             }
-                            
+
                             Button(action: {
-                                // Resend OTP Logic
                                 timeRemaining = 299
                                 otpText = ""
                             }) {
@@ -215,12 +196,12 @@ struct EnterOTPView: View {
                             }
                         }
                         .padding(.top, 8)
-                        
-                        // Footer
+
                         HStack(spacing: 4) {
                             Text("Didn't receive the code?")
                                 .font(Font.custom("Inter", size: 14).weight(.medium))
                                 .foregroundColor(Color(hex: "#191c1d"))
+
                             Button(action: {
                                 presentationMode.wrappedValue.dismiss()
                             }) {
@@ -246,6 +227,9 @@ struct EnterOTPView: View {
         }
         .navigationBarHidden(true)
         .preferredColorScheme(.light)
+        .navigationDestination(isPresented: $navigateToCreatePassword) {
+            CreatePasswordView()
+        }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             if timeRemaining > 0 {
                 timeRemaining -= 1
@@ -265,18 +249,15 @@ struct EnterOTPView: View {
             }
         }
     }
-    
-    // Helper to format time
-    func timeString(time: Int) -> String {
+
+    private func timeString(time: Int) -> String {
         let minutes = time / 60
         let seconds = time % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private func updateKeyboardHeight(from notification: Notification) {
-        guard
-            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
-        else {
+        guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
             return
         }
 
@@ -286,37 +267,8 @@ struct EnterOTPView: View {
     }
 }
 
-struct OTPBox: View {
-    var index: Int
-    var text: String
-    var isFocused: Bool
-    
-    var body: some View {
-        let char = character(at: index)
-        let isActive = isFocused && text.count == index
-        let isFilled = !char.isEmpty
-        
-        Text(char)
-            .font(Font.custom("Inter", size: 24).weight(.bold))
-            .foregroundColor(Color(hex: "#191c1d"))
-            .frame(width: 48, height: 56)
-            .background(Color(hex: "#f3f4f5"))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isActive || isFilled ? Color.blue : Color.red.opacity(0.3), lineWidth: isActive || isFilled ? 1.5 : 1)
-            )
-    }
-    
-    func character(at index: Int) -> String {
-        guard index < text.count else { return "" }
-        let stringIndex = text.index(text.startIndex, offsetBy: index)
-        return String(text[stringIndex])
-    }
-}
-
 #Preview {
     NavigationView {
-        EnterOTPView()
+        ForgotPasswordOTPView()
     }
 }

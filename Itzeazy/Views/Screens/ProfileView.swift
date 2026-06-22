@@ -4,6 +4,7 @@ struct ProfileView: View {
     @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
     @StateObject private var viewModel = ProfileViewModel()
     @State private var naturalHeight: CGFloat = 0
+    let onBackToHome: (() -> Void)?
 
     private let backgroundColor = Color(red: 0.96, green: 0.96, blue: 0.96)
     private let strokeColor = Color(red: 0.72, green: 0.72, blue: 0.72)
@@ -15,7 +16,7 @@ struct ProfileView: View {
 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 14) {
-                        ProfileHeaderView(strokeColor: strokeColor)
+                        ProfileHeaderView(strokeColor: strokeColor, onBackToHome: onBackToHome)
 
                         VStack(spacing: 14) {
                             ForEach(Array(viewModel.primarySections.enumerated()), id: \.offset) { _, section in
@@ -43,7 +44,24 @@ struct ProfileView: View {
                             }
                             .padding(.horizontal, 14)
                             .padding(.top, 6)
-                            .padding(.bottom, 120)
+
+                            Button(action: {
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image("delete_button_icon")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 16, height: 16)
+
+                                    Text("Delete Account")
+                                        .font(Font.custom("Inter", size: 14).weight(.semibold))
+                                }
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .frame(height: 24)
+                            }
+                            .padding(.top, 4)
+                            .padding(.bottom, 80)
                         }
                         .padding(.horizontal, 14)
                     }
@@ -69,7 +87,9 @@ struct ProfileView: View {
 }
 
 private struct ProfileHeaderView: View {
+    @Environment(\.dismiss) private var dismiss
     let strokeColor: Color
+    let onBackToHome: (() -> Void)?
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -86,10 +106,19 @@ private struct ProfileHeaderView: View {
                 .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
 
             HStack(spacing: 12) {
-                Image(systemName: "arrow.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 28, height: 28)
+                Button {
+                    if let onBackToHome {
+                        onBackToHome()
+                    } else {
+                        dismiss()
+                    }
+                } label: {
+                    Image(systemName: "arrow.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
 
                 Text("Profile")
                     .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
@@ -251,5 +280,5 @@ private struct ProfileSocialCardView: View {
 }
 
 #Preview {
-    ProfileView()
+    ProfileView(onBackToHome: nil)
 }

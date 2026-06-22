@@ -116,7 +116,13 @@ struct HomeHeroCardView: View {
                 HStack {
                     Image(systemName: "mappin.and.ellipse")
                         .foregroundColor(.gray)
-                    TextField("Choose location", text: $location)
+                    TextField(
+                        "",
+                        text: $location,
+                        prompt: Text("Choose location")
+                            .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
+                    )
+                    .foregroundColor(.black)
                 }
                 .padding()
                 .background(Color.white)
@@ -127,7 +133,13 @@ struct HomeHeroCardView: View {
                     HStack {
                         Image(systemName: "doc.text")
                             .foregroundColor(.gray)
-                        TextField("Service", text: $service)
+                        TextField(
+                            "",
+                            text: $service,
+                            prompt: Text("Service")
+                                .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
+                        )
+                        .foregroundColor(.black)
                     }
                     .padding()
                     .background(Color.white)
@@ -136,7 +148,13 @@ struct HomeHeroCardView: View {
                     HStack {
                         Image(systemName: "doc.plaintext")
                             .foregroundColor(.gray)
-                        TextField("Type", text: $type)
+                        TextField(
+                            "",
+                            text: $type,
+                            prompt: Text("Type")
+                                .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
+                        )
+                        .foregroundColor(.black)
                     }
                     .padding()
                     .background(Color.white)

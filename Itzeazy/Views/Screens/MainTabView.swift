@@ -42,7 +42,10 @@ struct MainTabView: View {
                     .navigationViewStyle(StackNavigationViewStyle())
                 case .profile:
                     NavigationView {
-                        ProfileView()
+                        ProfileView {
+                            selectedTab = .home
+                            homeNavID = UUID()
+                        }
                             .navigationBarTitleDisplayMode(.inline)
                             .navigationBarHidden(true)
                     }
