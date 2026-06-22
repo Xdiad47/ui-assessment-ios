@@ -10,14 +10,18 @@ struct CreateAccountView: View {
     @State private var showPassword: Bool = false
     @FocusState private var focusedField: Field?
     
+    @State private var navigateToOTP: Bool = false
+    @State private var selectedContactInfo: String = ""
+    
     enum Field {
         case name, mobile, email, password
     }
     
     var body: some View {
         GeometryReader { geometry in
-            ZStack(alignment: .top) {
-                // Background
+            ScrollView(.vertical, showsIndicators: false) {
+                ZStack(alignment: .top) {
+                    // Background
                 Color.white
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
@@ -207,9 +211,8 @@ struct CreateAccountView: View {
                                 Button(action: {
                                     focusedField = nil
                                     // Logic for Email verification
-                                    withAnimation {
-                                        isLoggedIn = true
-                                    }
+                                    selectedContactInfo = emailAddress.isEmpty ? "john.doe@email.com" : emailAddress
+                                    navigateToOTP = true
                                 }) {
                                     Text("Get verification code on Email")
                                         .font(Font.custom("Inter", size: 16).weight(.semibold))
@@ -225,6 +228,8 @@ struct CreateAccountView: View {
                                 Button(action: {
                                     focusedField = nil
                                     // Logic for Mobile verification
+                                    selectedContactInfo = mobileNumber.isEmpty ? "+91 9876543210" : "+91 " + mobileNumber
+                                    navigateToOTP = true
                                 }) {
                                     Text("Get verification code on Mobile")
                                         .font(Font.custom("Inter", size: 16).weight(.semibold))
@@ -256,14 +261,20 @@ struct CreateAccountView: View {
                         }
                         .padding(.horizontal, 32)
                         .padding(.top, 18)
-                        .padding(.bottom, 24)
+                        .padding(.bottom, focusedField != nil ? 150 : 32) // Added extra padding for keyboard gap
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .background(Color.white)
+                        .background(Color.white.ignoresSafeArea(.container, edges: .bottom))
                         .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 32))
                         .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: -10)
                     }
-                    .edgesIgnoringSafeArea(.bottom)
+                
+                NavigationLink(destination: EnterOTPView(contactInfo: selectedContactInfo), isActive: $navigateToOTP) {
+                    EmptyView()
+                }
             }
+            .frame(minHeight: geometry.size.height)
+            }
+            .edgesIgnoringSafeArea(.top)
         }
         .navigationBarHidden(true)
         .preferredColorScheme(.light)
@@ -271,6 +282,8 @@ struct CreateAccountView: View {
 }
 
 #Preview {
-    CreateAccountView()
+    NavigationView {
+        CreateAccountView()
+    }
 }
 

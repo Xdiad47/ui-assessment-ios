@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
     @StateObject private var viewModel = ProfileViewModel()
     @State private var naturalHeight: CGFloat = 0
 
@@ -24,7 +25,9 @@ struct ProfileView: View {
                             ProfileSocialCardView(items: viewModel.socialItems, strokeColor: strokeColor)
 
                             Button(action: {
-                                // Logout action
+                                withAnimation {
+                                    isLoggedIn = false
+                                }
                             }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "rectangle.portrait.and.arrow.right")

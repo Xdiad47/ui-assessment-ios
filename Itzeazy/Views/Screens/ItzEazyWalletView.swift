@@ -27,7 +27,7 @@ struct ItzEazyWalletView: View {
 
                         whatsNewCard
                             .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
+                            .padding(.bottom, 65)
                     }
                     .background(GeometryReader { geo in
                         Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)

@@ -6,10 +6,12 @@
       "scale" : "1x"
     },
     {
+      "filename" : "wallet_illustration@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
+      "filename" : "wallet_illustration@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

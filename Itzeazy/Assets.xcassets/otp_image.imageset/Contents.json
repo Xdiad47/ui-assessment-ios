@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "track_application.png",
+      "filename" : "otp_image.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "track_application@2x.png",
+      "filename" : "otp_image@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "track_application@3x.png",
+      "filename" : "otp_image@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
