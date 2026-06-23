@@ -3,9 +3,9 @@ import Combine
 import SwiftUI
 
 class RTOServicesViewModel: ObservableObject {
-    @Published var selectedLocation: String = ""
-    @Published var selectedService: String = ""
-    @Published var selectedType: String = ""
+    @Published var selectedLocation: String
+    @Published var selectedService: String
+    @Published var selectedType: String
     
     @Published var rtoServices: [ServiceItem] = [
         ServiceItem(title: "Duplicate RC",    iconName: "duplicate_rc",    isAsset: true),
@@ -21,4 +21,14 @@ class RTOServicesViewModel: ObservableObject {
         ServiceItem(title: "DL Extract",      iconName: "dl_extract",      isAsset: true),
         ServiceItem(title: "Vehicle Fitness", iconName: "vehicle_fitness", isAsset: true)
     ]
+
+    init(
+        selectedLocation: String = "",
+        selectedService: String = "RTO",
+        selectedType: String = ""
+    ) {
+        self.selectedLocation = selectedLocation
+        self.selectedService = selectedService
+        self.selectedType = selectedType
+    }
 }

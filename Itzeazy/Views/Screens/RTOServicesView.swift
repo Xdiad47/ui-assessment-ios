@@ -1,8 +1,18 @@
 import SwiftUI
 
 struct RTOServicesView: View {
-    @StateObject private var viewModel = RTOServicesViewModel()
+    @StateObject private var viewModel: RTOServicesViewModel
     @Environment(\.presentationMode) var presentationMode
+
+    init(selectedLocation: String = "", selectedType: String = "") {
+        _viewModel = StateObject(
+            wrappedValue: RTOServicesViewModel(
+                selectedLocation: selectedLocation,
+                selectedService: "RTO",
+                selectedType: selectedType
+            )
+        )
+    }
 
     var body: some View {
         ZStack {
@@ -80,9 +90,10 @@ struct RTOServicesView: View {
                             Image(systemName: "location.fill")
                                 .foregroundColor(.red)
                                 .frame(width: 16)
-                            TextField("Choose location", text: $viewModel.selectedLocation)
+                            Text(viewModel.selectedLocation.isEmpty ? "Choose location" : viewModel.selectedLocation)
                                 .font(Font.custom("Inter", size: 14))
-                                .foregroundColor(.black)
+                                .foregroundColor(viewModel.selectedLocation.isEmpty ? Color.gray : .black)
+                            Spacer()
                         }
                         .padding(.horizontal, 16)
                         .frame(height: 46)
@@ -96,9 +107,10 @@ struct RTOServicesView: View {
                                 Image(systemName: "doc.text.fill")
                                     .foregroundColor(.red)
                                     .frame(width: 16)
-                                TextField("Service", text: $viewModel.selectedService)
+                                Text(viewModel.selectedService)
                                     .font(Font.custom("Inter", size: 14))
                                     .foregroundColor(.black)
+                                Spacer()
                             }
                             .padding(.horizontal, 16)
                             .frame(height: 46)
@@ -170,7 +182,7 @@ struct RTOServicesView: View {
                     // Front layer: scrollable content
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("RTO Services in Bangalore")
+                            Text("RTO Services in \(viewModel.selectedLocation.isEmpty ? "Bangalore" : viewModel.selectedLocation)")
                                 .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
                                 .foregroundColor(Color(red: 0.1, green: 0.11, blue: 0.11))
                                 .padding(.bottom, 8)

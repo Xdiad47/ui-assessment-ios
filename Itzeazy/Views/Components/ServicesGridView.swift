@@ -12,7 +12,7 @@ struct ServicesGridView: View {
         LazyVGrid(columns: columns, spacing: 16) {
             ForEach(services) { service in
                 if service.title == "RTO Services" {
-                    NavigationLink(destination: RTOServicesView()) {
+                    NavigationLink(destination: RTOServiceInitialView()) {
                         ServiceCardView(service: service)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -25,5 +25,4 @@ struct ServicesGridView: View {
         .padding(.bottom, 24)
     }
 }
-
 

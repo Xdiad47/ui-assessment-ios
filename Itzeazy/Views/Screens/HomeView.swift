@@ -211,7 +211,7 @@ struct HomeServicesGridView: View {
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(services, id: \.0) { service in
                     if service.0.contains("RTO") {
-                        NavigationLink(destination: RTOServicesView()) {
+                        NavigationLink(destination: RTOServiceInitialView()) {
                             ServiceBoxView(title: service.0, iconName: service.1)
                         }
                         .buttonStyle(PlainButtonStyle())
