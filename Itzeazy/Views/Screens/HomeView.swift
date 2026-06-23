@@ -292,6 +292,16 @@ struct HomeUtilitiesGridView: View {
                             ServiceBoxView(title: utility.0, iconName: utility.1)
                         }
                         .buttonStyle(PlainButtonStyle())
+                    } else if utility.0 == "EV Charge" {
+                        NavigationLink(destination: EVChargeRouter()) {
+                            ServiceBoxView(title: utility.0, iconName: utility.1)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    } else if utility.0 == "Petrol\nPump" {
+                        NavigationLink(destination: PetrolPumpRouter()) {
+                            ServiceBoxView(title: utility.0, iconName: utility.1)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     } else {
                         ServiceBoxView(title: utility.0, iconName: utility.1)
                     }

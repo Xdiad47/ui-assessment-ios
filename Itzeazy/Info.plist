@@ -9,5 +9,7 @@
         <string>PlusJakartaSans-Bold.ttf</string>
         <string>PlusJakartaSans-ExtraBold.ttf</string>
     </array>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Allow location access to find EV charging stations near you.</string>
 </dict>
 </plist>
