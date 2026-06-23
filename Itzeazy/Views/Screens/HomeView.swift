@@ -216,7 +216,7 @@ struct HomeServicesGridView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                     } else if service.0 == "Visa" {
-                        NavigationLink(destination: VisaView()) {
+                        NavigationLink(destination: VisaViewInitial()) {
                             ServiceBoxView(title: service.0, iconName: service.1)
                         }
                         .buttonStyle(PlainButtonStyle())

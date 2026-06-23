@@ -2,7 +2,11 @@ import SwiftUI
 
 struct VisaView: View {
     @Environment(\.presentationMode) private var presentationMode
-    @StateObject private var viewModel = VisaViewModel()
+    @StateObject private var viewModel: VisaViewModel
+
+    init(selectedCountry: String = "Singapore") {
+        _viewModel = StateObject(wrappedValue: VisaViewModel(selectedCountry: selectedCountry))
+    }
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -39,9 +43,9 @@ struct VisaView: View {
                                 
                                 // Flag and Title
                                 HStack(spacing: 8) {
-                                    Text("🇸🇬")
+                                    Text(viewModel.countryFlag)
                                         .font(.system(size: 20))
-                                    Text("Singapore")
+                                    Text(viewModel.selectedCountry)
                                         .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
                                         .foregroundColor(.white)
                                 }

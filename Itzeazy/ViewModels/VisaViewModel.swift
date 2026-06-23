@@ -14,8 +14,13 @@ struct DocumentRequirement: Identifiable {
 }
 
 class VisaViewModel: ObservableObject {
+    let selectedCountry: String
     @Published var selectedCategory: VisaCategory = .leisure
     @Published var isLoading: Bool = false
+
+    init(selectedCountry: String = "Singapore") {
+        self.selectedCountry = selectedCountry
+    }
     
     // Static details matching the Figma design
     var processingTime: String {
@@ -28,6 +33,65 @@ class VisaViewModel: ObservableObject {
     
     var visaFeeUSD: String {
         return "(~$30 USD)"
+    }
+
+    var countryFlag: String {
+        switch selectedCountry {
+        case "Australia": return "🇦🇺"
+        case "Bahrain": return "🇧🇭"
+        case "Cambodia": return "🇰🇭"
+        case "Canada": return "🇨🇦"
+        case "China": return "🇨🇳"
+        case "Croatia": return "🇭🇷"
+        case "Denmark": return "🇩🇰"
+        case "Egypt": return "🇪🇬"
+        case "Finland": return "🇫🇮"
+        case "France": return "🇫🇷"
+        case "Georgia": return "🇬🇪"
+        case "Germany": return "🇩🇪"
+        case "Greece": return "🇬🇷"
+        case "Hungary": return "🇭🇺"
+        case "Indonesia": return "🇮🇩"
+        case "Italy": return "🇮🇹"
+        case "Japan": return "🇯🇵"
+        case "Jordan": return "🇯🇴"
+        case "Kenya": return "🇰🇪"
+        case "Kuwait": return "🇰🇼"
+        case "Laos": return "🇱🇦"
+        case "Malaysia": return "🇲🇾"
+        case "Maldives": return "🇲🇻"
+        case "Mexico": return "🇲🇽"
+        case "Morocco": return "🇲🇦"
+        case "Myanmar": return "🇲🇲"
+        case "Nepal": return "🇳🇵"
+        case "Netherlands": return "🇳🇱"
+        case "New Zealand": return "🇳🇿"
+        case "Norway": return "🇳🇴"
+        case "Oman": return "🇴🇲"
+        case "Philippines": return "🇵🇭"
+        case "Portugal": return "🇵🇹"
+        case "Qatar": return "🇶🇦"
+        case "Russia": return "🇷🇺"
+        case "Saudi Arabia": return "🇸🇦"
+        case "Singapore": return "🇸🇬"
+        case "South Africa": return "🇿🇦"
+        case "South Korea": return "🇰🇷"
+        case "Spain": return "🇪🇸"
+        case "Sri Lanka": return "🇱🇰"
+        case "Sweden": return "🇸🇪"
+        case "Switzerland": return "🇨🇭"
+        case "Taiwan": return "🇹🇼"
+        case "Thailand": return "🇹🇭"
+        case "Turkey": return "🇹🇷"
+        case "UAE": return "🇦🇪"
+        case "Uganda": return "🇺🇬"
+        case "UK": return "🇬🇧"
+        case "USA": return "🇺🇸"
+        case "Uzbekistan": return "🇺🇿"
+        case "Vietnam": return "🇻🇳"
+        case "Zimbabwe": return "🇿🇼"
+        default: return "🌍"
+        }
     }
     
     var requiredDocuments: [DocumentRequirement] {
