@@ -1,42 +1,57 @@
 import SwiftUI
 
+// Lightweight wrapper so a URL string works with .fullScreenCover(item:)
+struct IdentifiableURL: Identifiable {
+    let id = UUID()
+    let url: String
+}
+
 struct HomeView: View {
+    @State private var webViewUrl: IdentifiableURL? = nil
+
+
     var body: some View {
         ZStack(alignment: .top) {
-                // Base background: completely dark for status bar and bounce area. Prevents white gaps.
-                Color(red: 0.11, green: 0.11, blue: 0.11).ignoresSafeArea()
-                
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
+            // Base background: completely dark for status bar and bounce area. Prevents white gaps.
+            Color(red: 0.11, green: 0.11, blue: 0.11).ignoresSafeArea()
 
-                        // Dark Section (Header & Hero)
-                        VStack(spacing: 24) {
-                            HomeHeaderView()
-                                .padding(.horizontal, 0)
-                            HomeHeroCardView()
-                                .padding(.horizontal, 10)
-                                .padding(.bottom, 25)
-                        }
-                        .background(Color(red: 0.11, green: 0.11, blue: 0.11))
-                        .clipShape(RoundedCorner(radius: 20, corners: [.bottomRight, .bottomLeft]))
-                      
-                        // White Section (Services & Utilities)
-                        VStack(spacing: 32) {
-                            HomeServicesGridView()
-                                .padding(.top, 32)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
 
-                            HomeUtilitiesGridView()
-                            
-                            HomeWorkflowView()
-                            
-                            HomeValuePropositionView()
+                    // Dark Section (Header & Hero)
+                    VStack(spacing: 24) {
+                        HomeHeaderView()
+                            .padding(.horizontal, 0)
+                        HomeHeroCardView { url in
+                            webViewUrl = IdentifiableURL(url: url)
                         }
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 25)
                     }
-                    .background(Color.white) // Entire scrollable area gets white bg, sitting behind dark header's corners
+                    .background(Color(red: 0.11, green: 0.11, blue: 0.11))
+                    .clipShape(RoundedCorner(radius: 20, corners: [.bottomRight, .bottomLeft]))
+
+                    // White Section (Services & Utilities)
+                    VStack(spacing: 32) {
+                        HomeServicesGridView()
+                            .padding(.top, 32)
+
+                        HomeUtilitiesGridView()
+
+                        HomeWorkflowView()
+
+                        HomeValuePropositionView()
+                    }
                 }
+                .background(Color.white)
             }
-            .navigationTitle("")
-            .navigationBarHidden(true)
+        }
+        .navigationTitle("")
+        .navigationBarHidden(true)
+        // Full-screen cover: renders above the bottom tab bar entirely
+        .fullScreenCover(item: $webViewUrl) { identifiable in
+            CitizenServicesWebView(url: identifiable.url)
+        }
     }
 }
 
@@ -100,81 +115,233 @@ struct HomeHeaderView: View {
 }
 
 struct HomeHeroCardView: View {
-    @State private var location = ""
-    @State private var service = ""
-    @State private var type = ""
-    
+    var onGetStarted: (String) -> Void
+
+    @StateObject private var vm = HomeHeroViewModel()
+
+    @State private var showCityPicker    = false
+    @State private var showServicePicker = false
+    @State private var showTypePicker    = false
+
+    private let accentRed = Color(red: 0.85, green: 0.2, blue: 0.2)
+    private let fieldGray = Color(red: 0.55, green: 0.55, blue: 0.55)
+
     var body: some View {
         VStack(spacing: 20) {
             Text("Citizen services at doorstep")
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
-            
+
             VStack(spacing: 12) {
-                // Location - Full Width
-                HStack {
-                    Image(systemName: "mappin.and.ellipse")
-                        .foregroundColor(.gray)
-                    TextField(
-                        "",
-                        text: $location,
-                        prompt: Text("Choose location")
-                            .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
-                    )
-                    .foregroundColor(.black)
+
+                // --- Location (Full Width) ---
+                Button(action: {
+                    if !vm.isVisaSelected { showCityPicker = true }
+                }) {
+                    HStack {
+                        Image(systemName: "mappin.and.ellipse")
+                            .foregroundColor(vm.isVisaSelected ? fieldGray.opacity(0.5) : fieldGray)
+                        Text(vm.isVisaSelected
+                             ? "Not required for Visa"
+                             : (vm.selectedCity?.display ?? "Choose location"))
+                            .foregroundColor(
+                                vm.isVisaSelected
+                                ? fieldGray.opacity(0.5)
+                                : (vm.selectedCity != nil ? .black : fieldGray)
+                            )
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(vm.isVisaSelected ? fieldGray.opacity(0.4) : fieldGray)
+                    }
+                    .padding()
+                    .background(vm.isVisaSelected ? Color(red: 0.93, green: 0.93, blue: 0.93) : Color.white)
+                    .cornerRadius(12)
                 }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(12)
-                
-                // Service & Type - Side by Side
+                .disabled(vm.isVisaSelected)
+
+                // --- Service & Type - Side by Side ---
                 HStack(spacing: 12) {
-                    HStack {
-                        Image(systemName: "doc.text")
-                            .foregroundColor(.gray)
-                        TextField(
-                            "",
-                            text: $service,
-                            prompt: Text("Service")
-                                .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
-                        )
-                        .foregroundColor(.black)
+
+                    // Service picker
+                    Button(action: { showServicePicker = true }) {
+                        HStack {
+                            Image(systemName: "doc.text")
+                                .foregroundColor(fieldGray)
+                            Text(vm.selectedService?.display ?? "Service")
+                                .foregroundColor(vm.selectedService != nil ? .black : fieldGray)
+                                .lineLimit(1)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .foregroundColor(fieldGray)
+                        }
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(12)
                     }
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    
-                    HStack {
-                        Image(systemName: "doc.plaintext")
-                            .foregroundColor(.gray)
-                        TextField(
-                            "",
-                            text: $type,
-                            prompt: Text("Type")
-                                .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
-                        )
-                        .foregroundColor(.black)
+
+                    // Type / Sub-service picker
+                    Button(action: {
+                        if vm.selectedService != nil { showTypePicker = true }
+                    }) {
+                        HStack {
+                            Image(systemName: vm.isVisaSelected ? "globe" : "doc.plaintext")
+                                .foregroundColor(vm.selectedService == nil ? fieldGray.opacity(0.5) : fieldGray)
+                            Text(vm.selectedSubService?.display ?? (vm.isVisaSelected ? "Country" : "Type"))
+                                .foregroundColor(
+                                    vm.selectedSubService != nil ? .black
+                                    : (vm.selectedService == nil ? fieldGray.opacity(0.5) : fieldGray)
+                                )
+                                .lineLimit(1)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .foregroundColor(vm.selectedService == nil ? fieldGray.opacity(0.4) : fieldGray)
+                        }
+                        .padding()
+                        .background(vm.selectedService == nil ? Color(red: 0.96, green: 0.96, blue: 0.96) : Color.white)
+                        .cornerRadius(12)
                     }
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(12)
+                    .disabled(vm.selectedService == nil)
                 }
             }
-            
+
+            // --- Get Started Button ---
             Button(action: {
-                // Get Started action
+                if let url = vm.buildUrl() {
+                    onGetStarted(url)
+                }
             }) {
                 Text("Get Started")
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color(red: 0.85, green: 0.2, blue: 0.2)) // Red action button
+                    .background(vm.isGetStartedEnabled ? accentRed : accentRed.opacity(0.45))
                     .cornerRadius(12)
             }
+            .disabled(!vm.isGetStartedEnabled)
         }
         .padding(.horizontal)
+
+        // MARK: - Sheet Pickers
+
+        // City picker
+        .sheet(isPresented: $showCityPicker) {
+            PickerSheetView(
+                title: "Choose Location",
+                items: vm.cities,
+                displayText: { $0.display },
+                onSelect: { vm.selectedCity = $0 }
+            )
+        }
+
+        // Service picker
+        .sheet(isPresented: $showServicePicker) {
+            PickerSheetView(
+                title: "Choose Service",
+                items: vm.services,
+                displayText: { $0.display },
+                onSelect: { vm.selectedService = $0 }
+            )
+        }
+
+        // Sub-service / Type picker
+        .sheet(isPresented: $showTypePicker) {
+            PickerSheetView(
+                title: vm.isVisaSelected ? "Choose Country" : "Choose Type",
+                items: vm.availableSubServices,
+                displayText: { $0.display },
+                isSearchable: vm.isVisaSelected,
+                onSelect: { vm.selectedSubService = $0 }
+            )
+        }
+    }
+}
+
+// MARK: - Generic Picker Sheet
+
+struct PickerSheetView<T: Identifiable>: View {
+    let title: String
+    let items: [T]
+    let displayText: (T) -> String
+    var isSearchable: Bool = false
+    let onSelect: (T) -> Void
+
+    @Environment(\.presentationMode) private var presentationMode
+    @State private var query: String = ""
+
+    private var filtered: [T] {
+        guard isSearchable, !query.trimmingCharacters(in: .whitespaces).isEmpty else { return items }
+        return items.filter { displayText($0).localizedCaseInsensitiveContains(query) }
+    }
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+
+                // Search bar — shown only for searchable pickers (e.g. country list)
+                if isSearchable {
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
+                        TextField("Search country…", text: $query)
+                            .autocapitalization(.words)
+                            .disableAutocorrection(true)
+                        if !query.isEmpty {
+                            Button(action: { query = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
+                            }
+                        }
+                    }
+                    .padding(10)
+                    .background(Color(red: 0.95, green: 0.95, blue: 0.97))
+                    .cornerRadius(10)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+
+                    Divider()
+                }
+
+                if filtered.isEmpty {
+                    Spacer()
+                    VStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 36))
+                            .foregroundColor(Color(red: 0.75, green: 0.75, blue: 0.75))
+                        Text("No results for \"\(query)\"")
+                            .font(.subheadline)
+                            .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
+                    }
+                    Spacer()
+                } else {
+                    List(filtered) { item in
+                        Button(action: {
+                            onSelect(item)
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            HStack {
+                                Text(displayText(item))
+                                    .foregroundColor(.black)
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                        }
+                    }
+                    .listStyle(InsetGroupedListStyle())
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { presentationMode.wrappedValue.dismiss() }
+                }
+            }
+        }
     }
 }
 

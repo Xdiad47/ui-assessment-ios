@@ -106,3 +106,23 @@ struct COVDetail: Identifiable {
     let classOfVehicle: String
     let issueDate: String
 }
+
+// MARK: - HomeHero Data Models
+
+struct CityOption: Identifiable, Equatable {
+    let id = UUID()
+    let display: String
+    let slug: String
+}
+
+struct ServiceOption: Identifiable, Equatable {
+    let id = UUID()
+    let display: String
+    let slug: String
+}
+
+struct SubServiceOption: Identifiable, Equatable {
+    let id = UUID()
+    let display: String
+    let slug: String
+}

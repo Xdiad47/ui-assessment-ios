@@ -4,6 +4,9 @@ struct RTOServicesView: View {
     @StateObject private var viewModel: RTOServicesViewModel
     @Environment(\.presentationMode) var presentationMode
 
+    @State private var showTypePicker  = false
+    @State private var webViewUrl: IdentifiableURL? = nil
+
     init(selectedLocation: String = "", selectedType: String = "") {
         _viewModel = StateObject(
             wrappedValue: RTOServicesViewModel(
@@ -85,7 +88,7 @@ struct RTOServicesView: View {
 
                     // Input fields
                     VStack(spacing: 12) {
-                        // Location
+                        // Location — locked, pre-filled from RTOServiceInitialView
                         HStack {
                             Image(systemName: "location.fill")
                                 .foregroundColor(.red)
@@ -94,15 +97,20 @@ struct RTOServicesView: View {
                                 .font(Font.custom("Inter", size: 14))
                                 .foregroundColor(viewModel.selectedLocation.isEmpty ? Color.gray : .black)
                             Spacer()
+                            // Lock icon to communicate it's not editable
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color.gray.opacity(0.5))
                         }
                         .padding(.horizontal, 16)
                         .frame(height: 46)
-                        .background(Color.white)
+                        .background(Color(red: 0.96, green: 0.96, blue: 0.96))
                         .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
 
                         // Service + Type
                         HStack(spacing: 12) {
+                            // Service — locked to "RTO"
                             HStack {
                                 Image(systemName: "doc.text.fill")
                                     .foregroundColor(.red)
@@ -111,26 +119,37 @@ struct RTOServicesView: View {
                                     .font(Font.custom("Inter", size: 14))
                                     .foregroundColor(.black)
                                 Spacer()
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color.gray.opacity(0.5))
                             }
                             .padding(.horizontal, 16)
                             .frame(height: 46)
-                            .background(Color.white)
+                            .background(Color(red: 0.96, green: 0.96, blue: 0.96))
                             .cornerRadius(12)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
 
-                            HStack {
-                                Image(systemName: "car.fill")
-                                    .foregroundColor(.red)
-                                    .frame(width: 16)
-                                TextField("Type", text: $viewModel.selectedType)
-                                    .font(Font.custom("Inter", size: 14))
-                                    .foregroundColor(.black)
+                            // Type — tappable dropdown for sub-service selection
+                            Button(action: { showTypePicker = true }) {
+                                HStack {
+                                    Image(systemName: "car.fill")
+                                        .foregroundColor(.red)
+                                        .frame(width: 16)
+                                    Text(viewModel.selectedSubService?.display ?? "Choose Type")
+                                        .font(Font.custom("Inter", size: 14))
+                                        .foregroundColor(viewModel.selectedSubService != nil ? .black : .gray)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.horizontal, 16)
+                                .frame(height: 46)
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
                             }
-                            .padding(.horizontal, 16)
-                            .frame(height: 46)
-                            .background(Color.white)
-                            .cornerRadius(12)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
                         }
                     }
                     .padding(.horizontal, 20)
@@ -139,17 +158,24 @@ struct RTOServicesView: View {
                     // Get Started — full-width, inside dark section
                     ZStack {
                         Button(action: {
-                            // Action for Get Started
+                            if let url = viewModel.buildUrl() {
+                                webViewUrl = IdentifiableURL(url: url)
+                            }
                         }) {
                             Text("Get Started")
                                 .font(Font.custom("Inter", size: 16).weight(.semibold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 52)
-                                .background(Color.red)
+                                .background(viewModel.isGetStartedEnabled
+                                    ? Color.red
+                                    : Color.red.opacity(0.45))
                                 .cornerRadius(12)
-                                .shadow(color: Color.red.opacity(0.3), radius: 6, x: 0, y: 4)
+                                .shadow(color: Color.red.opacity(
+                                    viewModel.isGetStartedEnabled ? 0.3 : 0
+                                ), radius: 6, x: 0, y: 4)
                         }
+                        .disabled(!viewModel.isGetStartedEnabled)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
@@ -222,6 +248,20 @@ struct RTOServicesView: View {
             }
         }
         .navigationBarHidden(true)
+        // Sub-service type picker sheet
+        .sheet(isPresented: $showTypePicker) {
+            PickerSheetView(
+                title: "Choose Type",
+                items: viewModel.rtoSubServices,
+                displayText: { $0.display },
+                isSearchable: false,
+                onSelect: { viewModel.selectedSubService = $0 }
+            )
+        }
+        // Full-screen WebView — covers bottom tab bar
+        .fullScreenCover(item: $webViewUrl) { identifiable in
+            CitizenServicesWebView(url: identifiable.url)
+        }
     }
 }
 
