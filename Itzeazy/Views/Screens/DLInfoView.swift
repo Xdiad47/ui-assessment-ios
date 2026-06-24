@@ -84,7 +84,7 @@ struct DLInfoView: View {
                                     .font(Font.custom("Inter", size: 12).weight(.semibold))
                                     .foregroundColor(.white)
 
-                                TextField("02-06-1986", text: $viewModel.dob)
+                                TextField("DD-MM-YYYY", text: $viewModel.dob)
                                     .font(Font.custom("Inter", size: 13))
                                     .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
                                     .padding(.vertical, 14)
@@ -99,8 +99,7 @@ struct DLInfoView: View {
 
                         HStack(spacing: 16) {
                             Button(action: {
-                                viewModel.dlNumber = ""
-                                viewModel.dob = ""
+                                viewModel.reset()
                             }) {
                                 Text("Reset")
                                     .font(Font.custom("Inter", size: 12).weight(.semibold))
@@ -110,6 +109,9 @@ struct DLInfoView: View {
                                     .clipShape(Capsule())
                             }
 
+                            let canSearch = !viewModel.dlNumber.trimmingCharacters(in: .whitespaces).isEmpty
+                                         && !viewModel.dob.trimmingCharacters(in: .whitespaces).isEmpty
+
                             Button(action: {
                                 viewModel.getDetails()
                             }) {
@@ -118,7 +120,7 @@ struct DLInfoView: View {
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                         .frame(maxWidth: .infinity)
                                         .frame(height: 40)
-                                        .background(Color.red)
+                                        .background(canSearch ? Color.red : Color.red.opacity(0.4))
                                         .clipShape(Capsule())
                                 } else {
                                     Text("Check Status")
@@ -126,11 +128,12 @@ struct DLInfoView: View {
                                         .foregroundColor(.white)
                                         .frame(maxWidth: .infinity)
                                         .frame(height: 40)
-                                        .background(Color.red)
+                                        .background(canSearch ? Color.red : Color.red.opacity(0.4))
                                         .clipShape(Capsule())
                                         .shadow(color: Color.red.opacity(0.3), radius: 6, x: 0, y: 4)
                                 }
                             }
+                            .disabled(!canSearch || viewModel.isLoading)
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 30)
@@ -141,20 +144,64 @@ struct DLInfoView: View {
                     )
 
                     // ── Results content ───────────
-                    VStack(spacing: 24) {
-                        if let info = viewModel.dlInfo {
-                            DLBasicInfoSection(info: info)
-                            DLInitialDetailsSection(info: info)
-                            DLValiditySection(info: info)
-                            DLCOVSection(info: info)
+                    Group {
+                        if viewModel.isLoading {
+                            VStack(spacing: 16) {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.10, green: 0.11, blue: 0.11)))
+                                    .scaleEffect(1.3)
+                                Text("Fetching DL details…")
+                                    .font(Font.custom("Inter", size: 14))
+                                    .foregroundColor(Color(white: 0.5))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 60)
+                            .padding(.bottom, 85)
+
+                        } else if let err = viewModel.errorMessage {
+                            VStack(spacing: 12) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(Color(red: 0.93, green: 0.13, blue: 0.14))
+                                Text(err)
+                                    .font(Font.custom("Inter", size: 14))
+                                    .foregroundColor(Color(white: 0.4))
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 32)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 60)
+                            .padding(.bottom, 85)
+
+                        } else if viewModel.hasSearched, let info = viewModel.dlInfo {
+                            VStack(spacing: 24) {
+                                DLBasicInfoSection(info: info)
+                                DLInitialDetailsSection(info: info)
+                                DLValiditySection(info: info)
+                                DLCOVSection(info: info)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 24)
+                            .padding(.bottom, 85)
+
+                        } else {
+                            VStack(spacing: 12) {
+                                Image(systemName: "creditcard.viewfinder")
+                                    .font(.system(size: 36))
+                                    .foregroundColor(Color(white: 0.75))
+                                Text("Enter DL number and date of birth\nto view details")
+                                    .font(Font.custom("Inter", size: 14))
+                                    .foregroundColor(Color(white: 0.55))
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 60)
+                            .padding(.bottom, 85)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 24)
-                    .padding(.bottom, 85)
                 }
-                .frame(maxWidth: .infinity)
-                .background(Color(white: 0.98))
+                .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height)
+                .background(Color(white: 0.98).edgesIgnoringSafeArea(.bottom))
             }
         }
         .navigationBarHidden(true)

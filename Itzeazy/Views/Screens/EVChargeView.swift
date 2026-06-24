@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct EVChargeView: View {
     @Environment(\.presentationMode) private var presentationMode
@@ -36,6 +37,7 @@ struct EVChargeView: View {
             .onTapGesture { isSearchFocused = false }
         }
         .navigationBarHidden(true)
+        .onAppear { viewModel.startFetchingLocation() }
     }
 
     // MARK: - Header
@@ -132,26 +134,60 @@ struct EVChargeView: View {
                         .font(Font.custom("PlusJakartaSans-ExtraBold", size: 20))
                         .foregroundColor(.white)
 
-                    Text("Found \(viewModel.filteredStations.count) stations in your area")
-                        .font(Font.custom("Inter", size: 13))
-                        .foregroundColor(Color(hex: "#8A8A8A"))
+                    if viewModel.isLoading {
+                        Text("Finding stations near you…")
+                            .font(Font.custom("Inter", size: 13))
+                            .foregroundColor(Color(hex: "#8A8A8A"))
+                    } else {
+                        Text("Found \(viewModel.filteredStations.count) stations in your area")
+                            .font(Font.custom("Inter", size: 13))
+                            .foregroundColor(Color(hex: "#8A8A8A"))
+                    }
                 }
-
                 Spacer()
-
-                Button(action: {}) {
-                    Text("View All")
-                        .font(Font.custom("PlusJakartaSans-Bold", size: 14))
-                        .foregroundColor(red)
-                }
-                .buttonStyle(.plain)
             }
             .padding(.bottom, 20)
 
-            // Cards
-            VStack(spacing: 14) {
-                ForEach(viewModel.filteredStations) { station in
-                    StationCard(station: station)
+            // Content based on state
+            if viewModel.isLoading {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(1.3)
+                    Text("Fetching nearby stations…")
+                        .font(Font.custom("Inter", size: 14))
+                        .foregroundColor(Color(hex: "#8A8A8A"))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 48)
+            } else if let error = viewModel.errorMessage {
+                VStack(spacing: 12) {
+                    Image(systemName: "bolt.slash.fill")
+                        .font(.system(size: 36))
+                        .foregroundColor(Color(hex: "#8A8A8A"))
+                    Text(error)
+                        .font(Font.custom("Inter", size: 14))
+                        .foregroundColor(Color(hex: "#8A8A8A"))
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 48)
+            } else if viewModel.filteredStations.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "bolt.circle")
+                        .font(.system(size: 36))
+                        .foregroundColor(Color(hex: "#8A8A8A"))
+                    Text("No stations match your search.")
+                        .font(Font.custom("Inter", size: 14))
+                        .foregroundColor(Color(hex: "#8A8A8A"))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 48)
+            } else {
+                VStack(spacing: 14) {
+                    ForEach(viewModel.filteredStations) { station in
+                        StationCard(station: station)
+                    }
                 }
             }
         }
@@ -163,14 +199,13 @@ struct EVChargeView: View {
 private struct StationCard: View {
     let station: EVChargingStation
 
-    private let red     = Color(hex: "#E61A20")
-    private let gold    = Color(hex: "#D4A017")
-    private let green   = Color(hex: "#1BA345")
+    private let red   = Color(hex: "#E61A20")
+    private let green = Color(hex: "#1BA345")
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
-            // ── Name + rating ─────────────────────────────────────────────
+            // ── Name + distance badge ──────────────────────────────────────
             HStack(alignment: .top) {
                 Text(station.name)
                     .font(Font.custom("PlusJakartaSans-ExtraBold", size: 17))
@@ -179,21 +214,21 @@ private struct StationCard: View {
 
                 Spacer(minLength: 8)
 
-                // Rating badge
+                // Distance badge
                 HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(gold)
-                    Text(String(format: "%.1f", station.rating))
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Color(hex: "#4A90D9"))
+                    Text(String(format: "%.1f km", station.distanceKm))
                         .font(Font.custom("PlusJakartaSans-Bold", size: 13))
                         .foregroundColor(Color(hex: "#0E0F11"))
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background(gold.opacity(0.12))
+                .background(Color(hex: "#4A90D9").opacity(0.10))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(gold.opacity(0.55), lineWidth: 1.2)
+                        .stroke(Color(hex: "#4A90D9").opacity(0.40), lineWidth: 1.2)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
@@ -219,7 +254,13 @@ private struct StationCard: View {
                 .padding(.top, 10)
 
             // ── Directions button ─────────────────────────────────────────
-            Button(action: {}) {
+            Button(action: {
+                if let lat = station.lat, let lng = station.lng,
+                   let url = URL(string: "maps://?daddr=\(lat),\(lng)"),
+                   UIApplication.shared.canOpenURL(url) {
+                    UIApplication.shared.open(url)
+                }
+            }) {
                 Text("Directions")
                     .font(Font.custom("PlusJakartaSans-Bold", size: 16))
                     .foregroundColor(red)

@@ -326,6 +326,7 @@ struct ChallanCardView: View {
     private var iconAssetName: String {
         challan.title.lowercased().replacingOccurrences(of: " ", with: "_")
     }
+    private var isPending: Bool { challan.status.lowercased() == "pending" }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -340,7 +341,7 @@ struct ChallanCardView: View {
                             .scaledToFit()
                             .frame(width: 18, height: 18)
                     )
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(challan.title)
                         .font(.system(size: 16, weight: .bold))
@@ -348,15 +349,15 @@ struct ChallanCardView: View {
                         .font(.system(size: 12))
                         .foregroundColor(.gray)
                 }
-                
+
                 Spacer()
-                
+
                 Text(challan.status)
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.red)
+                    .foregroundColor(isPending ? .red : .gray)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color.red.opacity(0.1))
+                    .background((isPending ? Color.red : Color.gray).opacity(0.12))
                     .cornerRadius(4)
             }
             
@@ -395,17 +396,30 @@ struct ChallanCardView: View {
                         .background(Color.gray.opacity(0.2))
                         .cornerRadius(16)
                 }
-                
-                Button(action: {}) {
+
+                if isPending {
+                    Button(action: {}) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Add to Pay")
+                        }
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color(red: 0.1, green: 0.1, blue: 0.3))
+                        .cornerRadius(16)
+                    }
+                } else {
                     HStack {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add to Pay")
+                        Image(systemName: "checkmark.circle.fill")
+                        Text("Paid")
                     }
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.gray)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color(red: 0.1, green: 0.1, blue: 0.3))
+                    .background(Color.gray.opacity(0.15))
                     .cornerRadius(16)
                 }
             }

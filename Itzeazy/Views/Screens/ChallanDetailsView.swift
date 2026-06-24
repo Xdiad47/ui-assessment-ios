@@ -3,204 +3,117 @@ import UIKit
 
 struct ChallanDetailsView: View {
     @Environment(\.presentationMode) private var presentationMode
-    @StateObject private var viewModel = VehicleViewModel()
+    @StateObject private var viewModel = ULIPChallanViewModel()
     @State private var selectedChallan: Challan? = nil
-    @State private var challanNo: String = "HR-654365124512445"
-    
+
     var body: some View {
         ZStack(alignment: .top) {
+            Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
+
+            // ── Loading ───────────────────────────────────────────────────
             if viewModel.isLoading {
-                Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
-                ProgressView("Loading...")
-                    .foregroundColor(.white)
-            } else if let result = viewModel.searchResult {
-                Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
-                
+                VStack(spacing: 0) {
+                    challanNavHeader
+                    Spacer()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.4)
+                        Text("Fetching challan details…")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color.white.opacity(0.7))
+                    }
+                    Spacer()
+                }
+
+            // ── Error ─────────────────────────────────────────────────────
+            } else if let error = viewModel.errorMessage {
+                VStack(spacing: 0) {
+                    challanInputHeader
+                    Spacer()
+                    VStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 36))
+                            .foregroundColor(.red)
+                        Text(error)
+                            .font(.system(size: 14))
+                            .foregroundColor(Color.white.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                    Spacer()
+                }
+
+            // ── Results ───────────────────────────────────────────────────
+            } else if viewModel.hasSearched {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
-                        
-                        // ── Dark Header Section ───────────
-                        VStack(spacing: 0) {
-                            
-                            // Header matching RTOServicesView & VehicleSearchResultsView
-                            ZStack(alignment: .top) {
-                                Rectangle()
-                                    .fill(Color(red: 0.72, green: 0.72, blue: 0.72))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 62)
-                                    .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
-                                    .padding(.horizontal, 1)
 
-                                Color(red: 0.10, green: 0.11, blue: 0.11)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 60)
-                                    .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
+                        challanInputHeader
 
-                                HStack(spacing: 0) {
-                                    HStack(spacing: 12) {
-                                        Button(action: {
-                                            presentationMode.wrappedValue.dismiss()
-                                        }) {
-                                            Image("back_arrow")
-                                                .resizable()
-                                                .scaledToFit()
-                                                .frame(width: 24, height: 24)
-                                        }
-                                        Text("Challan Details")
-                                            .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
-                                            .foregroundColor(.white)
-                                    }
-                                    Spacer()
-                                    HStack(spacing: 16) {
-                                        Image(systemName: "bell")
-                                            .font(.system(size: 18))
-                                            .foregroundColor(.white)
-                                        
+                        VStack(spacing: 20) {
+
+                            // Vehicle / owner overview
+                            ChallanOverviewCard(
+                                vehicleNumber: viewModel.vehicleNumber,
+                                ownerName:     viewModel.ownerName
+                            )
+
+                            // Pending summary row
+                            if !viewModel.challans.isEmpty {
+                                HStack {
+                                    HStack(spacing: 8) {
                                         ZStack {
                                             Circle()
-                                                .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
-                                                .frame(width: 30, height: 30)
-                                            Image(systemName: "person.fill")
-                                                .font(.system(size: 14))
+                                                .fill(Color.red)
+                                                .frame(width: 20, height: 20)
+                                            Text("\(viewModel.pendingCount)")
+                                                .font(Font.custom("Inter", size: 10).weight(.bold))
                                                 .foregroundColor(.white)
                                         }
+                                        Text("Pending Challans Found")
+                                            .font(Font.custom("Inter", size: 14).weight(.semibold))
+                                            .foregroundColor(.red)
+                                    }
+                                    Spacer()
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("TOTAL DUE")
+                                            .font(Font.custom("Inter", size: 10).weight(.medium))
+                                            .foregroundColor(.gray)
+                                        Text("₹\(viewModel.totalDue)")
+                                            .font(Font.custom("Inter", size: 16).weight(.bold))
+                                            .foregroundColor(.black)
                                     }
                                 }
-                                .padding(.horizontal, 20)
-                                .frame(height: 60)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                                .background(Color(red: 0.99, green: 0.91, blue: 0.91))
+                                .cornerRadius(16)
                             }
-                            
-                            // Subtitle
-                            Text("Check & Pay Your Traffic Challan Online")
-                                .font(Font.custom("PlusJakartaSans-ExtraBold", size: 16))
-                                .foregroundColor(.white)
-                                .padding(.top, 24)
-                            
-                            Spacer().frame(height: 20)
-                            
-                            // Input Section
-                            VStack(alignment: .leading, spacing: 14) {
-                                
-                                Text("CHALLAN NO")
-                                    .font(Font.custom("Inter", size: 12).weight(.semibold))
-                                    .foregroundColor(.white)
-                                
-                                TextField("Enter Challan No", text: $challanNo)
-                                    .font(Font.custom("Inter", size: 14))
-                                    .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
-                                    .padding(.vertical, 14)
-                                    .padding(.horizontal, 16)
-                                    .background(Color.white)
-                                    .cornerRadius(12)
-                            }
-                            .padding(.horizontal, 30)
-                            
-                            // Action Buttons
-                            HStack(spacing: 16) {
-                                Button(action: {
-                                    challanNo = ""
-                                }) {
-                                    Text("Reset")
-                                        .font(Font.custom("Inter", size: 12).weight(.semibold))
-                                        .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                                        .frame(width: 115, height: 40)
-                                        .background(Color(red: 0.88, green: 0.89, blue: 0.89))
-                                        .clipShape(Capsule())
+
+                            // All challans (pending + disposed)
+                            if viewModel.challans.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.green)
+                                    Text("No challans found for this vehicle.")
+                                        .font(Font.custom("Inter", size: 14))
+                                        .foregroundColor(.gray)
+                                        .multilineTextAlignment(.center)
                                 }
-                                
-                                Button(action: {
-                                    // action
-                                }) {
-                                    Text("Check Status")
-                                        .font(Font.custom("Inter", size: 12).weight(.semibold))
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 40)
-                                        .background(Color.red)
-                                        .clipShape(Capsule())
-                                        .shadow(color: Color.red.opacity(0.3), radius: 6, x: 0, y: 4)
-                                }
-                            }
-                            .padding(.horizontal, 30)
-                            .padding(.top, 16)
-                            .padding(.bottom, 24)
-                            
-                        }
-                        .background(
-                            Color(red: 0.10, green: 0.11, blue: 0.11)
-                                .cornerRadius(20, corners: [.bottomLeft, .bottomRight])
-                        )
-                        .zIndex(1)
-                        
-                        // ── Content Area ───────────
-                        VStack(spacing: 24) {
-                            
-                            // Vehicle Overview Card
-                            VehicleOverviewCard(result: result)
-                            
-                            // Pending Challans Header
-                            HStack {
-                                HStack(spacing: 8) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.red)
-                                            .frame(width: 20, height: 20)
-                                        Text("\(result.pendingChallans.count)")
-                                            .font(Font.custom("Inter", size: 10).weight(.bold))
-                                            .foregroundColor(.white)
+                                .padding(.vertical, 32)
+                            } else {
+                                VStack(spacing: 16) {
+                                    ForEach(viewModel.challans, id: \.id) { challan in
+                                        ChallanRowCard(challan: challan, onDetailsPressed: {
+                                            selectedChallan = challan
+                                        })
                                     }
-                                    
-                                    Text("Pending Challans Found")
-                                        .font(Font.custom("Inter", size: 14).weight(.semibold))
-                                        .foregroundColor(.red)
-                                }
-                                
-                                Spacer()
-                                
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("TOTAL DUE")
-                                        .font(Font.custom("Inter", size: 10).weight(.medium))
-                                        .foregroundColor(Color.gray)
-                                    Text("₹2,500")
-                                        .font(Font.custom("Inter", size: 16).weight(.bold))
-                                        .foregroundColor(.black)
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(Color(red: 0.99, green: 0.91, blue: 0.91))
-                            .cornerRadius(16)
-                            
-                            // Challan List
-                            VStack(spacing: 16) {
-                                ForEach(result.pendingChallans, id: \.id) { challan in
-                                    ChallanRowCard(challan: challan, onDetailsPressed: {
-                                        selectedChallan = challan
-                                    })
-                                }
-                            }
-                            
-                            // View All
-                            Button(action: {}) {
-                                HStack {
-                                    Text("View All")
-                                        .font(Font.custom("Inter", size: 14).weight(.semibold))
-                                        .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .background(Color.white)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-                            }
-                            
-                            // Official Gov Data Card
+
+                            // Official gov data badge
                             HStack(spacing: 16) {
                                 ZStack {
                                     Circle()
@@ -210,12 +123,11 @@ struct ChallanDetailsView: View {
                                         .foregroundColor(.white)
                                         .font(.system(size: 18))
                                 }
-                                
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Official Government Data")
                                         .font(Font.custom("Inter", size: 14).weight(.semibold))
                                         .foregroundColor(.white)
-                                    Text("Secure payment gateway integrated with Parivahan and regional RTO databases.")
+                                    Text("Data sourced from ULIP / Parivahan and regional RTO databases.")
                                         .font(Font.custom("Inter", size: 11))
                                         .foregroundColor(Color.gray)
                                         .lineLimit(2)
@@ -224,56 +136,57 @@ struct ChallanDetailsView: View {
                             .padding(16)
                             .background(Color(red: 0.10, green: 0.11, blue: 0.11))
                             .cornerRadius(16)
-                            
-                            // Bottom Pay Bar
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("3 ITEMS SELECTED")
-                                        .font(Font.custom("Inter", size: 10).weight(.medium))
-                                        .foregroundColor(Color.gray)
-                                    Text("₹2,500")
-                                        .font(Font.custom("Inter", size: 18).weight(.bold))
-                                        .foregroundColor(.red)
+
+                            // Bottom pay bar
+                            if viewModel.pendingCount > 0 {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("\(viewModel.pendingCount) PENDING SELECTED")
+                                            .font(Font.custom("Inter", size: 10).weight(.medium))
+                                            .foregroundColor(Color.gray)
+                                        Text("₹\(viewModel.totalDue)")
+                                            .font(Font.custom("Inter", size: 18).weight(.bold))
+                                            .foregroundColor(.red)
+                                    }
+                                    Spacer()
+                                    Button(action: {}) {
+                                        Text("Pay All Selected")
+                                            .font(Font.custom("Inter", size: 14).weight(.semibold))
+                                            .foregroundColor(.white)
+                                            .frame(width: 160, height: 44)
+                                            .background(Color.red)
+                                            .clipShape(Capsule())
+                                    }
                                 }
-                                
-                                Spacer()
-                                
-                                Button(action: {}) {
-                                    Text("Pay All Selected")
-                                        .font(Font.custom("Inter", size: 16).weight(.semibold))
-                                        .foregroundColor(.white)
-                                        .frame(width: 160, height: 44)
-                                        .background(Color.red)
-                                        .clipShape(Capsule())
-                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 16)
+                                .background(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                .cornerRadius(24)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
-                            .background(Color(red: 0.10, green: 0.11, blue: 0.11))
-                            .cornerRadius(24)
-                            .padding(.top, 0)
-                            
                         }
                         .padding(.horizontal, 20)
-                        .padding(.top, 15)
+                        .padding(.top, 16)
                         .padding(.bottom, 80)
-                        
                     }
-                    .background(Color(white: 0.97)) // Light background
+                    .background(Color(white: 0.97))
+                }
+
+            // ── Initial — dark header, white below ────────────────────────
+            } else {
+                VStack(spacing: 0) {
+                    challanInputHeader
+                    Color.white.edgesIgnoringSafeArea(.bottom)
                 }
             }
-            
-            // Popup Overlay
+
+            // ── Popup overlay ─────────────────────────────────────────────
             if let challan = selectedChallan {
                 ZStack(alignment: .center) {
                     Color.black.opacity(0.45)
                         .ignoresSafeArea()
                         .onTapGesture { selectedChallan = nil }
-                    
-                    ChallanDetailPopup(challan: challan) {
-                        selectedChallan = nil
-                    }
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    ChallanDetailPopup(challan: challan) { selectedChallan = nil }
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
@@ -283,59 +196,152 @@ struct ChallanDetailsView: View {
         .animation(.easeInOut(duration: 0.2), value: selectedChallan != nil)
         .navigationBarHidden(true)
     }
+
+    // MARK: - Nav header (no input — for loading state)
+    private var challanNavHeader: some View {
+        ZStack(alignment: .top) {
+            Rectangle()
+                .fill(Color(red: 0.72, green: 0.72, blue: 0.72))
+                .frame(maxWidth: .infinity).frame(height: 62)
+                .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
+                .padding(.horizontal, 1)
+            Color(red: 0.10, green: 0.11, blue: 0.11)
+                .frame(maxWidth: .infinity).frame(height: 60)
+                .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
+            HStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                        Image("back_arrow").resizable().scaledToFit().frame(width: 24, height: 24)
+                    }
+                    Text("Challan Details")
+                        .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
+                        .foregroundColor(.white)
+                }
+                Spacer()
+                HStack(spacing: 16) {
+                    Image(systemName: "bell").font(.system(size: 18)).foregroundColor(.white)
+                    ZStack {
+                        Circle().fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50)).frame(width: 30, height: 30)
+                        Image(systemName: "person.fill").font(.system(size: 14)).foregroundColor(.white)
+                    }
+                }
+            }
+            .padding(.horizontal, 20).frame(height: 60)
+        }
+    }
+
+    // MARK: - Full dark header with input (for all states except loading)
+    private var challanInputHeader: some View {
+        VStack(spacing: 0) {
+            challanNavHeader
+
+            Text("Check & Pay Your Traffic Challan Online")
+                .font(Font.custom("PlusJakartaSans-ExtraBold", size: 16))
+                .foregroundColor(.white)
+                .padding(.top, 24)
+
+            Spacer().frame(height: 20)
+
+            VStack(alignment: .leading, spacing: 14) {
+                Text("VEHICLE NO")
+                    .font(Font.custom("Inter", size: 12).weight(.semibold))
+                    .foregroundColor(.white)
+
+                ZStack(alignment: .leading) {
+                    if viewModel.vehicleNumber.isEmpty {
+                        Text("e.g. HR26DX3155")
+                            .font(Font.custom("Inter", size: 14))
+                            .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
+                            .padding(.horizontal, 16)
+                    }
+                    TextField("", text: $viewModel.vehicleNumber)
+                        .font(Font.custom("Inter", size: 14))
+                        .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                        .autocapitalization(.allCharacters)
+                        .disableAutocorrection(true)
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                        .onChange(of: viewModel.vehicleNumber) { v in
+                            let u = v.uppercased()
+                            if v != u { viewModel.vehicleNumber = u }
+                        }
+                }
+                .background(Color.white)
+                .cornerRadius(12)
+            }
+            .padding(.horizontal, 30)
+
+            HStack(spacing: 16) {
+                Button(action: { viewModel.reset() }) {
+                    Text("Reset")
+                        .font(Font.custom("Inter", size: 12).weight(.semibold))
+                        .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                        .frame(width: 115, height: 40)
+                        .background(Color(red: 0.88, green: 0.89, blue: 0.89))
+                        .clipShape(Capsule())
+                }
+
+                Button(action: { viewModel.search() }) {
+                    Text("Check Status")
+                        .font(Font.custom("Inter", size: 12).weight(.semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .background(
+                            viewModel.vehicleNumber.trimmingCharacters(in: .whitespaces).isEmpty
+                                ? Color.red.opacity(0.45)
+                                : Color.red
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: Color.red.opacity(0.3), radius: 6, x: 0, y: 4)
+                }
+                .disabled(viewModel.vehicleNumber.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(.horizontal, 30)
+            .padding(.top, 16)
+            .padding(.bottom, 24)
+        }
+        .background(
+            Color(red: 0.10, green: 0.11, blue: 0.11)
+                .cornerRadius(20, corners: [.bottomLeft, .bottomRight])
+        )
+    }
 }
 
-private struct VehicleOverviewCard: View {
-    let result: VehicleSearchResult
-    
+// MARK: - Challan overview card (vehicle number + owner from challan data)
+
+private struct ChallanOverviewCard: View {
+    let vehicleNumber: String
+    let ownerName: String
+
     var body: some View {
         HStack {
-            // Red accent line
             Rectangle()
                 .fill(Color.red)
                 .frame(width: 4)
-            
-            VStack(spacing: 16) {
+
+            VStack(spacing: 12) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("VEHICLE NUMBER")
                             .font(Font.custom("Inter", size: 10).weight(.medium))
                             .foregroundColor(Color.gray)
-                        Text(result.registrationDetails.vehicleNo)
+                        Text(vehicleNumber)
                             .font(Font.custom("Inter", size: 14).weight(.bold))
                             .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
                     }
                     Spacer()
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("OWNER NAME")
-                            .font(Font.custom("Inter", size: 10).weight(.medium))
-                            .foregroundColor(Color.gray)
-                        Text(result.ownerDetails.name)
-                            .font(Font.custom("Inter", size: 14).weight(.bold))
-                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                    if !ownerName.isEmpty {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("OWNER NAME")
+                                .font(Font.custom("Inter", size: 10).weight(.medium))
+                                .foregroundColor(Color.gray)
+                            Text(ownerName)
+                                .font(Font.custom("Inter", size: 14).weight(.bold))
+                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                .multilineTextAlignment(.trailing)
+                        }
                     }
-                    Spacer()
-                }
-                
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("MODEL")
-                            .font(Font.custom("Inter", size: 10).weight(.medium))
-                            .foregroundColor(Color.gray)
-                        Text(result.registrationDetails.model)
-                            .font(Font.custom("Inter", size: 14).weight(.bold))
-                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                    }
-                    Spacer()
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("RTO")
-                            .font(Font.custom("Inter", size: 10).weight(.medium))
-                            .foregroundColor(Color.gray)
-                        Text(result.registrationDetails.registeredAt.split(separator: ",").first.map(String.init) ?? "")
-                            .font(Font.custom("Inter", size: 14).weight(.bold))
-                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                    }
-                    Spacer()
                 }
             }
             .padding(.vertical, 16)
@@ -352,10 +358,14 @@ private struct VehicleOverviewCard: View {
     }
 }
 
+// MARK: - Challan row card
+
 private struct ChallanRowCard: View {
     let challan: Challan
     let onDetailsPressed: () -> Void
-    
+
+    private var isPending: Bool { challan.status.lowercased() == "pending" }
+
     var body: some View {
         VStack(spacing: 16) {
             HStack(spacing: 12) {
@@ -363,34 +373,11 @@ private struct ChallanRowCard: View {
                     Circle()
                         .fill(Color(white: 0.95))
                         .frame(width: 44, height: 44)
-                    
-                    // --- CUSTOM ICONS SETUP ---
-                    // Replace the string values below with your exact asset names from Xcode
-                    let customIconName: String = {
-                        if challan.title.contains("Speed") {
-                            return "over_speeding"     // <-- Set your Speeding icon here
-                        } else if challan.title.contains("Signal") {
-                            return "signal_jumping"    // <-- Set your Signal jumping icon here
-                        } else {
-                            return "wrong_parking"   // <-- Set your Wrong parking icon here
-                        }
-                    }()
-                    
-                    // This automatically uses your custom asset if found, otherwise uses the placeholder
-                    if UIImage(named: customIconName) != nil {
-                        Image(customIconName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 20, height: 20)
-                    } else {
-                        // Temporary custom icon fallback
-                        Image(systemName: challan.title.contains("Speed") ? "gauge.with.dots.needle.bottom.50percent" :
-                                        challan.title.contains("Signal") ? "trafficlights.fill" : "parkingsign.circle")
-                            .foregroundColor(.red)
-                            .font(.system(size: 20))
-                    }
+                    Image(systemName: isPending ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                        .foregroundColor(isPending ? .red : .gray)
+                        .font(.system(size: 20))
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(challan.title)
                         .font(Font.custom("Inter", size: 15).weight(.semibold))
@@ -399,18 +386,18 @@ private struct ChallanRowCard: View {
                         .font(Font.custom("Inter", size: 12))
                         .foregroundColor(Color.gray)
                 }
-                
+
                 Spacer()
-                
+
                 Text(challan.status)
                     .font(Font.custom("Inter", size: 10).weight(.bold))
-                    .foregroundColor(.red)
+                    .foregroundColor(isPending ? .red : .gray)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color(red: 0.99, green: 0.91, blue: 0.91))
+                    .background((isPending ? Color.red : Color.gray).opacity(0.12))
                     .cornerRadius(6)
             }
-            
+
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("DATE")
@@ -420,9 +407,7 @@ private struct ChallanRowCard: View {
                         .font(Font.custom("Inter", size: 13).weight(.semibold))
                         .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
                 }
-                
                 Spacer()
-                
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("AMOUNT")
                         .font(Font.custom("Inter", size: 10).weight(.medium))
@@ -432,7 +417,7 @@ private struct ChallanRowCard: View {
                         .foregroundColor(.red)
                 }
             }
-            
+
             HStack(spacing: 12) {
                 Button(action: onDetailsPressed) {
                     Text("Details")
@@ -443,18 +428,32 @@ private struct ChallanRowCard: View {
                         .background(Color(red: 0.88, green: 0.89, blue: 0.89))
                         .cornerRadius(12)
                 }
-                
-                Button(action: {}) {
+
+                if isPending {
+                    Button(action: {}) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle")
+                                .font(.system(size: 14))
+                            Text("Add to Pay")
+                                .font(Font.custom("Inter", size: 13).weight(.bold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .background(Color(red: 0.14, green: 0.15, blue: 0.23))
+                        .cornerRadius(12)
+                    }
+                } else {
                     HStack(spacing: 6) {
-                        Image(systemName: "plus.circle")
+                        Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 14))
-                        Text("Add to Pay")
+                        Text("Paid")
                             .font(Font.custom("Inter", size: 13).weight(.bold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.gray)
                     .frame(maxWidth: .infinity)
                     .frame(height: 40)
-                    .background(Color(red: 0.14, green: 0.15, blue: 0.23))
+                    .background(Color.gray.opacity(0.15))
                     .cornerRadius(12)
                 }
             }
