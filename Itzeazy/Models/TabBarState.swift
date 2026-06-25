@@ -6,4 +6,5 @@ import Combine
 /// without hardcoding pixel values.
 final class TabBarState: ObservableObject {
     @Published var height: CGFloat = 0
+    @Published var isHidden: Bool = false
 }

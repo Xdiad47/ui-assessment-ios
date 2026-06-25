@@ -8,6 +8,7 @@ struct YoutubePlayerView: View {
     let title: String
 
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var tabBarState: TabBarState
 
     private var videoId: String? { extractYouTubeVideoId(from: videoURL) }
 
@@ -30,6 +31,8 @@ struct YoutubePlayerView: View {
         }
         .navigationBarHidden(true)
         .preferredColorScheme(.dark)
+        .onAppear  { tabBarState.isHidden = true  }
+        .onDisappear { tabBarState.isHidden = false }
     }
 
     private var topBar: some View {

@@ -179,6 +179,26 @@ private struct ProfileMenuCardView: View {
                         ProfileMenuRowView(item: item)
                     }
                     .buttonStyle(PlainButtonStyle())
+                } else if item.title == "Shipping Details" {
+                    NavigationLink(destination: CitizenServicesWebView(url: "https://itzeazy.in/shipping-policy", title: "Shipping Details")) {
+                        ProfileMenuRowView(item: item)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } else if item.title == "Return Policy" {
+                    NavigationLink(destination: CitizenServicesWebView(url: "https://itzeazy.in/refund-policy", title: "Return Policy")) {
+                        ProfileMenuRowView(item: item)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } else if item.title == "Privacy Policy" {
+                    NavigationLink(destination: CitizenServicesWebView(url: "https://itzeazy.in/privacy-policy", title: "Privacy Policy")) {
+                        ProfileMenuRowView(item: item)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } else if item.title == "Terms and Conditions" {
+                    NavigationLink(destination: CitizenServicesWebView(url: "https://itzeazy.in/terms", title: "Terms and Conditions")) {
+                        ProfileMenuRowView(item: item)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 } else {
                     ProfileMenuRowView(item: item)
                 }
@@ -196,6 +216,7 @@ private struct ProfileMenuCardView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
+
 }
 
 private struct ProfileMenuRowView: View {
@@ -236,18 +257,21 @@ private struct ProfileSocialCardView: View {
 
             HStack(spacing: 8) {
                 ForEach(items) { item in
-                    VStack(spacing: 4) {
-                        Image(socialIconName(for: item.title))
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 34, height: 34)
+                    Button(action: { openSocial(item.title) }) {
+                        VStack(spacing: 4) {
+                            Image(socialIconName(for: item.title))
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 34, height: 34)
 
-                        Text(item.title)
-                            .font(Font.custom("Plus Jakarta Sans", size: 10).weight(.semibold))
-                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                            .lineLimit(1)
+                            Text(item.title)
+                                .font(Font.custom("Plus Jakarta Sans", size: 10).weight(.semibold))
+                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -259,6 +283,52 @@ private struct ProfileSocialCardView: View {
                 .stroke(strokeColor, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func openSocial(_ platform: String) {
+        switch platform {
+        case "Youtube":
+            openAppOrBrowser(appURL: "youtube://www.youtube.com/@itzeazyindia",
+                             fallback: "https://www.youtube.com/@itzeazyindia")
+        case "Whatsapp":
+            openAppOrBrowser(appURL: "whatsapp://send?phone=919020978686",
+                             fallback: "https://wa.me/919020978686")
+        case "Instagram":
+            openAppOrBrowser(appURL: "instagram://user?username=itzeazyindia",
+                             fallback: "https://www.instagram.com/itzeazyindia")
+        case "Facebook":
+            openUniversalOrBrowser("https://www.facebook.com/Itzeazycom/")
+        case "LinkedIn":
+            openAppOrBrowser(appURL: "linkedin://company/itzeazy-com",
+                             fallback: "https://www.linkedin.com/company/itzeazy-com/")
+        default:
+            break
+        }
+    }
+
+    private func openAppOrBrowser(appURL: String, fallback: String) {
+        guard let url = URL(string: appURL) else { return }
+        UIApplication.shared.open(url) { success in
+            if !success, let fallbackURL = URL(string: fallback) {
+                UIApplication.shared.open(fallbackURL)
+            }
+        }
+    }
+
+    // Opens via universal link (hands off to the installed app at the exact page).
+    // Falls back to Safari if the app is not installed.
+    private func openUniversalOrBrowser(_ urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        UIApplication.shared.open(url, options: [.universalLinksOnly: true]) { success in
+            if !success {
+                UIApplication.shared.open(url)
+            }
+        }
+    }
+
+    private func open(_ urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        UIApplication.shared.open(url)
     }
 
     private func socialIconName(for platform: String) -> String {

@@ -56,7 +56,7 @@ struct MainTabView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Card stack: red base card + white tab bar on top
-            ZStack(alignment: .bottom) {
+            if !tabBarState.isHidden { ZStack(alignment: .bottom) {
                 // White fill — covers bottom safe area gap
                 Color.white
                     .frame(maxWidth: .infinity)
@@ -85,7 +85,7 @@ struct MainTabView: View {
                             .onChange(of: geo.size.height) { tabBarState.height = $0 }
                     }
                 )
-            }
+            } } // end ZStack + if
         }
         .edgesIgnoringSafeArea(.bottom)
     }
