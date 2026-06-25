@@ -14,14 +14,14 @@ class RTOServicesViewModel: ObservableObject {
     // RTO sub-services — slugs match itzeazy.in URL structure
     let rtoSubServices: [SubServiceOption] = [
         SubServiceOption(display: "New Driving License",           slug: "driving-license-agents-consultants"),
-        SubServiceOption(display: "Driving License Renewal",       slug: "driving-license-renewal-agents-consultants"),
+        SubServiceOption(display: "Driving License Renewal",       slug: "driving-license-renewal"),
         SubServiceOption(display: "NOC",                           slug: "noc-for-car-bike"),
-        SubServiceOption(display: "Duplicate RC",                  slug: "duplicate-rc-agents-consultants"),
-        SubServiceOption(display: "Duplicate Driving License",     slug: "duplicate-driving-license-agents-consultants"),
+        SubServiceOption(display: "Duplicate RC",                  slug: "duplicate-rc-of-vehicle-car-bike"),
+        SubServiceOption(display: "Duplicate Driving License",     slug: "duplicate-driving-license"),
         SubServiceOption(display: "HP Deletion",                   slug: "hypothecation-deletion-termination-removal-hpt-of-vehicle-car-bike"),
         SubServiceOption(display: "Ownership Transfer",            slug: "ownership-transfer-change-of-vehicle-car-bike"),
-        SubServiceOption(display: "International Driving License", slug: "international-driving-license-agents-consultants"),
-        SubServiceOption(display: "Re Registration",               slug: "re-registration-agents-consultants")
+        SubServiceOption(display: "International Driving License", slug: "international-driving-license"),
+        SubServiceOption(display: "Re Registration",               slug: "re-registration-of-vehicle-car-bike")
     ]
 
     @Published var rtoServices: [ServiceItem] = [

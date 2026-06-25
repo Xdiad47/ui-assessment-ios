@@ -29,6 +29,14 @@ final class HomeHeroViewModel: ObservableObject {
         ServiceOption(display: "Visa",                 slug: "visa")
     ]
 
+    // Some cities use a different slug for the same sub-service.
+    // Format: [citySlug: [subServiceSlug: overrideSlug]]
+    private let citySlugOverrides: [String: [String: String]] = [
+        "bangalore": [
+            "passport-renewal-online": "passport-renewal-or-re-issue-under-normal-tatkal-scheme"
+        ]
+    ]
+
     private let subServicesMap: [String: [SubServiceOption]] = [
         "birth-certificate": [
             SubServiceOption(display: "New Birth Certificate", slug: "birth-certificate-agents-consultants")
@@ -42,18 +50,18 @@ final class HomeHeroViewModel: ObservableObject {
         ],
         "passport": [
             SubServiceOption(display: "New Passport",      slug: "passport-application-online"),
-            SubServiceOption(display: "Passport Renewal",  slug: "passport-renewal-agents-consultants")
+            SubServiceOption(display: "Passport Renewal",  slug: "passport-renewal-online")
         ],
         "rto": [
             SubServiceOption(display: "New Driving License",           slug: "driving-license-agents-consultants"),
-            SubServiceOption(display: "Driving License Renewal",       slug: "driving-license-renewal-agents-consultants"),
+            SubServiceOption(display: "Driving License Renewal",       slug: "driving-license-renewal"),
             SubServiceOption(display: "NOC",                           slug: "noc-for-car-bike"),
-            SubServiceOption(display: "Duplicate RC",                  slug: "duplicate-rc-agents-consultants"),
-            SubServiceOption(display: "Duplicate Driving License",     slug: "duplicate-driving-license-agents-consultants"),
+            SubServiceOption(display: "Duplicate RC",                  slug: "duplicate-rc-of-vehicle-car-bike"),
+            SubServiceOption(display: "Duplicate Driving License",     slug: "duplicate-driving-license"),
             SubServiceOption(display: "HP Deletion",                   slug: "hypothecation-deletion-termination-removal-hpt-of-vehicle-car-bike"),
             SubServiceOption(display: "Ownership Transfer",            slug: "ownership-transfer-change-of-vehicle-car-bike"),
-            SubServiceOption(display: "International Driving License", slug: "international-driving-license-agents-consultants"),
-            SubServiceOption(display: "Re Registration",               slug: "re-registration-agents-consultants")
+            SubServiceOption(display: "International Driving License", slug: "international-driving-license"),
+            SubServiceOption(display: "Re Registration",               slug: "re-registration-of-vehicle-car-bike")
         ],
         "visa": [
             SubServiceOption(display: "Australia",    slug: "australia-visa-for-indians"),
@@ -163,6 +171,7 @@ final class HomeHeroViewModel: ObservableObject {
         }
 
         guard let city = selectedCity else { return nil }
-        return "https://itzeazy.in/\(city.slug)/\(service.slug)/\(subService.slug)-in-\(city.slug)"
+        let finalSlug = citySlugOverrides[city.slug]?[subService.slug] ?? subService.slug
+        return "https://itzeazy.in/\(city.slug)/\(service.slug)/\(finalSlug)-in-\(city.slug)"
     }
 }
