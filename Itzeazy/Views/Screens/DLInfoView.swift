@@ -6,174 +6,175 @@ struct DLInfoView: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            // Dark background fills entire screen incl. status bar — keeps it dark while scrolling
             Color(red: 0.10, green: 0.11, blue: 0.11).edgesIgnoringSafeArea(.all)
 
-            ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 0) {
                 VStack(spacing: 0) {
+                    ZStack(alignment: .top) {
+                        Rectangle()
+                            .fill(Color(red: 0.72, green: 0.72, blue: 0.72))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 62)
+                            .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
+                            .padding(.horizontal, 1)
 
-                    // ── Dark top section (nav bar + input, scrolls with content) ───────────
-                    VStack(spacing: 0) {
-
-                        ZStack(alignment: .top) {
-                            Rectangle()
-                                .fill(Color(red: 0.72, green: 0.72, blue: 0.72))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 62)
-                                .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
-                                .padding(.horizontal, 1)
-
-                            Color(red: 0.10, green: 0.11, blue: 0.11)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 60)
-                                .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
-
-                            HStack(spacing: 0) {
-                                HStack(spacing: 12) {
-                                    Button(action: {
-                                        presentationMode.wrappedValue.dismiss()
-                                    }) {
-                                        Image("back_arrow")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 24, height: 24)
-                                    }
-                                    Text("DL Details")
-                                        .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
-                                        .foregroundColor(.white)
-                                }
-                                Spacer()
-                                HStack(spacing: 16) {
-                                    Image(systemName: "bell")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(.white)
-
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
-                                            .frame(width: 30, height: 30)
-                                        Image(systemName: "person.fill")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.white)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                            .frame(height: 60)
-                        }
-
-                        Spacer().frame(height: 32)
-
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("DRIVING LICENCE NO")
-                                    .font(Font.custom("Inter", size: 12).weight(.semibold))
-                                    .foregroundColor(.white)
-
-                                TextField("HR-654365124512445", text: $viewModel.dlNumber)
-                                    .font(Font.custom("Inter", size: 13))
-                                    .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
-                                    .padding(.vertical, 14)
-                                    .padding(.horizontal, 16)
-                                    .background(Color.white)
-                                    .cornerRadius(12)
-                            }
-
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("DATE OF BIRTH (DOB)")
-                                    .font(Font.custom("Inter", size: 12).weight(.semibold))
-                                    .foregroundColor(.white)
-
-                                TextField("DD-MM-YYYY", text: $viewModel.dob)
-                                    .font(Font.custom("Inter", size: 13))
-                                    .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
-                                    .padding(.vertical, 14)
-                                    .padding(.horizontal, 16)
-                                    .background(Color.white)
-                                    .cornerRadius(12)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-
-                        Spacer().frame(height: 24)
-
-                        HStack(spacing: 16) {
-                            Button(action: {
-                                viewModel.reset()
-                            }) {
-                                Text("Reset")
-                                    .font(Font.custom("Inter", size: 12).weight(.semibold))
-                                    .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                                    .frame(width: 115, height: 40)
-                                    .background(Color(red: 0.88, green: 0.89, blue: 0.89))
-                                    .clipShape(Capsule())
-                            }
-
-                            let canSearch = !viewModel.dlNumber.trimmingCharacters(in: .whitespaces).isEmpty
-                                         && !viewModel.dob.trimmingCharacters(in: .whitespaces).isEmpty
-
-                            Button(action: {
-                                viewModel.getDetails()
-                            }) {
-                                if viewModel.isLoading {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 40)
-                                        .background(canSearch ? Color.red : Color.red.opacity(0.4))
-                                        .clipShape(Capsule())
-                                } else {
-                                    Text("Check Status")
-                                        .font(Font.custom("Inter", size: 12).weight(.semibold))
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 40)
-                                        .background(canSearch ? Color.red : Color.red.opacity(0.4))
-                                        .clipShape(Capsule())
-                                        .shadow(color: Color.red.opacity(0.3), radius: 6, x: 0, y: 4)
-                                }
-                            }
-                            .disabled(!canSearch || viewModel.isLoading)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 30)
-                    }
-                    .background(
                         Color(red: 0.10, green: 0.11, blue: 0.11)
-                            .cornerRadius(20, corners: [.bottomLeft, .bottomRight])
-                    )
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 60)
+                            .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
 
-                    // ── Results content ───────────
-                    Group {
-                        if viewModel.isLoading {
-                            VStack(spacing: 16) {
+                        HStack(spacing: 0) {
+                            HStack(spacing: 12) {
+                                Button(action: {
+                                    presentationMode.wrappedValue.dismiss()
+                                }) {
+                                    Image("back_arrow")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 24, height: 24)
+                                }
+                                Text("DL DETAILS")
+                                    .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
+                                    .foregroundColor(.white)
+                            }
+                            Spacer()
+                            HStack(spacing: 16) {
+                                Image(systemName: "bell")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white)
+
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
+                                        .frame(width: 30, height: 30)
+                                    Image(systemName: "person.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .frame(height: 60)
+                    }
+
+                    Spacer().frame(height: 32)
+
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("DRIVING LICENCE NO")
+                                .font(Font.custom("Inter", size: 12).weight(.semibold))
+                                .foregroundColor(.white)
+
+                            TextField("HR-654365124512445", text: Binding(
+                                get: { viewModel.dlNumber },
+                                set: { viewModel.dlNumber = $0.uppercased() }
+                            ))
+                                .font(Font.custom("Inter", size: 13))
+                                .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
+                                .padding(.vertical, 14)
+                                .padding(.horizontal, 16)
+                                .background(Color.white)
+                                .cornerRadius(12)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("DATE OF BIRTH (DOB)")
+                                .font(Font.custom("Inter", size: 12).weight(.semibold))
+                                .foregroundColor(.white)
+
+                            TextField("DD-MM-YYYY", text: Binding(
+                                get: { viewModel.dob },
+                                set: { viewModel.dob = $0.uppercased() }
+                            ))
+                                .font(Font.custom("Inter", size: 13))
+                                .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
+                                .padding(.vertical, 14)
+                                .padding(.horizontal, 16)
+                                .background(Color.white)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+
+                    Spacer().frame(height: 24)
+
+                    HStack(spacing: 16) {
+                        Button(action: {
+                            viewModel.reset()
+                        }) {
+                            Text("RESET")
+                                .font(Font.custom("Inter", size: 12).weight(.semibold))
+                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                .frame(width: 115, height: 40)
+                                .background(Color(red: 0.88, green: 0.89, blue: 0.89))
+                                .clipShape(Capsule())
+                        }
+
+                        let canSearch = !viewModel.dlNumber.trimmingCharacters(in: .whitespaces).isEmpty
+                                     && !viewModel.dob.trimmingCharacters(in: .whitespaces).isEmpty
+
+                        Button(action: {
+                            viewModel.getDetails()
+                        }) {
+                            if viewModel.isLoading {
                                 ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.10, green: 0.11, blue: 0.11)))
-                                    .scaleEffect(1.3)
-                                Text("Fetching DL details…")
-                                    .font(Font.custom("Inter", size: 14))
-                                    .foregroundColor(Color(white: 0.5))
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 40)
+                                    .background(canSearch ? Color.red : Color.red.opacity(0.4))
+                                    .clipShape(Capsule())
+                            } else {
+                                Text("CHECK STATUS")
+                                    .font(Font.custom("Inter", size: 12).weight(.semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 40)
+                                    .background(canSearch ? Color.red : Color.red.opacity(0.4))
+                                    .clipShape(Capsule())
+                                    .shadow(color: Color.red.opacity(0.3), radius: 6, x: 0, y: 4)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 60)
-                            .padding(.bottom, 85)
+                        }
+                        .disabled(!canSearch || viewModel.isLoading)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 30)
+                }
+                .background(
+                    Color(red: 0.10, green: 0.11, blue: 0.11)
+                        .cornerRadius(20, corners: [.bottomLeft, .bottomRight])
+                )
 
-                        } else if let err = viewModel.errorMessage {
-                            VStack(spacing: 12) {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(Color(red: 0.93, green: 0.13, blue: 0.14))
-                                Text(err)
-                                    .font(Font.custom("Inter", size: 14))
-                                    .foregroundColor(Color(white: 0.4))
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 32)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 60)
-                            .padding(.bottom, 85)
+                Group {
+                    if viewModel.isLoading {
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.10, green: 0.11, blue: 0.11)))
+                                .scaleEffect(1.3)
+                            Text("FETCHING DL DETAILS…")
+                                .font(Font.custom("Inter", size: 14))
+                                .foregroundColor(Color(white: 0.5))
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .padding(.top, 60)
+                        .padding(.bottom, 85)
 
-                        } else if viewModel.hasSearched, let info = viewModel.dlInfo {
+                    } else if let err = viewModel.errorMessage {
+                        VStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 32))
+                                .foregroundColor(Color(red: 0.93, green: 0.13, blue: 0.14))
+                            Text(err.uppercased())
+                                .font(Font.custom("Inter", size: 14))
+                                .foregroundColor(Color(white: 0.4))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .padding(.top, 60)
+                        .padding(.bottom, 85)
+
+                    } else if viewModel.hasSearched, let info = viewModel.dlInfo {
+                        ScrollView(.vertical, showsIndicators: false) {
                             VStack(spacing: 24) {
                                 DLBasicInfoSection(info: info)
                                 DLInitialDetailsSection(info: info)
@@ -183,24 +184,23 @@ struct DLInfoView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 24)
                             .padding(.bottom, 85)
-
-                        } else {
-                            VStack(spacing: 12) {
-                                Image(systemName: "creditcard.viewfinder")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(Color(white: 0.75))
-                                Text("Enter DL number and date of birth\nto view details")
-                                    .font(Font.custom("Inter", size: 14))
-                                    .foregroundColor(Color(white: 0.55))
-                                    .multilineTextAlignment(.center)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 60)
-                            .padding(.bottom, 85)
                         }
+
+                    } else {
+                        VStack(spacing: 12) {
+                            Image(systemName: "creditcard.viewfinder")
+                                .font(.system(size: 36))
+                                .foregroundColor(Color(white: 0.75))
+                            Text("ENTER DL NUMBER AND DATE OF BIRTH\nTO VIEW DETAILS")
+                                .font(Font.custom("Inter", size: 14))
+                                .foregroundColor(Color(white: 0.55))
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .padding(.top, 60)
+                        .padding(.bottom, 85)
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height)
                 .background(Color(white: 0.98).edgesIgnoringSafeArea(.bottom))
             }
         }
@@ -216,7 +216,7 @@ private struct DLSectionHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title)
+            Text(title.uppercased())
                 .font(Font.custom("PlusJakartaSans-ExtraBold", size: 15))
                 .foregroundColor(.black)
                 .background(
@@ -256,7 +256,7 @@ private struct DLInfoRow: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                Text(label)
+                Text(label.uppercased())
                     .font(Font.custom("Inter", size: 13).weight(.semibold))
                     .foregroundColor(.white)
                     .frame(width: 140, alignment: .leading)
@@ -292,12 +292,12 @@ private struct DLBasicInfoSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            DLSectionHeader(title: "Details Of Driving License: \(info.dlNumber)")
+            DLSectionHeader(title: "DETAILS OF DRIVING LICENSE: \(info.dlNumber)")
 
             DLInfoCard {
                 DLInfoRow(label: "Current Status") {
                     AnyView(
-                        Text(info.currentStatus)
+                        Text(info.currentStatus.uppercased())
                             .font(Font.custom("Inter", size: 11).weight(.bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
@@ -308,21 +308,21 @@ private struct DLBasicInfoSection: View {
                 }
                 DLInfoRow(label: "Holder Name") {
                     AnyView(
-                        Text(info.holderName)
+                        Text(info.holderName.uppercased())
                             .font(Font.custom("Inter", size: 13))
                             .foregroundColor(Color(white: 0.2))
                     )
                 }
                 DLInfoRow(label: "Old/New DL No.") {
                     AnyView(
-                        Text(info.oldNewDLNumber)
+                        Text(info.oldNewDLNumber.uppercased())
                             .font(Font.custom("Inter", size: 13))
                             .foregroundColor(Color(white: 0.2))
                     )
                 }
                 DLInfoRow(label: "Source Of Data", isLast: true) {
                     AnyView(
-                        Text(info.sourceOfData)
+                        Text(info.sourceOfData.uppercased())
                             .font(Font.custom("Inter", size: 13))
                             .foregroundColor(Color(white: 0.2))
                     )
@@ -337,19 +337,19 @@ private struct DLInitialDetailsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            DLSectionHeader(title: "Driving Licens Initial Details")
+            DLSectionHeader(title: "DRIVING LICENS INITIAL DETAILS")
 
             DLInfoCard {
                 DLInfoRow(label: "Initial Issue Date") {
                     AnyView(
-                        Text(info.initialIssueDate)
+                        Text(info.initialIssueDate.uppercased())
                             .font(Font.custom("Inter", size: 13))
                             .foregroundColor(Color(white: 0.2))
                     )
                 }
                 DLInfoRow(label: "Initial Issuing Office", isLast: true) {
                     AnyView(
-                        Text(info.initialIssuingOffice)
+                        Text(info.initialIssuingOffice.uppercased())
                             .font(Font.custom("Inter", size: 13))
                             .foregroundColor(Color(white: 0.2))
                     )
@@ -364,13 +364,13 @@ private struct DLValiditySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            DLSectionHeader(title: "Driving Licens Validity Details")
+            DLSectionHeader(title: "DRIVING LICENS VALIDITY DETAILS")
 
             DLInfoCard {
                 // Non-Transport row
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {
-                        Text("Non-Transport")
+                        Text("NON-TRANSPORT")
                             .font(Font.custom("Inter", size: 13).weight(.semibold))
                             .foregroundColor(.white)
                             .frame(width: 140, alignment: .leading)
@@ -385,10 +385,10 @@ private struct DLValiditySection: View {
 
                         HStack(spacing: 0) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("From:")
+                                Text("FROM:")
                                     .font(Font.custom("Inter", size: 11))
                                     .foregroundColor(Color(white: 0.55))
-                                Text(info.nonTransportFrom)
+                                Text(info.nonTransportFrom.uppercased())
                                     .font(Font.custom("Inter", size: 13))
                                     .foregroundColor(Color(white: 0.2))
                             }
@@ -401,10 +401,10 @@ private struct DLValiditySection: View {
                                 .padding(.vertical, 8)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("To:")
+                                Text("TO:")
                                     .font(Font.custom("Inter", size: 11))
                                     .foregroundColor(Color(white: 0.55))
-                                Text(info.nonTransportTo)
+                                Text(info.nonTransportTo.uppercased())
                                     .font(Font.custom("Inter", size: 13))
                                     .foregroundColor(Color(white: 0.2))
                             }
@@ -424,7 +424,7 @@ private struct DLValiditySection: View {
 
                 // Transport row
                 HStack(spacing: 0) {
-                    Text("Transport")
+                    Text("TRANSPORT")
                         .font(Font.custom("Inter", size: 13).weight(.semibold))
                         .foregroundColor(.white)
                         .frame(width: 140, alignment: .leading)
@@ -439,10 +439,10 @@ private struct DLValiditySection: View {
 
                     HStack(spacing: 0) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("From:")
+                            Text("FROM:")
                                 .font(Font.custom("Inter", size: 11))
                                 .foregroundColor(Color(white: 0.55))
-                            Text(info.transportFrom)
+                            Text(info.transportFrom.uppercased())
                                 .font(Font.custom("Inter", size: 13))
                                 .foregroundColor(Color(white: 0.2))
                         }
@@ -455,10 +455,10 @@ private struct DLValiditySection: View {
                             .padding(.vertical, 8)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("From:")
+                            Text("TO:")
                                 .font(Font.custom("Inter", size: 11))
                                 .foregroundColor(Color(white: 0.55))
-                            Text(info.transportTo)
+                            Text(info.transportTo.uppercased())
                                 .font(Font.custom("Inter", size: 13))
                                 .foregroundColor(Color(white: 0.2))
                         }
@@ -480,12 +480,12 @@ private struct DLCOVSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            DLSectionHeader(title: "Class Of Vehicle Details")
+            DLSectionHeader(title: "CLASS OF VEHICLE DETAILS")
 
             VStack(spacing: 0) {
                 // Header row
                 HStack(spacing: 0) {
-                    Text("COV Category")
+                    Text("COV CATEGORY")
                         .font(Font.custom("Inter", size: 12).weight(.semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -496,7 +496,7 @@ private struct DLCOVSection: View {
                         .fill(Color(white: 0.25))
                         .frame(width: 1)
 
-                    Text("Class Of Vehicle")
+                    Text("CLASS OF VEHICLE")
                         .font(Font.custom("Inter", size: 12).weight(.semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -507,7 +507,7 @@ private struct DLCOVSection: View {
                         .fill(Color(white: 0.25))
                         .frame(width: 1)
 
-                    Text("COV Issue Date")
+                    Text("COV ISSUE DATE")
                         .font(Font.custom("Inter", size: 12).weight(.semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -522,7 +522,7 @@ private struct DLCOVSection: View {
                         .frame(height: 1)
 
                     HStack(spacing: 0) {
-                        Text(detail.category)
+                        Text(detail.category.uppercased())
                             .font(Font.custom("Inter", size: 13))
                             .foregroundColor(Color(white: 0.2))
                             .frame(maxWidth: .infinity)
@@ -533,7 +533,7 @@ private struct DLCOVSection: View {
                             .fill(Color(white: 0.88))
                             .frame(width: 1)
 
-                        Text(detail.classOfVehicle)
+                        Text(detail.classOfVehicle.uppercased())
                             .font(Font.custom("Inter", size: 13))
                             .foregroundColor(Color(white: 0.2))
                             .frame(maxWidth: .infinity)
@@ -544,7 +544,7 @@ private struct DLCOVSection: View {
                             .fill(Color(white: 0.88))
                             .frame(width: 1)
 
-                        Text(detail.issueDate)
+                        Text(detail.issueDate.uppercased())
                             .font(Font.custom("Inter", size: 13))
                             .foregroundColor(Color(white: 0.2))
                             .frame(maxWidth: .infinity)

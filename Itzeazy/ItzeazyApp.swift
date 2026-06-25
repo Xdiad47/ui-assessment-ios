@@ -5,7 +5,8 @@ struct ItzeazyApp: App {
     @State private var showSplash = true
     @AppStorage("hasSeenOnboarding") var hasSeenOnboarding: Bool = false
     @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
-    
+    @StateObject private var tabBarState = TabBarState()
+
     init() {
         UIScrollView.appearance().keyboardDismissMode = .onDrag
     }
@@ -22,6 +23,7 @@ struct ItzeazyApp: App {
                 LoginView()
             } else {
                 MainTabView()
+                    .environmentObject(tabBarState)
             }
         }
     }

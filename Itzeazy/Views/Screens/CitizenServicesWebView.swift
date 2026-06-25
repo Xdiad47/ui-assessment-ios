@@ -7,18 +7,15 @@ struct WebViewRepresentable: UIViewRepresentable {
     let url: String
 
     func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        let webView = WKWebView(frame: .zero, configuration: config)
+        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
         webView.allowsBackForwardNavigationGestures = true
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         guard let requestUrl = URL(string: url) else { return }
-        // Only load once — prevents reload on every SwiftUI re-render
         if webView.url == nil {
-            let request = URLRequest(url: requestUrl)
-            webView.load(request)
+            webView.load(URLRequest(url: requestUrl))
         }
     }
 }
@@ -27,12 +24,20 @@ struct WebViewRepresentable: UIViewRepresentable {
 
 struct CitizenServicesWebView: View {
     let url: String
+    var title: String = "Citizen Services"
+
+    @StateObject private var vm: WebViewModel
     @Environment(\.presentationMode) private var presentationMode
-    @State private var isLoading = true
+    @EnvironmentObject private var tabBarState: TabBarState
+
+    init(url: String, title: String = "Citizen Services") {
+        self.url   = url
+        self.title = title
+        _vm = StateObject(wrappedValue: WebViewModel(title: title, urlString: url))
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
-            // Full dark background — fills entire screen incl. status bar area
             Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -40,13 +45,15 @@ struct CitizenServicesWebView: View {
                 webContent
             }
         }
-        // No navigationBarHidden needed — presented as fullScreenCover
+        .navigationTitle("")
+        .navigationBarHidden(true)
     }
 
-    // MARK: - Custom Nav Header (matches VehicleSearchResultsView / RTOServiceInitialView style)
+    // MARK: - Custom Nav Header
+    // Same design as HomeHeaderView — back arrow instead of hamburger.
     private var navHeader: some View {
         ZStack(alignment: .top) {
-            // Back card: grey, slightly taller — peeks below the dark card
+            // Back card (grey peeks below)
             Rectangle()
                 .fill(Color(red: 0.72, green: 0.72, blue: 0.72))
                 .frame(maxWidth: .infinity)
@@ -54,7 +61,7 @@ struct CitizenServicesWebView: View {
                 .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
                 .padding(.horizontal, 1)
 
-            // Front card: dark header
+            // Front card (dark)
             Color(red: 0.10, green: 0.11, blue: 0.11)
                 .frame(maxWidth: .infinity)
                 .frame(height: 60)
@@ -62,23 +69,20 @@ struct CitizenServicesWebView: View {
 
             // Content row
             HStack(spacing: 0) {
-                // Left: back arrow + title
-                HStack(spacing: 12) {
-                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                        Image("back_arrow")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 24, height: 24)
-                    }
-
-                    Text("Citizen Services")
-                        .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
-                        .foregroundColor(.white)
+                Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.red)
                 }
+
+                Spacer().frame(width: 12)
+
+                Text(title)
+                    .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
+                    .foregroundColor(.white)
 
                 Spacer()
 
-                // Right: bell + profile avatar
                 HStack(spacing: 16) {
                     Image(systemName: "bell")
                         .font(.system(size: 18))
@@ -99,16 +103,21 @@ struct CitizenServicesWebView: View {
         }
     }
 
-    // MARK: - Web Content with Loading State
+    // MARK: - Web Content
+    // WKWebView frame ends exactly at the tab bar top via dynamic padding.
+    // tabBarState.height is measured at runtime from the real CustomTabBar.
     private var webContent: some View {
         ZStack {
             WebViewRepresentable(url: url)
-                .background(Color.white)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                //.padding(.bottom, tabBarState.height)
+                .padding(.bottom, 50) 
 
-            if isLoading {
+            if vm.isLoading {
                 VStack(spacing: 16) {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.85, green: 0.2, blue: 0.2)))
+                        .progressViewStyle(CircularProgressViewStyle(
+                            tint: Color(red: 0.85, green: 0.2, blue: 0.2)))
                         .scaleEffect(1.4)
                     Text("Loading…")
                         .font(.subheadline)
@@ -118,16 +127,19 @@ struct CitizenServicesWebView: View {
                 .background(Color.white)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                        withAnimation(.easeOut(duration: 0.3)) { isLoading = false }
+                        withAnimation(.easeOut(duration: 0.3)) { vm.didFinishLoading() }
                     }
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white)
     }
 }
 
 struct CitizenServicesWebView_Previews: PreviewProvider {
     static var previews: some View {
         CitizenServicesWebView(url: "https://itzeazy.in")
+            .environmentObject(TabBarState())
     }
 }

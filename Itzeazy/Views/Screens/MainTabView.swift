@@ -10,6 +10,7 @@ enum Tab {
 struct MainTabView: View {
     @State private var selectedTab: Tab = .home
     @State private var homeNavID = UUID()
+    @EnvironmentObject private var tabBarState: TabBarState
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -77,6 +78,13 @@ struct MainTabView: View {
                     selectedTab = tappedTab
                 }
                 .padding(.bottom, 1)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .onAppear { tabBarState.height = geo.size.height }
+                            .onChange(of: geo.size.height) { tabBarState.height = $0 }
+                    }
+                )
             }
         }
         .edgesIgnoringSafeArea(.bottom)

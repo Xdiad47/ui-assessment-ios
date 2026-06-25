@@ -2,6 +2,23 @@ import Foundation
 import Combine
 
 class DLInfoViewModel: ObservableObject {
+    private static let inputDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "dd-MM-yyyy"
+        formatter.isLenient = false
+        return formatter
+    }()
+
+    private static let apiDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        return formatter
+    }()
 
     @Published var dlNumber: String = "" {
         didSet {
@@ -20,6 +37,11 @@ class DLInfoViewModel: ObservableObject {
         let number = dlNumber.trimmingCharacters(in: .whitespaces)
         let dobStr = dob.trimmingCharacters(in: .whitespaces)
         guard !number.isEmpty, !dobStr.isEmpty else { return }
+        guard let apiDob = convertDobToAPIFormat(dobStr) else {
+            errorMessage = "Please enter DOB in DD-MM-YYYY format."
+            hasSearched = false
+            return
+        }
 
         Task { @MainActor in
             isLoading    = true
@@ -28,7 +50,6 @@ class DLInfoViewModel: ObservableObject {
             hasSearched  = false
 
             do {
-                let apiDob   = convertDobToAPIFormat(dobStr)
                 let envelope = try await ULIPDLService.shared.getDLDetails(dlNumber: number, dob: apiDob)
 
                 guard let item = envelope.response?.first,
@@ -61,13 +82,12 @@ class DLInfoViewModel: ObservableObject {
 
     // MARK: - Helpers
 
-    // Accepts DD-MM-YYYY → returns YYYY-MM-DD; passes through if already YYYY-MM-DD
-    private func convertDobToAPIFormat(_ dob: String) -> String {
-        let parts = dob.components(separatedBy: "-")
-        if parts.count == 3 && parts[0].count == 2 {
-            return "\(parts[2])-\(parts[1])-\(parts[0])"
+    // Accepts DD-MM-YYYY from the UI and converts it to the API's YYYY-MM-DD format.
+    private func convertDobToAPIFormat(_ dob: String) -> String? {
+        guard let date = Self.inputDateFormatter.date(from: dob) else {
+            return nil
         }
-        return dob
+        return Self.apiDateFormatter.string(from: date)
     }
 
     private func nonEmpty(_ s: String?) -> String? {

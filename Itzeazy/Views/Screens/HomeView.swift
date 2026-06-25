@@ -1,14 +1,10 @@
 import SwiftUI
 
-// Lightweight wrapper so a URL string works with .fullScreenCover(item:)
-struct IdentifiableURL: Identifiable {
-    let id = UUID()
-    let url: String
-}
+//Test the screens tab that is passport, marriage certificat etc and also home hero section has issue
+
+// MARK: - HomeView
 
 struct HomeView: View {
-    @State private var webViewUrl: IdentifiableURL? = nil
-
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -22,9 +18,7 @@ struct HomeView: View {
                     VStack(spacing: 24) {
                         HomeHeaderView()
                             .padding(.horizontal, 0)
-                        HomeHeroCardView { url in
-                            webViewUrl = IdentifiableURL(url: url)
-                        }
+                        HomeHeroCardView()
                         .padding(.horizontal, 10)
                         .padding(.bottom, 25)
                     }
@@ -48,10 +42,6 @@ struct HomeView: View {
         }
         .navigationTitle("")
         .navigationBarHidden(true)
-        // Full-screen cover: renders above the bottom tab bar entirely
-        .fullScreenCover(item: $webViewUrl) { identifiable in
-            CitizenServicesWebView(url: identifiable.url)
-        }
     }
 }
 
@@ -115,13 +105,14 @@ struct HomeHeaderView: View {
 }
 
 struct HomeHeroCardView: View {
-    var onGetStarted: (String) -> Void
 
     @StateObject private var vm = HomeHeroViewModel()
 
     @State private var showCityPicker    = false
     @State private var showServicePicker = false
     @State private var showTypePicker    = false
+    @State private var navigateToWebView = false
+    @State private var webViewURL        = ""
 
     private let accentRed = Color(red: 0.85, green: 0.2, blue: 0.2)
     private let fieldGray = Color(red: 0.55, green: 0.55, blue: 0.55)
@@ -208,21 +199,30 @@ struct HomeHeroCardView: View {
                 }
             }
 
-            // --- Get Started Button ---
-            Button(action: {
-                if let url = vm.buildUrl() {
-                    onGetStarted(url)
+            // --- Get Started Button (opens CitizenServicesWebView via NavigationLink) ---
+            ZStack {
+                NavigationLink(
+                    destination: CitizenServicesWebView(url: webViewURL, title: "Citizen Services"),
+                    isActive: $navigateToWebView
+                ) { EmptyView() }
+                .hidden()
+
+                Button(action: {
+                    if let url = vm.buildUrl() {
+                        webViewURL        = url
+                        navigateToWebView = true
+                    }
+                }) {
+                    Text("Get Started")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(vm.isGetStartedEnabled ? accentRed : accentRed.opacity(0.45))
+                        .cornerRadius(12)
                 }
-            }) {
-                Text("Get Started")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(vm.isGetStartedEnabled ? accentRed : accentRed.opacity(0.45))
-                    .cornerRadius(12)
+                .disabled(!vm.isGetStartedEnabled)
             }
-            .disabled(!vm.isGetStartedEnabled)
         }
         .padding(.horizontal)
 
@@ -345,8 +345,15 @@ struct PickerSheetView<T: Identifiable>: View {
     }
 }
 
+// MARK: - HomeServicesGridView
+// "Services We Provide" section — service buttons that open a WebView use CitizenServicesWebView
+
 struct HomeServicesGridView: View {
-    let services = [
+
+    @StateObject private var vm = HomeServicesViewModel()
+
+    // Non-web service items kept inline (RTO, Visa, Attestation)
+    private let allServices: [(String, String)] = [
         ("RTO\nServices", "rto_service"),
         ("Passport",      "passport"),
         ("Marriage\nReg.", "marriage_reg"),
@@ -358,10 +365,10 @@ struct HomeServicesGridView: View {
         ("Attestation",   "attestation"),
         ("Pan Card",      "pan_card")
     ]
-    
+
     // 5 Columns as per Figma
     let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
@@ -373,23 +380,11 @@ struct HomeServicesGridView: View {
                     .fill(Color(red: 0.85, green: 0.2, blue: 0.2))
                     .frame(width: 203, height: 3)
             }
-            .padding(.horizontal,16)
-            
+            .padding(.horizontal, 16)
+
             LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(services, id: \.0) { service in
-                    if service.0.contains("RTO") {
-                        NavigationLink(destination: RTOServiceInitialView()) {
-                            ServiceBoxView(title: service.0, iconName: service.1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    } else if service.0 == "Visa" {
-                        NavigationLink(destination: VisaViewInitial()) {
-                            ServiceBoxView(title: service.0, iconName: service.1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    } else {
-                        ServiceBoxView(title: service.0, iconName: service.1)
-                    }
+                ForEach(allServices, id: \.0) { service in
+                    serviceCell(label: service.0, icon: service.1)
                 }
             }
             .padding(12)
@@ -410,10 +405,51 @@ struct HomeServicesGridView: View {
             )
         }
     }
+
+    // MARK: - Cell builder
+    @ViewBuilder
+    private func serviceCell(label: String, icon: String) -> some View {
+        // RTO — existing native screen
+        if label.contains("RTO") {
+            NavigationLink(destination: RTOServiceInitialView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        // Visa — existing native screen
+        } else if label == "Visa" {
+            NavigationLink(destination: VisaViewInitial()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        // Attestation — placeholder (no URL yet, no native screen yet)
+        } else if label == "Attestation" {
+            ServiceBoxView(title: label, iconName: icon)
+
+        // All other service items — open WebView
+        } else if let item = vm.webItems.first(where: { $0.label == label }) {
+            NavigationLink(
+                destination: CitizenServicesWebView(url: item.url, title: item.label)
+            ) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        } else {
+            ServiceBoxView(title: label, iconName: icon)
+        }
+    }
 }
 
+// MARK: - HomeUtilitiesGridView
+// "Utilities" section — some buttons open native screens, others open a WebView
+
 struct HomeUtilitiesGridView: View {
-    let utilities = [
+
+    @StateObject private var vm = HomeUtilitiesViewModel()
+
+    private let allUtilities: [(String, String)] = [
         ("Vehicle\nInfo", "vehicle_info"),
         ("Challan\nInfo", "challan_info"),
         ("DL Info",       "dl_info"),
@@ -425,10 +461,10 @@ struct HomeUtilitiesGridView: View {
         ("LL QB",         "ll_qb"),
         ("LL Mock",       "llmock")
     ]
-    
+
     // 5 Columns as per Figma
     let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
@@ -440,48 +476,11 @@ struct HomeUtilitiesGridView: View {
                     .fill(Color(red: 0.85, green: 0.2, blue: 0.2))
                     .frame(width: 80, height: 3)
             }
-            .padding(.horizontal,16)
-            
+            .padding(.horizontal, 16)
+
             LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(utilities, id: \.0) { utility in
-                    if utility.0 == "Vehicle\nInfo" {
-                        NavigationLink(destination: VehicleSearchResultsView()) {
-                            ServiceBoxView(title: utility.0, iconName: utility.1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    } else if utility.0.contains("Challan") {
-                        NavigationLink(destination: ChallanDetailsView()) {
-                            ServiceBoxView(title: utility.0, iconName: utility.1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    } else if utility.0 == "DL Info" {
-                        NavigationLink(destination: DLInfoView()) {
-                            ServiceBoxView(title: utility.0, iconName: utility.1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    } else if utility.0 == "TS Vehicle" {
-                        NavigationLink(destination: TSVehicleScreen()) {
-                            ServiceBoxView(title: utility.0, iconName: utility.1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    } else if utility.0 == "TS DL\nInfo" {
-                        NavigationLink(destination: TSDLInfoScreen()) {
-                            ServiceBoxView(title: utility.0, iconName: utility.1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    } else if utility.0 == "EV Charge" {
-                        NavigationLink(destination: EVChargeRouter()) {
-                            ServiceBoxView(title: utility.0, iconName: utility.1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    } else if utility.0 == "Petrol\nPump" {
-                        NavigationLink(destination: PetrolPumpRouter()) {
-                            ServiceBoxView(title: utility.0, iconName: utility.1)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    } else {
-                        ServiceBoxView(title: utility.0, iconName: utility.1)
-                    }
+                ForEach(allUtilities, id: \.0) { utility in
+                    utilityCell(label: utility.0, icon: utility.1)
                 }
             }
             .padding(12)
@@ -500,6 +499,67 @@ struct HomeUtilitiesGridView: View {
                         )
                     )
             )
+        }
+    }
+
+    // MARK: - Cell builder
+    @ViewBuilder
+    private func utilityCell(label: String, icon: String) -> some View {
+        switch label {
+        case "Vehicle\nInfo":
+            NavigationLink(destination: VehicleSearchResultsView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        case "Challan\nInfo":
+            NavigationLink(destination: ChallanDetailsView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        case "DL Info":
+            NavigationLink(destination: DLInfoView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        case "TS Vehicle":
+            NavigationLink(destination: TSVehicleScreen()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        case "TS DL\nInfo":
+            NavigationLink(destination: TSDLInfoScreen()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        case "EV Charge":
+            NavigationLink(destination: EVChargeRouter()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        case "Petrol\nPump":
+            NavigationLink(destination: PetrolPumpRouter()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        default:
+            // Road Tax, LL QB, LL Mock — open WebView
+            if let item = vm.webItems.first(where: { $0.label == label }) {
+                NavigationLink(
+                    destination: CitizenServicesWebView(url: item.url, title: item.label)
+                ) {
+                    ServiceBoxView(title: label, iconName: icon)
+                }
+                .buttonStyle(PlainButtonStyle())
+            } else {
+                ServiceBoxView(title: label, iconName: icon)
+            }
         }
     }
 }

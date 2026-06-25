@@ -8,7 +8,7 @@ final class ULIPDLService {
 
     private init() {}
 
-    // dob format expected by ULIP: "DD-MM-YYYY"
+    // dob format expected by ULIP: "YYYY-MM-DD"
     func getDLDetails(dlNumber: String, dob: String) async throws -> ULIPDLResponse {
         try await auth.ensureValidToken()
         return try await fetchDLDetails(dlNumber: dlNumber, dob: dob)
