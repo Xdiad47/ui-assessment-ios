@@ -14,6 +14,8 @@ final class YoutubeRepository {
         components.queryItems = [URLQueryItem(name: "playlistId", value: playlistId)]
         guard let url = components.url else { throw URLError(.badURL) }
         let (data, _) = try await session.data(from: url)
-        return try JSONDecoder().decode(YoutubePlaylistResponse.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(YoutubePlaylistResponse.self, from: data)
     }
 }

@@ -13,7 +13,7 @@ struct VideoTutorialsView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            lightBg.ignoresSafeArea()
+            darkBg.ignoresSafeArea()
 
             // Hidden NavigationLink — activated when a video is selected
             NavigationLink(
@@ -38,6 +38,7 @@ struct VideoTutorialsView: View {
                     Spacer(minLength: 80)
                 }
                 .padding(.bottom, 16)
+                .background(lightBg)
             }
         }
         .navigationBarHidden(true)
@@ -66,7 +67,7 @@ struct VideoTutorialsView: View {
                 }
 
                 Text("Video Tutorials")
-                    .font(Font.custom("PlusJakartaSans-Bold", size: 18))
+                    .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
                     .foregroundColor(.white)
 
                 Spacer()

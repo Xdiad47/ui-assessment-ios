@@ -95,6 +95,7 @@ final class VideoTutorialsViewModel: ObservableObject {
                                 ?? item.snippet.thumbnails.default?.url
                                 ?? "",
                             videoURL: item.contentDetails.videoUrl
+                                ?? "https://youtu.be/\(item.contentDetails.videoId)"
                         )
                     }
                     playlistSections[index].videos = videos

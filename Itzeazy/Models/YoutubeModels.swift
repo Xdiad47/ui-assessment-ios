@@ -21,8 +21,8 @@ struct YoutubePlaylistSnippet: Decodable {
     let thumbnails: YoutubeThumbnails
     let playlistId: String
     let position: Int
-    let publishedAt: String
-    let channelTitle: String
+    let publishedAt: String?
+    let channelTitle: String?
     let resourceId: YoutubeResourceId
 }
 
@@ -42,8 +42,8 @@ struct YoutubeThumbnail: Decodable {
 
 struct YoutubeContentDetails: Decodable {
     let videoId: String
-    let videoPublishedAt: String
-    let videoUrl: String
+    let videoPublishedAt: String?
+    let videoUrl: String?
 }
 
 struct YoutubeResourceId: Decodable {

@@ -9,9 +9,6 @@ struct YoutubePlayerView: View {
 
     @Environment(\.presentationMode) private var presentationMode
 
-    private let darkBg      = Color(red: 0.10, green: 0.11, blue: 0.11)
-    private let strokeColor = Color(red: 0.72, green: 0.72, blue: 0.72)
-
     private var videoId: String? { extractYouTubeVideoId(from: videoURL) }
 
     var body: some View {
@@ -32,18 +29,13 @@ struct YoutubePlayerView: View {
             }
         }
         .navigationBarHidden(true)
+        .preferredColorScheme(.dark)
     }
 
     private var topBar: some View {
         ZStack(alignment: .top) {
-            Rectangle()
-                .fill(strokeColor)
-                .frame(maxWidth: .infinity, maxHeight: 62)
-                .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
-                .padding(.horizontal, 1)
-            darkBg
+            Color.black
                 .frame(maxWidth: .infinity, maxHeight: 60)
-                .clipShape(RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight]))
             HStack(spacing: 12) {
                 Button(action: { presentationMode.wrappedValue.dismiss() }) {
                     Image(systemName: "arrow.left")
@@ -158,6 +150,15 @@ private let hideOverlaysJS = """
 """
 
 // MARK: - Video ID extractor (mirrors Android's extractYouTubeVideoId)
+
+#Preview {
+    NavigationView {
+        YoutubePlayerView(
+            videoURL: "https://youtu.be/LF4mp2tlImc",
+            title: "How to book order on ItzEazy portal"
+        )
+    }
+}
 
 private func extractYouTubeVideoId(from url: String) -> String? {
     let patterns = [
