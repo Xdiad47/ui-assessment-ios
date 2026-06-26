@@ -67,7 +67,12 @@ struct TSVehicleScreen: View {
                             }
                             .padding(.horizontal)
 
-                            TSOtherDetailsCard(data: data)
+                            // Permit card — shown only when permit data is present
+                            if data.permitNo != "N/A" {
+                                TSPermitDetailsCard(data: data)
+                            }
+
+                            //TSOtherDetailsCard(data: data)
                         }
                         .padding(.top, 24)
                         .padding(.bottom, 85)
@@ -149,15 +154,24 @@ struct TSVehicleScreen: View {
                     .font(Font.custom("Inter", size: 12).weight(.semibold))
                     .foregroundColor(.white)
 
-                TextField("e.g. TS09EA1234", text: $viewModel.vehicleNumber)
-                    .font(Font.custom("Inter", size: 13))
-                    .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
-                    .padding(.vertical, 14)
-                    .padding(.horizontal, 16)
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    .autocapitalization(.allCharacters)
-                    .disableAutocorrection(true)
+                ZStack(alignment: .leading) {
+                    if viewModel.vehicleNumber.isEmpty {
+                        Text("e.g. TS09EA1234")
+                            .font(Font.custom("Inter", size: 13))
+                            .foregroundColor(Color(red: 0.65, green: 0.65, blue: 0.68))
+                            .padding(.horizontal, 16)
+                    }
+                    TextField("", text: $viewModel.vehicleNumber)
+                        .font(Font.custom("Inter", size: 13))
+                        .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                        .autocapitalization(.allCharacters)
+                        .disableAutocorrection(true)
+                }
+                .background(Color.white)
+                .cornerRadius(12)
+
             }
             .padding(.horizontal, 16)
             .padding(.top, 24)
@@ -422,42 +436,148 @@ private struct TSPUCCard: View {
 
 // MARK: - Other Details
 
-private struct TSOtherDetailsCard: View {
+//private struct TSOtherDetailsCard: View {
+//    let data: TSVehicleData
+//
+//    var body: some View {
+//        VStack(spacing: 0) {
+//            HStack {
+//                Image("other_details")
+//                    .resizable().scaledToFit()
+//                    .frame(width: 13, height: 14)
+//                Text("OTHER DETAILS")
+//                    .font(.system(size: 12, weight: .bold))
+//                    .foregroundColor(.white)
+//                Spacer()
+//            }
+//            .padding()
+//            .background(Color(white: 0.15))
+//
+//            VStack(spacing: 16) {
+//                TSKeyValue("Finance / Hypothecation", data.financerName)
+//                TSKeyValue("Theft Status",
+//                           data.theftStatus == "N" ? "Not Stolen" : data.theftStatus)
+//                TSKeyValue("Tax Validity",     data.taxValidity)
+//                TSKeyValue("FC Validity",      data.fcValidity)
+//                TSKeyValue("Wheel Base",       data.wheelBase)
+//                TSKeyValue("Unladen Weight",   data.ulw)
+//                TSKeyValue("Gross Weight",     data.gvw)
+//            }
+//            .padding()
+//            .background(Color.white)
+//        }
+//        .cornerRadius(12)
+//        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+//        .padding(.horizontal)
+//    }
+//}
+
+// MARK: - Permit Details Card
+
+private struct TSPermitDetailsCard: View {
     let data: TSVehicleData
+
+    // Expand single-letter VehicleType codes to human-readable labels
+    private var vehicleTypeDisplay: String {
+        switch data.vehicleType {
+        case "T": return "T (Transport)"
+        case "N": return "N (Non-Transport)"
+        default:  return data.vehicleType
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Image("other_details")
-                    .resizable().scaledToFit()
-                    .frame(width: 13, height: 14)
-                Text("OTHER DETAILS")
-                    .font(.system(size: 12, weight: .bold))
+
+            // ── Header ────────────────────────────────────────────────────────
+            HStack(spacing: 10) {
+                Image(systemName: "doc.text.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(.red)
+                Text("PERMIT DETAILS")
+                    .font(Font.custom("Inter", size: 12).weight(.bold))
+                    .tracking(0.55)
                     .foregroundColor(.white)
                 Spacer()
             }
-            .padding()
-            .background(Color(white: 0.15))
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(Color(red: 0.11, green: 0.11, blue: 0.12))
+            .cornerRadius(10, corners: [.topLeft, .topRight])
 
-            VStack(spacing: 16) {
-                TSKeyValue("Finance / Hypothecation", data.financerName)
-                TSKeyValue("Theft Status",
-                           data.theftStatus == "N" ? "Not Stolen" : data.theftStatus)
-                TSKeyValue("Permit No",        data.permitNo)
-                TSKeyValue("Permit Type",      data.permitType)
-                TSKeyValue("Permit Validity",  data.permitValidity)
-                TSKeyValue("Tax Validity",     data.taxValidity)
-                TSKeyValue("FC Validity",      data.fcValidity)
-                TSKeyValue("Wheel Base",       data.wheelBase)
-                TSKeyValue("Unladen Weight",   data.ulw)
-                TSKeyValue("Gross Weight",     data.gvw)
+            // ── Body ──────────────────────────────────────────────────────────
+            VStack(spacing: 0) {
+
+                TSPermitRow(label: "Permit No.",
+                            value: data.permitNo,
+                            isMonospaced: true)
+                Divider().padding(.horizontal, 16)
+
+                TSPermitRow(label: "Permit Type",
+                            value: data.permitType,
+                            isMonospaced: true)
+                Divider().padding(.horizontal, 16)
+
+                TSPermitRow(label: "Permit Valid Upto",
+                            value: data.permitValidity,
+                            isValidityBadge: true)
+                Divider().padding(.horizontal, 16)
+
+                TSPermitRow(label: "Vehicle Type",
+                            value: vehicleTypeDisplay,
+                            isMonospaced: true)
+                Divider().padding(.horizontal, 16)
+
+                TSPermitRow(label: "Class ID",
+                            value: data.classID,
+                            isMonospaced: true)
             }
-            .padding()
             .background(Color.white)
+            .cornerRadius(10, corners: [.bottomLeft, .bottomRight])
         }
-        .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+        .cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10)
+            .stroke(Color(red: 0.72, green: 0.72, blue: 0.72), lineWidth: 0.5))
         .padding(.horizontal)
+    }
+}
+
+// MARK: - Permit Row helper
+
+private struct TSPermitRow: View {
+    let label: String
+    let value: String
+    var isMonospaced: Bool    = false
+    var isValidityBadge: Bool = false
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(Font.custom("Inter", size: 13).weight(.medium))
+                .foregroundColor(Color(red: 0.42, green: 0.42, blue: 0.45))
+
+            Spacer()
+
+            if isValidityBadge {
+                Text(value)
+                    .font(Font.custom("Inter", size: 12).weight(.bold))
+                    .foregroundColor(Color(red: 0.08, green: 0.50, blue: 0.24))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color(red: 0.08, green: 0.50, blue: 0.24).opacity(0.12))
+                    .cornerRadius(8)
+            } else if isMonospaced {
+                Text(value)
+                    .font(Font.custom("Inter", size: 13).weight(.semibold).monospaced())
+                    .foregroundColor(Color(red: 0.10, green: 0.10, blue: 0.11))
+            } else {
+                Text(value)
+                    .font(Font.custom("Inter", size: 13).weight(.semibold))
+                    .foregroundColor(Color(red: 0.10, green: 0.10, blue: 0.11))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 }
 

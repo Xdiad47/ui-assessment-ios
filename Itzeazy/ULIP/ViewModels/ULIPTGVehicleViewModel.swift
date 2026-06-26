@@ -36,6 +36,7 @@ struct TSVehicleData {
     let permitNo: String
     let permitValidity: String
     let permitType: String
+    let classID: String
     let theftStatus: String
     let rcValidUpto: String
     let ownerSerialNo: String
@@ -200,6 +201,7 @@ class ULIPTGVehicleViewModel: ObservableObject {
             permitNo:          val(v, "PERMITNO"),
             permitValidity:    val(v, "Permit_Validity"),
             permitType:        val(v, "PERMIT_TYPE"),
+            classID:           val(v, "Vehicle_ClassID"),
             theftStatus:       val(v, "TheftStatus"),
             rcValidUpto:       val(v, "RCValid_Upto"),
             ownerSerialNo:     val(v, "OwnerSerialNo"),

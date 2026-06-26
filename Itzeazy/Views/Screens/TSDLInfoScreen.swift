@@ -192,7 +192,7 @@ struct TSDLInfoScreen: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
-                .padding(.bottom, 32)
+                .padding(.bottom, 95)
             }
             .background(Color.white)
             .edgesIgnoringSafeArea(.bottom)
