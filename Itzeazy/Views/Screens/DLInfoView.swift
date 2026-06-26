@@ -1,8 +1,14 @@
 import SwiftUI
+import UIKit
 
 struct DLInfoView: View {
     @Environment(\.presentationMode) private var presentationMode
     @StateObject private var viewModel = DLInfoViewModel()
+    @FocusState private var focusedField: Field?
+
+    private enum Field {
+        case dlNumber
+    }
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -65,16 +71,24 @@ struct DLInfoView: View {
                                 .font(Font.custom("Inter", size: 12).weight(.semibold))
                                 .foregroundColor(.white)
 
-                            TextField("HR-654365124512445", text: Binding(
-                                get: { viewModel.dlNumber },
-                                set: { viewModel.dlNumber = $0.uppercased() }
-                            ))
+                            TextField(
+                                "",
+                                text: Binding(
+                                    get: { viewModel.dlNumber },
+                                    set: { viewModel.dlNumber = $0.uppercased() }
+                                ),
+                                prompt: Text("HR-654365124512445")
+                                    .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
+                            )
                                 .font(Font.custom("Inter", size: 13))
-                                .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
+                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
                                 .padding(.vertical, 14)
                                 .padding(.horizontal, 16)
                                 .background(Color.white)
                                 .cornerRadius(12)
+                                .textInputAutocapitalization(.characters)
+                                .autocorrectionDisabled()
+                                .focused($focusedField, equals: .dlNumber)
                         }
 
                         VStack(alignment: .leading, spacing: 6) {
@@ -82,13 +96,8 @@ struct DLInfoView: View {
                                 .font(Font.custom("Inter", size: 12).weight(.semibold))
                                 .foregroundColor(.white)
 
-                            TextField("DD-MM-YYYY", text: Binding(
-                                get: { viewModel.dob },
-                                set: { viewModel.dob = $0.uppercased() }
-                            ))
-                                .font(Font.custom("Inter", size: 13))
-                                .foregroundColor(Color(red: 0.42, green: 0.45, blue: 0.50))
-                                .padding(.vertical, 14)
+                            DOBTextField(text: $viewModel.dob)
+                                .frame(height: 48)
                                 .padding(.horizontal, 16)
                                 .background(Color.white)
                                 .cornerRadius(12)
@@ -114,6 +123,8 @@ struct DLInfoView: View {
                                      && !viewModel.dob.trimmingCharacters(in: .whitespaces).isEmpty
 
                         Button(action: {
+                            focusedField = nil
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                             viewModel.getDetails()
                         }) {
                             if viewModel.isLoading {
@@ -559,6 +570,61 @@ private struct DLCOVSection: View {
                     .stroke(Color(white: 0.88), lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
+        }
+    }
+}
+
+// MARK: - DOB Text Field
+
+private struct DOBTextField: UIViewRepresentable {
+    @Binding var text: String
+
+    func makeUIView(context: Context) -> UITextField {
+        let tf = UITextField()
+        tf.keyboardType = .numberPad
+        tf.delegate = context.coordinator
+        tf.font = UIFont(name: "Inter", size: 13) ?? .systemFont(ofSize: 13)
+        tf.textColor = UIColor(red: 0.10, green: 0.11, blue: 0.11, alpha: 1)
+        tf.attributedPlaceholder = NSAttributedString(
+            string: "DD-MM-YYYY",
+            attributes: [
+                .foregroundColor: UIColor(red: 0.42, green: 0.45, blue: 0.50, alpha: 1),
+                .font: UIFont(name: "Inter", size: 13) ?? UIFont.systemFont(ofSize: 13)
+            ]
+        )
+        return tf
+    }
+
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        if uiView.text != text { uiView.text = text }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        @Binding var text: String
+        init(text: Binding<String>) { _text = text }
+
+        func textField(_ textField: UITextField,
+                       shouldChangeCharactersIn range: NSRange,
+                       replacementString string: String) -> Bool {
+            let current = textField.text ?? ""
+            guard let r = Range(range, in: current) else { return false }
+            let proposed = current.replacingCharacters(in: r, with: string)
+
+            if string.isEmpty {
+                var v = proposed
+                if v.hasSuffix("-") { v = String(v.dropLast()) }
+                textField.text = v
+                text = v
+            } else {
+                guard string.allSatisfy(\.isNumber) else { return false }
+                let formatted = DLInfoViewModel.formatDOBInput(proposed)
+                guard formatted.count <= 10 else { return false }
+                textField.text = formatted
+                text = formatted
+            }
+            return false
         }
     }
 }

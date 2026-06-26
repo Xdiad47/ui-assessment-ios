@@ -26,7 +26,7 @@ class DLInfoViewModel: ObservableObject {
             if dlNumber != u { dlNumber = u }
         }
     }
-    @Published var dob: String = ""  // user enters DD-MM-YYYY
+    @Published var dob: String = "" // user enters DD-MM-YYYY
 
     @Published var isLoading: Bool = false
     @Published var dlInfo: DLInfo? = nil
@@ -81,6 +81,48 @@ class DLInfoViewModel: ObservableObject {
     }
 
     // MARK: - Helpers
+
+    static func formatDOBInput(_ input: String) -> String {
+        let digits = input.filter(\.isNumber)
+        var remaining = String(digits.prefix(8))
+        guard !remaining.isEmpty else { return "" }
+
+        func consumeSegment(maxFirstDigit: Int) -> String {
+            guard let first = remaining.first else { return "" }
+
+            if let value = first.wholeNumberValue, value > maxFirstDigit {
+                remaining.removeFirst()
+                return "0\(first)"
+            }
+
+            guard remaining.count >= 2 else {
+                let partial = String(remaining.prefix(1))
+                remaining.removeAll()
+                return partial
+            }
+
+            let segment = String(remaining.prefix(2))
+            remaining.removeFirst(2)
+            return segment
+        }
+
+        let day = consumeSegment(maxFirstDigit: 3)
+        let month = remaining.isEmpty ? "" : consumeSegment(maxFirstDigit: 1)
+        let year = String(remaining.prefix(4))
+
+        var result = day
+        if day.count == 2 {
+            result += "-"
+        }
+
+        result += month
+        if month.count == 2 {
+            result += "-"
+        }
+
+        result += year
+        return result
+    }
 
     // Accepts DD-MM-YYYY from the UI and converts it to the API's YYYY-MM-DD format.
     private func convertDobToAPIFormat(_ dob: String) -> String? {

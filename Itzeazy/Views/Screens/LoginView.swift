@@ -1,7 +1,8 @@
 import SwiftUI
 
 
-//Run the code on iphone 
+//Coonect the app with dev server that is dev.itzeazy.in
+//Login dev API
 
 struct LoginView: View {
     private let countryDropdownWidth: CGFloat = 220
