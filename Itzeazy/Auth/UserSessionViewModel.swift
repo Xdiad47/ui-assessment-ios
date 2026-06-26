@@ -64,6 +64,10 @@ final class UserSessionViewModel: ObservableObject {
         user?.name.components(separatedBy: " ").first ?? ""
     }
 
+    var displayFullName: String {
+        user?.name ?? ""
+    }
+
     var displayEmail: String {
         user?.email ?? ""
     }

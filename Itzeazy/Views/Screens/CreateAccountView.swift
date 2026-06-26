@@ -255,57 +255,68 @@ struct CreateAccountView: View {
                             VStack(spacing: 10) {
                                 Button(action: {
                                     dismissInputUI()
-
                                     guard validateForm() else { return }
-
                                     let trimmedEmail = emailAddress.trimmingCharacters(in: .whitespacesAndNewlines)
                                     registerViewModel.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
                                     registerViewModel.email = trimmedEmail
                                     registerViewModel.mobile = mobileNumber
                                     registerViewModel.password = password
-
                                     selectedContactInfo = trimmedEmail
                                     selectedOTPIsPhoneContact = false
                                     registerViewModel.sendEmailOTP()
                                 }) {
                                     Group {
-                                        Text("Get verification code on Email")
-                                            .font(Font.custom("Inter", size: 16).weight(.semibold))
-                                            .foregroundColor(.white)
+                                        if registerViewModel.isLoading && !selectedOTPIsPhoneContact {
+                                            ProgressView().tint(.white)
+                                        } else {
+                                            Text("Get verification code on Email")
+                                                .font(Font.custom("Inter", size: 16).weight(.semibold))
+                                                .foregroundColor(.white)
+                                        }
                                     }
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 52)
-                                    .background(Color.red)
+                                    .background(registerViewModel.isLoading && !selectedOTPIsPhoneContact ? Color.red.opacity(0.7) : Color.red)
                                     .clipShape(Capsule())
                                     .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 15, x: 0, y: 10)
                                     .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 6, x: 0, y: 4)
                                 }
-                                
+                                .disabled(registerViewModel.isLoading)
+
                                 Button(action: {
                                     dismissInputUI()
-
                                     guard validateForm() else { return }
-
                                     registerViewModel.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
                                     registerViewModel.email = emailAddress.trimmingCharacters(in: .whitespacesAndNewlines)
                                     registerViewModel.mobile = mobileNumber
                                     registerViewModel.password = password
-
                                     selectedContactInfo = "\(selectedCountry.phoneCode) \(mobileNumber)"
                                     selectedOTPIsPhoneContact = true
                                     registerViewModel.sendMobileOTP()
                                 }) {
-                                    Text("Get verification code on Mobile")
-                                        .font(Font.custom("Inter", size: 16).weight(.semibold))
+                                    Group {
+                                        if registerViewModel.isLoading && selectedOTPIsPhoneContact {
+                                            ProgressView().tint(.red)
+                                        } else {
+                                            Text("Get verification code on Mobile")
+                                                .font(Font.custom("Inter", size: 16).weight(.semibold))
+                                                .foregroundColor(.red)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 52)
+                                    .background(Color(hex: "#f3f4f5"))
+                                    .overlay(Capsule().stroke(Color(hex: "#b7b7b7"), lineWidth: 1))
+                                    .clipShape(Capsule())
+                                }
+                                .disabled(registerViewModel.isLoading)
+
+                                if let error = registerViewModel.errorMessage {
+                                    Text(error)
+                                        .font(Font.custom("Inter", size: 13).weight(.medium))
                                         .foregroundColor(.red)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 52)
-                                        .background(Color(hex: "#f3f4f5"))
-                                        .overlay(
-                                            Capsule()
-                                                .stroke(Color(hex: "#b7b7b7"), lineWidth: 1)
-                                        )
-                                        .clipShape(Capsule())
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 4)
                                 }
                             }
                             

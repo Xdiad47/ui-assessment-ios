@@ -110,13 +110,19 @@ struct AuthResponse: Decodable {
 }
 
 struct SendOTPData: Decodable {
-    let message: String
-    let type: String
+    let requestId: String?
+    let type: String?
+    let message: String?
+
+    enum CodingKeys: String, CodingKey {
+        case requestId = "request_id"
+        case type, message
+    }
 }
 
 struct SendOTPResponse: Decodable {
-    let statusCode: Int
-    let message: String
+    let statusCode: Int?
+    let message: String?
     let data: SendOTPData?
     let token: String?
     let error: String?

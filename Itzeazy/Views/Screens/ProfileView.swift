@@ -21,7 +21,7 @@ struct ProfileView: View {
                         ProfileHeaderView(strokeColor: strokeColor, onBackToHome: onBackToHome)
 
                         ProfileUserInfoCardView(
-                            name: userSession.displayName,
+                            name: userSession.displayFullName,
                             email: userSession.displayEmail,
                             strokeColor: strokeColor
                         )
