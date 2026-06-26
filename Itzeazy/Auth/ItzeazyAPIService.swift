@@ -178,7 +178,7 @@ final class ItzeazyAPIService {
         request.setValue("application/json", forHTTPHeaderField: "accept")
 
         if let token {
-            request.setValue(token, forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         do {

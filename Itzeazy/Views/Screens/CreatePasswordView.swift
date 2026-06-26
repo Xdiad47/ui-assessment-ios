@@ -169,7 +169,7 @@ struct CreatePasswordView: View {
                     if forgotPasswordViewModel.isLoading {
                         ProgressView().tint(.white)
                     } else {
-                        Text("Save changes and Login")
+                        Text("Save changes")
                             .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
                             .foregroundColor(.white)
                     }
