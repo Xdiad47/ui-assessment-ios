@@ -1,64 +1,50 @@
 import SwiftUI
 import Combine
 
-struct EnterOTPView: View {
+struct RegisterOTPView: View {
     @Environment(\.presentationMode) var presentationMode
 
+    // Formatted string for display e.g. "+91 9876543210" or "john@example.com"
     var contactInfo: String = ""
-    var rawContact: String = ""
     var isPhoneContact: Bool = false
-    @ObservedObject var authViewModel: AuthViewModel
+    @ObservedObject var registerViewModel: RegisterViewModel
 
     @State private var otpText: String = ""
     @FocusState private var isKeyboardShowing: Bool
     @State private var keyboardHeight: CGFloat = 0
-
     @State private var timeRemaining = 299
 
-    private var isKeyboardPresented: Bool {
-        keyboardHeight > 0
-    }
-
-    private var otpLength: Int {
-        isPhoneContact ? 4 : 6
-    }
+    private var isKeyboardPresented: Bool { keyboardHeight > 0 }
+    private var otpLength: Int { isPhoneContact ? 4 : 6 }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .top) {
-                // Background
                 Color.white
                     .edgesIgnoringSafeArea(.all)
-                    .onTapGesture {
-                        isKeyboardShowing = false
-                    }
-                
-                // Top Hero Section & White Status Bar
+                    .onTapGesture { isKeyboardShowing = false }
+
+                // Hero section
                 VStack(spacing: 0) {
                     Color.white
                         .frame(height: geometry.safeAreaInsets.top)
-                    
+
                     ZStack(alignment: .top) {
-                        // Background gradient
                         LinearGradient(
                             gradient: Gradient(colors: [Color(hex: "#191c1d"), Color(hex: "#2e3132")]),
                             startPoint: .top,
                             endPoint: .bottom
                         )
-                        
-                        // Hero illustration
+
                         Image("otp_image")
                             .resizable()
                             .scaledToFill()
                             .frame(width: geometry.size.width, height: 320)
                             .clipped()
                             .opacity(0.9)
-                        
-                        // Back arrow button
+
                         HStack {
-                            Button(action: {
-                                presentationMode.wrappedValue.dismiss()
-                            }) {
+                            Button(action: { presentationMode.wrappedValue.dismiss() }) {
                                 Image("back_arrow")
                                     .resizable()
                                     .scaledToFit()
@@ -69,8 +55,7 @@ struct EnterOTPView: View {
                         }
                         .padding(.horizontal, 24)
                         .padding(.top, 22)
-                        
-                        // Itzeazy branding
+
                         HStack {
                             Text("Itzeazy")
                                 .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
@@ -82,43 +67,39 @@ struct EnterOTPView: View {
                         .padding(.top, 64)
                     }
                     .frame(height: 320)
-                    .onTapGesture {
-                        isKeyboardShowing = false
-                    }
-                    
+                    .onTapGesture { isKeyboardShowing = false }
+
                     Spacer()
                 }
                 .opacity(isKeyboardPresented ? 0.42 : 1)
                 .offset(y: isKeyboardPresented ? -52 : 0)
                 .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
                 .edgesIgnoringSafeArea(.top)
-                
-                // Bottom Form Card
+
+                // Form card
                 VStack(spacing: 0) {
                     Spacer()
                         .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : geometry.safeAreaInsets.top + 218)
-                    
+
                     VStack(spacing: 16) {
                         // Header
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Enter OTP")
+                            Text("Verify OTP")
                                 .font(Font.custom("PlusJakartaSans-ExtraBold", size: 24))
                                 .foregroundColor(.red)
                                 .tracking(-0.7)
-                            
+
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Enter the \(otpLength)-digit verification code sent to")
+                                Text("Enter the \(otpLength)-digit code sent to")
                                     .font(Font.custom("Inter", size: 16).weight(.medium))
                                     .foregroundColor(Color(hex: "#5f5e5e"))
-                                
+
                                 HStack(spacing: 6) {
                                     Text(contactInfo)
                                         .font(Font.custom("Inter", size: 16).weight(.bold))
                                         .foregroundColor(Color(hex: "#191c1d"))
-                                    
-                                    Button(action: {
-                                        presentationMode.wrappedValue.dismiss()
-                                    }) {
+
+                                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
                                         Text("Change")
                                             .font(Font.custom("Inter", size: 16).weight(.bold))
                                             .foregroundColor(.red)
@@ -127,10 +108,9 @@ struct EnterOTPView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        // OTP Input Area
+
+                        // OTP input
                         ZStack {
-                            // Invisible text field for handling input
                             TextField("", text: $otpText)
                                 .keyboardType(.numberPad)
                                 .textContentType(.oneTimeCode)
@@ -141,30 +121,27 @@ struct EnterOTPView: View {
                                         otpText = String(newValue.prefix(otpLength))
                                     }
                                 }
-                            
-                            // Visual OTP Boxes
+
                             HStack(spacing: 8) {
                                 ForEach(0..<otpLength, id: \.self) { index in
                                     OTPBox(index: index, text: otpText, isFocused: isKeyboardShowing)
                                 }
                             }
-                            .onTapGesture {
-                                isKeyboardShowing = true
-                            }
+                            .onTapGesture { isKeyboardShowing = true }
                         }
                         .padding(.top, 8)
-                        
-                        // Timer Section
+
+                        // Timer
                         HStack(spacing: 8) {
                             Image(systemName: "clock")
                                 .foregroundColor(Color(hex: "#5f5e5e"))
                                 .font(.system(size: 14))
-                            
+
                             HStack(spacing: 0) {
                                 Text("This code will expire in ")
                                     .font(Font.custom("Inter", size: 14).weight(.medium))
                                     .foregroundColor(Color(hex: "#5f5e5e"))
-                                
+
                                 Text(timeString(time: timeRemaining))
                                     .font(Font.custom("Inter", size: 14).weight(.bold))
                                     .foregroundColor(.red)
@@ -175,8 +152,8 @@ struct EnterOTPView: View {
                         .background(Color(hex: "#f3f4f5"))
                         .clipShape(Capsule())
                         .padding(.top, 8)
-                        
-                        if let error = authViewModel.errorMessage {
+
+                        if let error = registerViewModel.errorMessage {
                             Text(error)
                                 .font(Font.custom("Inter", size: 13).weight(.medium))
                                 .foregroundColor(.red)
@@ -184,15 +161,19 @@ struct EnterOTPView: View {
                                 .padding(.horizontal, 4)
                         }
 
-                        // Action Buttons
+                        // Buttons
                         VStack(spacing: 16) {
                             Button(action: {
                                 isKeyboardShowing = false
                                 guard otpText.count == otpLength else { return }
-                                authViewModel.verifyOTP(mobile: rawContact, otp: otpText)
+                                if isPhoneContact {
+                                    registerViewModel.verifyMobileOTP(otp: otpText)
+                                } else {
+                                    registerViewModel.verifyEmailOTP(otp: otpText)
+                                }
                             }) {
                                 Group {
-                                    if authViewModel.isLoading {
+                                    if registerViewModel.isLoading {
                                         ProgressView().tint(.white)
                                     } else {
                                         Text("Verify & Continue")
@@ -207,13 +188,17 @@ struct EnterOTPView: View {
                                 .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 15, x: 0, y: 10)
                                 .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 6, x: 0, y: 4)
                             }
-                            .disabled(authViewModel.isLoading || otpText.count < otpLength)
+                            .disabled(registerViewModel.isLoading || otpText.count < otpLength)
 
                             Button(action: {
                                 otpText = ""
                                 timeRemaining = 299
-                                authViewModel.resetOTPState()
-                                authViewModel.sendOTP(mobile: rawContact)
+                                registerViewModel.resetOTPState()
+                                if isPhoneContact {
+                                    registerViewModel.sendMobileOTP()
+                                } else {
+                                    registerViewModel.sendEmailOTP()
+                                }
                             }) {
                                 Text("Resend OTP")
                                     .font(Font.custom("Inter", size: 18).weight(.bold))
@@ -221,24 +206,18 @@ struct EnterOTPView: View {
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
                                     .background(Color.white)
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(Color(hex: "#b7b7b7"), lineWidth: 1)
-                                    )
+                                    .overlay(Capsule().stroke(Color(hex: "#b7b7b7"), lineWidth: 1))
                                     .clipShape(Capsule())
                             }
-                            .disabled(authViewModel.isLoading)
+                            .disabled(registerViewModel.isLoading)
                         }
                         .padding(.top, 8)
-                        
-                        // Footer
+
                         HStack(spacing: 4) {
                             Text("Didn't receive the code?")
                                 .font(Font.custom("Inter", size: 14).weight(.medium))
                                 .foregroundColor(Color(hex: "#191c1d"))
-                            Button(action: {
-                                presentationMode.wrappedValue.dismiss()
-                            }) {
+                            Button(action: { presentationMode.wrappedValue.dismiss() }) {
                                 Text("Try another way")
                                     .font(Font.custom("Inter", size: 14).weight(.medium))
                                     .foregroundColor(.red)
@@ -261,78 +240,35 @@ struct EnterOTPView: View {
         }
         .navigationBarHidden(true)
         .preferredColorScheme(.light)
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
-            if timeRemaining > 0 {
-                timeRemaining -= 1
+        .onAppear {
+            registerViewModel.resetOTPState()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isKeyboardShowing = true
             }
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            if timeRemaining > 0 { timeRemaining -= 1 }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
             updateKeyboardHeight(from: notification)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            withAnimation(.easeInOut(duration: 0.28)) {
-                keyboardHeight = 0
-            }
-        }
-        .onAppear {
-            authViewModel.resetOTPState()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isKeyboardShowing = true
-            }
+            withAnimation(.easeInOut(duration: 0.28)) { keyboardHeight = 0 }
         }
     }
-    
-    // Helper to format time
-    func timeString(time: Int) -> String {
-        let minutes = time / 60
-        let seconds = time % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+
+    private func timeString(time: Int) -> String {
+        String(format: "%02d:%02d", time / 60, time % 60)
     }
 
     private func updateKeyboardHeight(from notification: Notification) {
-        guard
-            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
-        else {
-            return
-        }
-
-        withAnimation(.easeInOut(duration: 0.28)) {
-            keyboardHeight = frame.height
-        }
-    }
-}
-
-struct OTPBox: View {
-    var index: Int
-    var text: String
-    var isFocused: Bool
-    
-    var body: some View {
-        let char = character(at: index)
-        let isActive = isFocused && text.count == index
-        let isFilled = !char.isEmpty
-        
-        Text(char)
-            .font(Font.custom("Inter", size: 24).weight(.bold))
-            .foregroundColor(Color(hex: "#191c1d"))
-            .frame(width: 48, height: 56)
-            .background(Color(hex: "#f3f4f5"))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isActive || isFilled ? Color.blue : Color.red.opacity(0.3), lineWidth: isActive || isFilled ? 1.5 : 1)
-            )
-    }
-    
-    func character(at index: Int) -> String {
-        guard index < text.count else { return "" }
-        let stringIndex = text.index(text.startIndex, offsetBy: index)
-        return String(text[stringIndex])
+        guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        withAnimation(.easeInOut(duration: 0.28)) { keyboardHeight = frame.height }
     }
 }
 
 #Preview {
     NavigationView {
-        EnterOTPView(authViewModel: AuthViewModel())
+        RegisterOTPView(registerViewModel: RegisterViewModel())
     }
 }

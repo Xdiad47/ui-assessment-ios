@@ -7,6 +7,8 @@ import SwiftUI
 struct LoginView: View {
     private let countryDropdownWidth: CGFloat = 220
 
+    @StateObject private var authViewModel = AuthViewModel()
+
     @State private var emailOrMobile: String = ""
     @State private var selectedCountry = countries.first(where: { $0.isoCode == "IN" }) ?? countries[0]
     @State private var isCountryPickerPresented = false
@@ -106,7 +108,9 @@ struct LoginView: View {
             .navigationDestination(isPresented: $navigateToPassword) {
                 PasswordEntryView(
                     contactInfo: formattedContactInfo,
-                    isPhoneContact: shouldShowCountrySelector
+                    rawContact: trimmedInput,
+                    isPhoneContact: shouldShowCountrySelector,
+                    authViewModel: authViewModel
                 )
             }
             .navigationDestination(isPresented: $navigateToCreateAccount) {
@@ -122,6 +126,9 @@ struct LoginView: View {
                 withAnimation(.easeInOut(duration: 0.28)) {
                     keyboardHeight = 0
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .passwordUpdated)) { _ in
+                navigateToPassword = false
             }
         }
     }
@@ -387,10 +394,11 @@ struct LoginView: View {
 
 private struct PasswordEntryView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
 
     let contactInfo: String
+    let rawContact: String
     let isPhoneContact: Bool
+    @ObservedObject var authViewModel: AuthViewModel
 
     @State private var password = ""
     @State private var passwordError: String?
@@ -521,41 +529,63 @@ private struct PasswordEntryView: View {
                                 }
                             }
 
+                            if let error = authViewModel.errorMessage {
+                                Text(error)
+                                    .font(Font.custom("Inter", size: 12))
+                                    .foregroundColor(.red)
+                                    .padding(.horizontal, 4)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+
                             Button {
                                 isPasswordFieldFocused = false
+                                authViewModel.errorMessage = nil
 
-                                guard validatePassword() else {
-                                    return
-                                }
-
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isLoggedIn = true
-                                }
+                                guard validatePassword() else { return }
+                                authViewModel.loginWithPassword(
+                                    username: rawContact,
+                                    password: password
+                                )
                             } label: {
-                                Text("Login")
-                                    .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(Color.red)
-                                    .clipShape(Capsule())
+                                Group {
+                                    if authViewModel.isLoading {
+                                        ProgressView()
+                                            .tint(.white)
+                                    } else {
+                                        Text("Login")
+                                            .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(Color.red)
+                                .clipShape(Capsule())
                             }
+                            .disabled(authViewModel.isLoading)
 
                             if isPhoneContact {
                                 Button {
-                                    navigateToOTP = true
+                                    isPasswordFieldFocused = false
+                                    authViewModel.errorMessage = nil
+                                    authViewModel.sendOTP(mobile: rawContact)
                                 } label: {
-                                    Text("Get OTP on your phone")
-                                        .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
-                                        .foregroundColor(.red)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 16)
-                                        .background(Color.white)
-                                        .overlay(
-                                            Capsule()
-                                                .stroke(Color.red, lineWidth: 1)
-                                        )
+                                    Group {
+                                        if authViewModel.isLoading {
+                                            ProgressView()
+                                                .tint(.red)
+                                        } else {
+                                            Text("Get OTP on your phone")
+                                                .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
+                                                .foregroundColor(.red)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Color.white)
+                                    .overlay(Capsule().stroke(Color.red, lineWidth: 1))
                                 }
+                                .disabled(authViewModel.isLoading)
                             }
                         }
 
@@ -605,10 +635,18 @@ private struct PasswordEntryView: View {
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
         .navigationDestination(isPresented: $navigateToOTP) {
-            EnterOTPView(contactInfo: contactInfo, isPhoneContact: isPhoneContact)
+            EnterOTPView(
+                contactInfo: contactInfo,
+                rawContact: rawContact,
+                isPhoneContact: isPhoneContact,
+                authViewModel: authViewModel
+            )
         }
         .navigationDestination(isPresented: $navigateToForgotPassword) {
             ForgotPasswordView()
+        }
+        .onChange(of: authViewModel.otpSent) { _, sent in
+            if sent { navigateToOTP = true }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
             updateKeyboardHeight(from: notification)

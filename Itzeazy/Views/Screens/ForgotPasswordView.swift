@@ -81,11 +81,15 @@ struct ForgotPasswordView: View {
         .navigationDestination(isPresented: $navigateToOTP) {
             ForgotPasswordOTPView(
                 contactInfo: viewModel.formattedContactInfo,
-                isPhoneContact: viewModel.shouldShowCountrySelector
+                isPhoneContact: viewModel.shouldShowCountrySelector,
+                viewModel: viewModel
             )
         }
         .onChange(of: viewModel.emailOrMobile) { _, newValue in
             viewModel.handleContactInputChange(newValue)
+        }
+        .onChange(of: viewModel.otpSent) { _, sent in
+            if sent { navigateToOTP = true }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
             updateKeyboardHeight(from: notification)
@@ -252,24 +256,35 @@ struct ForgotPasswordView: View {
                 }
             }
 
+            if let apiError = viewModel.errorMessage {
+                Text(apiError)
+                    .font(Font.custom("Inter", size: 12))
+                    .foregroundColor(.red)
+                    .padding(.horizontal, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             Button {
                 isContactFieldFocused = false
                 isCountryPickerPresented = false
-
-                guard viewModel.validateContactInput() else {
-                    return
-                }
-
-                navigateToOTP = true
+                guard viewModel.validateContactInput() else { return }
+                viewModel.sendOTP()
             } label: {
-                Text("Continue")
-                    .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.red)
-                    .clipShape(Capsule())
+                Group {
+                    if viewModel.isLoading {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("Continue")
+                            .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
+                            .foregroundColor(.white)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color.red)
+                .clipShape(Capsule())
             }
+            .disabled(viewModel.isLoading)
         }
     }
 

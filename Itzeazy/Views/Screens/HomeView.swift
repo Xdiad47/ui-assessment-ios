@@ -48,6 +48,8 @@ struct HomeView: View {
 // MARK: - Subviews
 
 struct HomeHeaderView: View {
+    @EnvironmentObject private var userSession: UserSessionViewModel
+
     var body: some View {
         ZStack(alignment: .top) {
             // Back card: grey, slightly taller — peeks below the dark card
@@ -76,7 +78,7 @@ struct HomeHeaderView: View {
 
                 Spacer().frame(width: 12)
 
-                Text("Home")
+                Text(userSession.displayName.isEmpty ? "Home" : "Hi, \(userSession.displayName)!")
                     .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
                     .foregroundColor(.white)
 

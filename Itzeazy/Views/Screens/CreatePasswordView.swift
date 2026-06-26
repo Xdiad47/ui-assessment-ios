@@ -2,7 +2,7 @@ import SwiftUI
 
 struct CreatePasswordView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+    @ObservedObject var forgotPasswordViewModel: ForgotPasswordViewModel
     @StateObject private var viewModel = CreatePasswordViewModel()
 
     @State private var keyboardHeight: CGFloat = 0
@@ -149,25 +149,37 @@ struct CreatePasswordView: View {
                 field: .confirmPassword
             )
 
+            if let apiError = forgotPasswordViewModel.errorMessage {
+                Text(apiError)
+                    .font(Font.custom("Inter", size: 12))
+                    .foregroundColor(.red)
+                    .padding(.horizontal, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             Button {
                 focusedField = nil
-
-                guard viewModel.validatePasswords() else {
-                    return
-                }
-
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isLoggedIn = true
-                }
+                guard viewModel.validatePasswords() else { return }
+                forgotPasswordViewModel.updatePassword(
+                    newPassword: viewModel.newPassword,
+                    confirmPassword: viewModel.confirmPassword
+                )
             } label: {
-                Text("Save changes and Login")
-                    .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.red)
-                    .clipShape(Capsule())
+                Group {
+                    if forgotPasswordViewModel.isLoading {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("Save changes and Login")
+                            .font(Font.custom("PlusJakartaSans-SemiBold", size: 18))
+                            .foregroundColor(.white)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color.red)
+                .clipShape(Capsule())
             }
+            .disabled(forgotPasswordViewModel.isLoading)
             .padding(.top, 4)
         }
     }
@@ -226,6 +238,6 @@ struct CreatePasswordView: View {
 
 #Preview {
     NavigationStack {
-        CreatePasswordView()
+        CreatePasswordView(forgotPasswordViewModel: ForgotPasswordViewModel())
     }
 }

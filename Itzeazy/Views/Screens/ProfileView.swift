@@ -3,7 +3,9 @@ import SwiftUI
 struct ProfileView: View {
     @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
     @StateObject private var viewModel = ProfileViewModel()
+    @EnvironmentObject private var userSession: UserSessionViewModel
     @State private var naturalHeight: CGFloat = 0
+    @State private var showDeleteConfirmation = false
     let onBackToHome: (() -> Void)?
 
     private let backgroundColor = Color(red: 0.96, green: 0.96, blue: 0.96)
@@ -17,6 +19,13 @@ struct ProfileView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 14) {
                         ProfileHeaderView(strokeColor: strokeColor, onBackToHome: onBackToHome)
+
+                        ProfileUserInfoCardView(
+                            name: userSession.displayName,
+                            email: userSession.displayEmail,
+                            strokeColor: strokeColor
+                        )
+                        .padding(.horizontal, 14)
 
                         VStack(spacing: 14) {
                             ForEach(Array(viewModel.primarySections.enumerated()), id: \.offset) { _, section in
@@ -45,13 +54,18 @@ struct ProfileView: View {
                             .padding(.horizontal, 14)
                             .padding(.top, 6)
 
-                            Button(action: {
-                            }) {
+                            Button(action: { showDeleteConfirmation = true }) {
                                 HStack(spacing: 8) {
-                                    Image("delete_button_icon")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 16, height: 16)
+                                    if userSession.isDeletingAccount {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                                            .scaleEffect(0.8)
+                                    } else {
+                                        Image("delete_button_icon")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 16, height: 16)
+                                    }
 
                                     Text("Delete Account")
                                         .font(Font.custom("Inter", size: 14).weight(.semibold))
@@ -60,8 +74,25 @@ struct ProfileView: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .frame(height: 24)
                             }
+                            .disabled(userSession.isDeletingAccount)
                             .padding(.top, 4)
                             .padding(.bottom, 80)
+                            .alert("Delete Account", isPresented: $showDeleteConfirmation) {
+                                Button("Cancel", role: .cancel) {}
+                                Button("Yes, Delete", role: .destructive) {
+                                    userSession.deleteAccount()
+                                }
+                            } message: {
+                                Text("This will permanently remove your account and all your data. This action cannot be undone.")
+                            }
+                            .alert("Something went wrong", isPresented: Binding(
+                                get: { userSession.deleteError != nil },
+                                set: { if !$0 { userSession.deleteError = nil } }
+                            )) {
+                                Button("OK", role: .cancel) {}
+                            } message: {
+                                Text(userSession.deleteError ?? "")
+                            }
                         }
                         .padding(.horizontal, 14)
                     }
@@ -83,6 +114,54 @@ struct ProfileView: View {
         static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
             value = max(value, nextValue())
         }
+    }
+}
+
+private struct ProfileUserInfoCardView: View {
+    let name: String
+    let email: String
+    let strokeColor: Color
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.15))
+                    .frame(width: 52, height: 52)
+
+                Text(
+                    name.components(separatedBy: " ")
+                        .prefix(2)
+                        .compactMap { $0.first.map { String($0) } }
+                        .joined()
+                        .uppercased()
+                )
+                    .font(Font.custom("PlusJakartaSans-ExtraBold", size: 22))
+                    .foregroundColor(.red)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(name.isEmpty ? "—" : name)
+                    .font(Font.custom("PlusJakartaSans-ExtraBold", size: 16))
+                    .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                    .lineLimit(1)
+
+                Text(email.isEmpty ? "—" : email)
+                    .font(Font.custom("Inter", size: 13).weight(.medium))
+                    .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
+                    .lineLimit(1)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(Color.white)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(strokeColor, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
 
@@ -351,4 +430,5 @@ private struct ProfileSocialCardView: View {
 
 #Preview {
     ProfileView(onBackToHome: nil)
+        .environmentObject(UserSessionViewModel())
 }

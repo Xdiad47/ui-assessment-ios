@@ -6,6 +6,7 @@ struct ForgotPasswordOTPView: View {
 
     var contactInfo: String = "john.doe@email.com"
     var isPhoneContact: Bool = false
+    @ObservedObject var viewModel: ForgotPasswordViewModel
 
     @State private var otpText: String = ""
     @State private var navigateToCreatePassword = false
@@ -162,25 +163,43 @@ struct ForgotPasswordOTPView: View {
                         .clipShape(Capsule())
                         .padding(.top, 8)
 
+                        if let error = viewModel.errorMessage {
+                            Text(error)
+                                .font(Font.custom("Inter", size: 13).weight(.medium))
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 4)
+                        }
+
                         VStack(spacing: 16) {
                             Button(action: {
                                 isKeyboardShowing = false
-                                navigateToCreatePassword = true
+                                guard otpText.count == otpLength else { return }
+                                viewModel.verifyOTP(otp: otpText)
                             }) {
-                                Text("Verify & Continue")
-                                    .font(Font.custom("Inter", size: 18).weight(.bold))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 56)
-                                    .background(Color.red)
-                                    .clipShape(Capsule())
-                                    .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 15, x: 0, y: 10)
-                                    .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 6, x: 0, y: 4)
+                                Group {
+                                    if viewModel.isLoading {
+                                        ProgressView().tint(.white)
+                                    } else {
+                                        Text("Verify & Continue")
+                                            .font(Font.custom("Inter", size: 18).weight(.bold))
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(Color.red)
+                                .clipShape(Capsule())
+                                .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 15, x: 0, y: 10)
+                                .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 6, x: 0, y: 4)
                             }
+                            .disabled(viewModel.isLoading || otpText.count < otpLength)
 
                             Button(action: {
-                                timeRemaining = 299
                                 otpText = ""
+                                timeRemaining = 299
+                                viewModel.resetOTPState()
+                                viewModel.sendOTP()
                             }) {
                                 Text("Resend OTP")
                                     .font(Font.custom("Inter", size: 18).weight(.bold))
@@ -194,6 +213,7 @@ struct ForgotPasswordOTPView: View {
                                     )
                                     .clipShape(Capsule())
                             }
+                            .disabled(viewModel.isLoading)
                         }
                         .padding(.top, 8)
 
@@ -228,7 +248,16 @@ struct ForgotPasswordOTPView: View {
         .navigationBarHidden(true)
         .preferredColorScheme(.light)
         .navigationDestination(isPresented: $navigateToCreatePassword) {
-            CreatePasswordView()
+            CreatePasswordView(forgotPasswordViewModel: viewModel)
+        }
+        .onChange(of: viewModel.otpVerified) { _, verified in
+            if verified { navigateToCreatePassword = true }
+        }
+        .onAppear {
+            viewModel.resetOTPState()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isKeyboardShowing = true
+            }
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             if timeRemaining > 0 {
@@ -241,11 +270,6 @@ struct ForgotPasswordOTPView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             withAnimation(.easeInOut(duration: 0.28)) {
                 keyboardHeight = 0
-            }
-        }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isKeyboardShowing = true
             }
         }
     }
@@ -269,6 +293,6 @@ struct ForgotPasswordOTPView: View {
 
 #Preview {
     NavigationView {
-        ForgotPasswordOTPView()
+        ForgotPasswordOTPView(viewModel: ForgotPasswordViewModel())
     }
 }

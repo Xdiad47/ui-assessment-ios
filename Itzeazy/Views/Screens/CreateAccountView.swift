@@ -10,6 +10,8 @@ struct CreateAccountView: View {
     @State private var showPassword: Bool = false
     @FocusState private var focusedField: Field?
     
+    @StateObject private var registerViewModel = RegisterViewModel()
+
     @State private var navigateToOTP: Bool = false
     @State private var selectedContactInfo: String = ""
     @State private var selectedOTPIsPhoneContact: Bool = false
@@ -254,35 +256,44 @@ struct CreateAccountView: View {
                                 Button(action: {
                                     dismissInputUI()
 
-                                    guard validateForm() else {
-                                        return
-                                    }
+                                    guard validateForm() else { return }
 
-                                    selectedContactInfo = emailAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    let trimmedEmail = emailAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    registerViewModel.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    registerViewModel.email = trimmedEmail
+                                    registerViewModel.mobile = mobileNumber
+                                    registerViewModel.password = password
+
+                                    selectedContactInfo = trimmedEmail
                                     selectedOTPIsPhoneContact = false
-                                    navigateToOTP = true
+                                    registerViewModel.sendEmailOTP()
                                 }) {
-                                    Text("Get verification code on Email")
-                                        .font(Font.custom("Inter", size: 16).weight(.semibold))
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 52)
-                                        .background(Color.red)
-                                        .clipShape(Capsule())
-                                        .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 15, x: 0, y: 10)
-                                        .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 6, x: 0, y: 4)
+                                    Group {
+                                        Text("Get verification code on Email")
+                                            .font(Font.custom("Inter", size: 16).weight(.semibold))
+                                            .foregroundColor(.white)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 52)
+                                    .background(Color.red)
+                                    .clipShape(Capsule())
+                                    .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 15, x: 0, y: 10)
+                                    .shadow(color: Color(red: 187/255, green: 0, blue: 17/255, opacity: 0.2), radius: 6, x: 0, y: 4)
                                 }
                                 
                                 Button(action: {
                                     dismissInputUI()
 
-                                    guard validateForm() else {
-                                        return
-                                    }
+                                    guard validateForm() else { return }
+
+                                    registerViewModel.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    registerViewModel.email = emailAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    registerViewModel.mobile = mobileNumber
+                                    registerViewModel.password = password
 
                                     selectedContactInfo = "\(selectedCountry.phoneCode) \(mobileNumber)"
                                     selectedOTPIsPhoneContact = true
-                                    navigateToOTP = true
+                                    registerViewModel.sendMobileOTP()
                                 }) {
                                     Text("Get verification code on Mobile")
                                         .font(Font.custom("Inter", size: 16).weight(.semibold))
@@ -356,7 +367,14 @@ struct CreateAccountView: View {
         .navigationBarHidden(true)
         .preferredColorScheme(.light)
         .navigationDestination(isPresented: $navigateToOTP) {
-            EnterOTPView(contactInfo: selectedContactInfo, isPhoneContact: selectedOTPIsPhoneContact)
+            RegisterOTPView(
+                contactInfo: selectedContactInfo,
+                isPhoneContact: selectedOTPIsPhoneContact,
+                registerViewModel: registerViewModel
+            )
+        }
+        .onChange(of: registerViewModel.otpSent) { _, sent in
+            if sent { navigateToOTP = true }
         }
         .onChange(of: name) { _, _ in
             nameError = nil

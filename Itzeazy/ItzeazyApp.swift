@@ -6,6 +6,7 @@ struct ItzeazyApp: App {
     @AppStorage("hasSeenOnboarding") var hasSeenOnboarding: Bool = false
     @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
     @StateObject private var tabBarState = TabBarState()
+    @StateObject private var userSession = UserSessionViewModel()
 
     init() {
         UIScrollView.appearance().keyboardDismissMode = .onDrag
@@ -24,6 +25,15 @@ struct ItzeazyApp: App {
             } else {
                 MainTabView()
                     .environmentObject(tabBarState)
+                    .environmentObject(userSession)
+                    .task { userSession.fetchUserProfile() }
+            }
+        }
+        .onChange(of: isLoggedIn) { _, loggedIn in
+            if loggedIn {
+                userSession.fetchUserProfile()
+            } else {
+                userSession.clearUser()
             }
         }
     }
