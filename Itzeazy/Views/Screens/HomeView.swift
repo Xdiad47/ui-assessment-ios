@@ -1,6 +1,6 @@
 import SwiftUI
 
-//Test the screens tab that is passport, marriage certificat etc and also home hero section has issue
+//Enable navigation logic on tap on the profile icons in all top bar
 
 // MARK: - HomeView
 
@@ -49,9 +49,13 @@ struct HomeView: View {
 
 struct HomeHeaderView: View {
     @EnvironmentObject private var userSession: UserSessionViewModel
+    @State private var navigateToProfile = false
 
     var body: some View {
         ZStack(alignment: .top) {
+            NavigationLink(destination: ProfileView(onBackToHome: nil), isActive: $navigateToProfile) {
+                EmptyView()
+            }.hidden()
             // Back card: grey, slightly taller — peeks below the dark card
             Rectangle()
                 .fill(Color(red: 0.72, green: 0.72, blue: 0.72))
@@ -89,14 +93,16 @@ struct HomeHeaderView: View {
                         .font(.system(size: 18))
                         .foregroundColor(.white)
 
-                    ZStack {
-                        Circle()
-                            .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
-                            .frame(width: 30, height: 30)
+                    Button(action: { navigateToProfile = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
+                                .frame(width: 30, height: 30)
 
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                        }
                     }
                 }
             }

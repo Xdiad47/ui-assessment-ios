@@ -5,6 +5,7 @@ struct VisaViewInitial: View {
     @StateObject private var viewModel = VisaViewInitialViewModel()
     @FocusState private var isSearchFocused: Bool
     @State private var navigateToVisa = false
+    @State private var navigateToProfile = false
     @State private var keyboardHeight: CGFloat = 0
 
     private var isKeyboardPresented: Bool { keyboardHeight > 0 }
@@ -20,6 +21,10 @@ struct VisaViewInitial: View {
             let headerHeight = proxy.safeAreaInsets.top + 60
 
             ZStack(alignment: .top) {
+                NavigationLink(destination: ProfileView(onBackToHome: nil), isActive: $navigateToProfile) {
+                    EmptyView()
+                }.hidden()
+
                 backgroundLayer
 
                 // ── Dismiss overlay (catches taps on empty areas) ─────────────
@@ -148,7 +153,7 @@ struct VisaViewInitial: View {
                         .frame(width: 32, height: 32)
                 }
 
-                Button(action: {}) {
+                Button(action: { navigateToProfile = true }) {
                     ZStack {
                         Circle()
                             .fill(Color(red: 0.22, green: 0.22, blue: 0.22))

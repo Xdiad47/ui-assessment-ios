@@ -3,9 +3,14 @@ import SwiftUI
 struct TSDLInfoScreen: View {
     @StateObject private var viewModel = ULIPTGDLViewModel()
     @Environment(\.presentationMode) var presentationMode
+    @State private var navigateToProfile = false
 
     var body: some View {
         ZStack(alignment: .top) {
+            NavigationLink(destination: ProfileView(onBackToHome: nil), isActive: $navigateToProfile) {
+                EmptyView()
+            }.hidden()
+
             Color(red: 0.11, green: 0.11, blue: 0.11).ignoresSafeArea()
 
             Group {
@@ -60,13 +65,15 @@ struct TSDLInfoScreen: View {
                         .font(.system(size: 18))
                         .foregroundColor(.white)
 
-                    ZStack {
-                        Circle()
-                            .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
-                            .frame(width: 30, height: 30)
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
+                    Button(action: { navigateToProfile = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
+                                .frame(width: 30, height: 30)
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                        }
                     }
                 }
             }

@@ -6,6 +6,7 @@ struct RTOServicesView: View {
 
     @State private var showTypePicker  = false
     @State private var webViewUrl: IdentifiableURL? = nil
+    @State private var navigateToProfile = false
 
     init(selectedLocation: String = "", selectedType: String = "") {
         _viewModel = StateObject(
@@ -19,6 +20,10 @@ struct RTOServicesView: View {
 
     var body: some View {
         ZStack {
+            NavigationLink(destination: ProfileView(onBackToHome: nil), isActive: $navigateToProfile) {
+                EmptyView()
+            }.hidden()
+
             Color(white: 0.98).edgesIgnoringSafeArea(.all)
 
             VStack(spacing: 0) {
@@ -64,14 +69,16 @@ struct RTOServicesView: View {
                                     .font(.system(size: 18))
                                     .foregroundColor(.white)
 
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
-                                        .frame(width: 30, height: 30)
+                                Button(action: { navigateToProfile = true }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
+                                            .frame(width: 30, height: 30)
 
-                                    Image(systemName: "person.fill")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.white)
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.white)
+                                    }
                                 }
                             }
                         }
