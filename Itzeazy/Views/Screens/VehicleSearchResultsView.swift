@@ -1,7 +1,6 @@
 import SwiftUI
 
 
-
 struct VehicleSearchResultsView: View {
     @Environment(\.presentationMode) private var presentationMode
     @StateObject private var viewModel = ULIPVehicleViewModel()
@@ -14,7 +13,7 @@ struct VehicleSearchResultsView: View {
                 EmptyView()
             }.hidden()
 
-            Color(red: 0.10, green: 0.11, blue: 0.11).edgesIgnoringSafeArea(.all)
+            Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
 
             // ── Loading state ──────────────────────────────────────────────
             if viewModel.isLoading {
@@ -182,10 +181,8 @@ struct VehicleSearchResultsView: View {
                     .background(Color(white: 0.97))
                     .padding(.bottom, 100)
                 }
-                .background(Color(white: 0.97))
-                .edgesIgnoringSafeArea(.bottom)
 
-            // ── Initial state — status bar stays dark (outer ZStack), content below header is white ──
+            // ── Initial state ──────────────────────────────────────────────
             } else {
                 VStack(spacing: 0) {
                     VStack(spacing: 0) {
