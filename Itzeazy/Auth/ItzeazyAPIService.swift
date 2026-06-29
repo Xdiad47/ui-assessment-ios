@@ -93,8 +93,7 @@ final class ItzeazyAPIService {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            let serverMessage = try? JSONDecoder().decode(ServerErrorBody.self, from: data)
-            throw ItzeazyAPIError.httpError(http.statusCode, serverMessage?.message)
+            try throwHTTPError(statusCode: http.statusCode, data: data)
         }
 
         do {
@@ -150,8 +149,7 @@ final class ItzeazyAPIService {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            let serverMessage = try? JSONDecoder().decode(ServerErrorBody.self, from: data)
-            throw ItzeazyAPIError.httpError(http.statusCode, serverMessage?.message)
+            try throwHTTPError(statusCode: http.statusCode, data: data)
         }
 
         do {
@@ -219,8 +217,7 @@ final class ItzeazyAPIService {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            let serverMessage = try? JSONDecoder().decode(ServerErrorBody.self, from: data)
-            throw ItzeazyAPIError.httpError(http.statusCode, serverMessage?.message)
+            try throwHTTPError(statusCode: http.statusCode, data: data)
         }
 
         do {
@@ -276,8 +273,7 @@ final class ItzeazyAPIService {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            let serverMessage = try? JSONDecoder().decode(ServerErrorBody.self, from: data)
-            throw ItzeazyAPIError.httpError(http.statusCode, serverMessage?.message)
+            try throwHTTPError(statusCode: http.statusCode, data: data)
         }
 
         do {
@@ -286,6 +282,14 @@ final class ItzeazyAPIService {
             logger.error("❌ Decode error [\(endpoint)]: \(decodeError)")
             throw ItzeazyAPIError.decodingError
         }
+    }
+
+    private func throwHTTPError(statusCode: Int, data: Data) throws -> Never {
+        if statusCode == 401 {
+            NotificationCenter.default.post(name: .itzeazyUnauthorized, object: nil)
+        }
+        let serverMessage = try? JSONDecoder().decode(ServerErrorBody.self, from: data)
+        throw ItzeazyAPIError.httpError(statusCode, serverMessage?.message)
     }
 
     private struct ServerErrorBody: Decodable {

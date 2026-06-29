@@ -4,6 +4,8 @@ struct ChallanDetailPopup: View {
     let challan: Challan
     var onDismiss: () -> Void
 
+    private var isPending: Bool { challan.status.lowercased() == "pending" }
+
     var body: some View {
         VStack(spacing: 0) {
 
@@ -187,14 +189,29 @@ struct ChallanDetailPopup: View {
                 Spacer()
 
                 VStack(spacing: 12) {
-                    Button(action: {}) {
-                        Text("Pay Now")
-                            .font(Font.custom("Inter", size: 11).weight(.semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 26)
-                            .padding(.vertical, 12)
-                            .background(Color(red: 0.93, green: 0.13, blue: 0.14))
-                            .cornerRadius(12)
+                    if isPending {
+                        Button(action: {}) {
+                            Text("Pay Now")
+                                .font(Font.custom("Inter", size: 11).weight(.semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 26)
+                                .padding(.vertical, 12)
+                                .background(Color(red: 0.93, green: 0.13, blue: 0.14))
+                                .cornerRadius(12)
+                        }
+                    } else {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundColor(.gray)
+                            Text("Paid")
+                                .font(Font.custom("Inter", size: 11).weight(.semibold))
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.horizontal, 26)
+                        .padding(.vertical, 12)
+                        .background(Color.gray.opacity(0.15))
+                        .cornerRadius(12)
                     }
 
                     Button(action: {}) {

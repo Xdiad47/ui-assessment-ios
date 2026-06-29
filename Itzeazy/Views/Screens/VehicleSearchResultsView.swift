@@ -1,5 +1,7 @@
 import SwiftUI
 
+//Pop view on tap on the detail button, there pay is showing even if it is paid. Fix it
+
 
 struct VehicleSearchResultsView: View {
     @Environment(\.presentationMode) private var presentationMode
