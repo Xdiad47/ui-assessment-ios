@@ -183,9 +183,9 @@ struct VehicleSearchResultsView: View {
                         }
                         .padding(.top, 24)
                     }
+                    .padding(.bottom, 40)
                     .frame(maxWidth: .infinity)
                     .background(Color(white: 0.97))
-                    .padding(.bottom, 100)
                 }
 
             // ── Initial state ──────────────────────────────────────────────
@@ -207,8 +207,10 @@ struct VehicleSearchResultsView: View {
                     )
 
                     Color.white
+                        .frame(maxHeight: .infinity)
                         .edgesIgnoringSafeArea(.bottom)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
 
             // ── Challan detail popup overlay ───────────────────────────────
