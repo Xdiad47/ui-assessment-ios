@@ -18,17 +18,33 @@ class ULIPVehicleViewModel: ObservableObject {
     @Published var searchResult: VehicleSearchResult? = nil
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
+    @Published var selectedChallanIDs: Set<String> = []
 
     // pendingChallans stores ALL challans (pending + disposed); filter for counts/sums
     var pendingChallanCount: Int {
         searchResult?.pendingChallans.filter { $0.status.lowercased() == "pending" }.count ?? 0
     }
+    // Total of ALL pending — used in the summary header badge
     var totalDue: Int {
         searchResult?.pendingChallans
             .filter { $0.status.lowercased() == "pending" }
             .reduce(0) { $0 + $1.amount } ?? 0
     }
-    var selectedChallansCount: Int { pendingChallanCount }
+    // Selected-only count and total — used in the bottom pay bar
+    var selectedChallansCount: Int { selectedChallanIDs.count }
+    var selectedTotal: Int {
+        searchResult?.pendingChallans
+            .filter { selectedChallanIDs.contains($0.id) }
+            .reduce(0) { $0 + $1.amount } ?? 0
+    }
+
+    func toggleSelection(_ id: String) {
+        if selectedChallanIDs.contains(id) {
+            selectedChallanIDs.remove(id)
+        } else {
+            selectedChallanIDs.insert(id)
+        }
+    }
 
     func search() {
         let number = vehicleNumber.trimmingCharacters(in: .whitespaces)
@@ -84,9 +100,10 @@ class ULIPVehicleViewModel: ObservableObject {
     }
 
     func reset() {
-        vehicleNumber = ""
-        searchResult  = nil
-        errorMessage  = nil
+        vehicleNumber      = ""
+        searchResult       = nil
+        errorMessage       = nil
+        selectedChallanIDs = []
     }
 
     // MARK: - Challan fetch + mapping

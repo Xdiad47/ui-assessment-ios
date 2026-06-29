@@ -322,6 +322,8 @@ struct FinanceStatusView: View {
 struct ChallanCardView: View {
     let challan: Challan
     var onDetailsPressed: () -> Void = {}
+    var isSelected: Bool = false
+    var onToggleSelection: () -> Void = {}
 
     private var iconAssetName: String {
         challan.title.lowercased().replacingOccurrences(of: " ", with: "_")
@@ -398,17 +400,21 @@ struct ChallanCardView: View {
                 }
 
                 if isPending {
-                    Button(action: {}) {
+                    Button(action: onToggleSelection) {
                         HStack {
-                            Image(systemName: "plus.circle.fill")
-                            Text("Add to Pay")
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle.fill")
+                            Text(isSelected ? "Added" : "Add to Pay")
                         }
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(isSelected ? Color(red: 0.1, green: 0.1, blue: 0.3) : .white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color(red: 0.1, green: 0.1, blue: 0.3))
+                        .background(isSelected ? Color(red: 0.1, green: 0.1, blue: 0.3).opacity(0.12) : Color(red: 0.1, green: 0.1, blue: 0.3))
                         .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(red: 0.1, green: 0.1, blue: 0.3).opacity(isSelected ? 0.4 : 0), lineWidth: 1)
+                        )
                     }
                 } else {
                     HStack {

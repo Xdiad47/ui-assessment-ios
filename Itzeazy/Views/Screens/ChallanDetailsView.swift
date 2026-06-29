@@ -111,9 +111,12 @@ struct ChallanDetailsView: View {
                             } else {
                                 VStack(spacing: 16) {
                                     ForEach(viewModel.challans, id: \.id) { challan in
-                                        ChallanRowCard(challan: challan, onDetailsPressed: {
-                                            selectedChallan = challan
-                                        })
+                                        ChallanRowCard(
+                                            challan: challan,
+                                            onDetailsPressed: { selectedChallan = challan },
+                                            isSelected: viewModel.selectedChallanIDs.contains(challan.id),
+                                            onToggleSelection: { viewModel.toggleSelection(challan.id) }
+                                        )
                                     }
                                 }
                             }
@@ -142,14 +145,14 @@ struct ChallanDetailsView: View {
                             .background(Color(red: 0.10, green: 0.11, blue: 0.11))
                             .cornerRadius(16)
 
-                            // Bottom pay bar
-                            if viewModel.pendingCount > 0 {
+                            // Bottom pay bar — only shown when user has selected at least one challan
+                            if viewModel.selectedCount > 0 {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text("\(viewModel.pendingCount) PENDING SELECTED")
+                                        Text("\(viewModel.selectedCount) ITEMS SELECTED")
                                             .font(Font.custom("Inter", size: 10).weight(.medium))
                                             .foregroundColor(Color.gray)
-                                        Text("₹\(viewModel.totalDue)")
+                                        Text("₹\(viewModel.selectedTotal)")
                                             .font(Font.custom("Inter", size: 18).weight(.bold))
                                             .foregroundColor(.red)
                                     }
@@ -370,6 +373,8 @@ private struct ChallanOverviewCard: View {
 private struct ChallanRowCard: View {
     let challan: Challan
     let onDetailsPressed: () -> Void
+    var isSelected: Bool = false
+    var onToggleSelection: () -> Void = {}
 
     private var isPending: Bool { challan.status.lowercased() == "pending" }
 
@@ -437,18 +442,22 @@ private struct ChallanRowCard: View {
                 }
 
                 if isPending {
-                    Button(action: {}) {
+                    Button(action: onToggleSelection) {
                         HStack(spacing: 6) {
-                            Image(systemName: "plus.circle")
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
                                 .font(.system(size: 14))
-                            Text("Add to Pay")
+                            Text(isSelected ? "Added" : "Add to Pay")
                                 .font(Font.custom("Inter", size: 13).weight(.bold))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(isSelected ? Color(red: 0.14, green: 0.15, blue: 0.23) : .white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 40)
-                        .background(Color(red: 0.14, green: 0.15, blue: 0.23))
+                        .background(isSelected ? Color(red: 0.14, green: 0.15, blue: 0.23).opacity(0.12) : Color(red: 0.14, green: 0.15, blue: 0.23))
                         .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color(red: 0.14, green: 0.15, blue: 0.23).opacity(isSelected ? 0.4 : 0), lineWidth: 1)
+                        )
                     }
                 } else {
                     HStack(spacing: 6) {

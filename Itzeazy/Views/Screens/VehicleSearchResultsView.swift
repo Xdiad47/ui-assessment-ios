@@ -1,6 +1,5 @@
 import SwiftUI
 
-//Pop view on tap on the detail button, there pay is showing even if it is paid. Fix it
 
 
 struct VehicleSearchResultsView: View {
@@ -142,34 +141,39 @@ struct VehicleSearchResultsView: View {
                                         .cornerRadius(24)
 
                                         ForEach(result.pendingChallans) { challan in
-                                            ChallanCardView(challan: challan, onDetailsPressed: {
-                                                selectedChallan = challan
-                                            })
+                                            ChallanCardView(
+                                                challan: challan,
+                                                onDetailsPressed: { selectedChallan = challan },
+                                                isSelected: viewModel.selectedChallanIDs.contains(challan.id),
+                                                onToggleSelection: { viewModel.toggleSelection(challan.id) }
+                                            )
                                         }
 
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text("\(viewModel.selectedChallansCount) ITEMS SELECTED")
-                                                    .font(.system(size: 10, weight: .bold))
-                                                    .foregroundColor(.gray)
-                                                Text("₹\(viewModel.totalDue)")
-                                                    .font(.system(size: 20, weight: .heavy))
-                                                    .foregroundColor(.red)
+                                        if viewModel.selectedChallansCount > 0 {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text("\(viewModel.selectedChallansCount) ITEMS SELECTED")
+                                                        .font(.system(size: 10, weight: .bold))
+                                                        .foregroundColor(.gray)
+                                                    Text("₹\(viewModel.selectedTotal)")
+                                                        .font(.system(size: 20, weight: .heavy))
+                                                        .foregroundColor(.red)
+                                                }
+                                                Spacer()
+                                                Button(action: {}) {
+                                                    Text("Pay All Selected")
+                                                        .font(.system(size: 16, weight: .bold))
+                                                        .foregroundColor(.white)
+                                                        .padding(.horizontal, 32)
+                                                        .padding(.vertical, 16)
+                                                        .background(Color.red)
+                                                        .clipShape(Capsule())
+                                                }
                                             }
-                                            Spacer()
-                                            Button(action: {}) {
-                                                Text("Pay All Selected")
-                                                    .font(.system(size: 16, weight: .bold))
-                                                    .foregroundColor(.white)
-                                                    .padding(.horizontal, 32)
-                                                    .padding(.vertical, 16)
-                                                    .background(Color.red)
-                                                    .clipShape(Capsule())
-                                            }
+                                            .padding()
+                                            .background(Color(white: 0.1))
+                                            .cornerRadius(24)
                                         }
-                                        .padding()
-                                        .background(Color(white: 0.1))
-                                        .cornerRadius(24)
 
                                         Spacer().frame(height: 28)
                                     }
@@ -273,7 +277,7 @@ struct VehicleSearchResultsView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .frame(height: 60)
+            .frame(height: 0)
         }
     }
 }

@@ -15,12 +15,29 @@ class ULIPChallanViewModel: ObservableObject {
     @Published var isLoading: Bool     = false
     @Published var errorMessage: String? = nil
     @Published var hasSearched: Bool   = false
+    @Published var selectedChallanIDs: Set<String> = []
 
     var pendingCount: Int { challans.filter { $0.status.lowercased() == "pending" }.count }
+    // Total of ALL pending — used in the summary badge
     var totalDue: Int {
         challans
             .filter { $0.status.lowercased() == "pending" }
             .reduce(0) { $0 + $1.amount }
+    }
+    // Selected-only count and total — used in the bottom pay bar
+    var selectedCount: Int { selectedChallanIDs.count }
+    var selectedTotal: Int {
+        challans
+            .filter { selectedChallanIDs.contains($0.id) }
+            .reduce(0) { $0 + $1.amount }
+    }
+
+    func toggleSelection(_ id: String) {
+        if selectedChallanIDs.contains(id) {
+            selectedChallanIDs.remove(id)
+        } else {
+            selectedChallanIDs.insert(id)
+        }
     }
 
     func search() {
@@ -62,11 +79,12 @@ class ULIPChallanViewModel: ObservableObject {
     }
 
     func reset() {
-        vehicleNumber = ""
-        challans      = []
-        ownerName     = ""
-        errorMessage  = nil
-        hasSearched   = false
+        vehicleNumber      = ""
+        challans           = []
+        ownerName          = ""
+        errorMessage       = nil
+        hasSearched        = false
+        selectedChallanIDs = []
     }
 
     // MARK: - Mapping
