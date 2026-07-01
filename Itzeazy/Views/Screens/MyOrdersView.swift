@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MyOrdersView: View {
+    var onBackToHome: (() -> Void)? = nil
     @Environment(\.presentationMode) private var presentationMode
     @StateObject private var viewModel = MyOrdersViewModel()
     @State private var naturalHeight: CGFloat = 0
@@ -16,7 +17,11 @@ struct MyOrdersView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 16) {
                         MyOrdersHeaderView(strokeColor: strokeColor) {
-                            presentationMode.wrappedValue.dismiss()
+                            if let onBackToHome {
+                                onBackToHome()
+                            } else {
+                                presentationMode.wrappedValue.dismiss()
+                            }
                         }
 
                         welcomeCard
@@ -31,7 +36,7 @@ struct MyOrdersView: View {
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 30)
+                        .padding(.bottom, 70)
                     }
                     .background(GeometryReader { geo in
                         Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)

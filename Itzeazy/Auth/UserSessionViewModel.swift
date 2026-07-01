@@ -31,8 +31,14 @@ final class UserSessionViewModel: ObservableObject {
                     user = userData
                     storage.saveUser(userData)
                 }
+            } catch let apiError as ItzeazyAPIError {
+                if case .httpError(let code, _) = apiError, (500...599).contains(code) {
+                    clearUser()
+                    UserDefaults.standard.set(false, forKey: "isLoggedIn")
+                }
+                // Other API errors (401, network) — silently keep the cached user
             } catch {
-                // Silently keep the cached user — non-critical fetch
+                // Network errors — silently keep the cached user
             }
         }
     }

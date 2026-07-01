@@ -12,7 +12,7 @@ struct RegisterOTPView: View {
     @State private var otpText: String = ""
     @FocusState private var isKeyboardShowing: Bool
     @State private var keyboardHeight: CGFloat = 0
-    @State private var timeRemaining = 299
+    @State private var timeRemaining = 59
 
     private var isKeyboardPresented: Bool { keyboardHeight > 0 }
     private var otpLength: Int { isPhoneContact ? 4 : 6 }
@@ -192,7 +192,7 @@ struct RegisterOTPView: View {
 
                             Button(action: {
                                 otpText = ""
-                                timeRemaining = 299
+                                timeRemaining = 59
                                 registerViewModel.resetOTPState()
                                 if isPhoneContact {
                                     registerViewModel.sendMobileOTP()

@@ -74,6 +74,30 @@ struct UpdatePasswordRequest: Encodable {
     let confirm_password: String
 }
 
+// MARK: - Web Login Token
+
+struct WebLoginTokenRequest: Encodable {
+    let redirectPath: String
+    enum CodingKeys: String, CodingKey {
+        case redirectPath = "redirect_path"
+    }
+}
+
+struct WebLoginTokenData: Decodable {
+    let token: String?
+    let url: String?
+}
+
+struct WebLoginTokenResponse: Decodable {
+    let statusCode: Int?
+    let message: String?
+    let data: WebLoginTokenData?
+    enum CodingKeys: String, CodingKey {
+        case statusCode = "status_code"
+        case message, data
+    }
+}
+
 // MARK: - Shared Response Models
 
 struct UserProfile: Codable {

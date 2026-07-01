@@ -1,5 +1,11 @@
 import SwiftUI
 
+struct NoHighlightButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+    }
+}
+
 struct ServicesGridView: View {
     let services: [ServiceItem]
     

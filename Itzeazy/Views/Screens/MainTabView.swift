@@ -27,18 +27,16 @@ struct MainTabView: View {
                     .navigationViewStyle(StackNavigationViewStyle())
                 case .orders:
                     NavigationView {
-                        Text("Orders Screen")
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color(white: 0.98).edgesIgnoringSafeArea(.all))
+                        MyOrdersView(onBackToHome: { selectedTab = .home })
                             .navigationBarTitleDisplayMode(.inline)
+                            .navigationBarHidden(true)
                     }
                     .navigationViewStyle(StackNavigationViewStyle())
                 case .call:
                     NavigationView {
-                        Text("Call Screen")
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color(white: 0.98).edgesIgnoringSafeArea(.all))
+                        CallScreen(onBackToHome: { selectedTab = .home })
                             .navigationBarTitleDisplayMode(.inline)
+                            .navigationBarHidden(true)
                     }
                     .navigationViewStyle(StackNavigationViewStyle())
                 case .profile:
@@ -155,8 +153,8 @@ struct TabBarButton: View {
     }
 }
 
-struct MainTabView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainTabView()
-    }
-}
+//struct MainTabView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        MainTabView()
+//    }
+//}

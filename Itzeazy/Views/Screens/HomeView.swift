@@ -119,8 +119,7 @@ struct HomeHeroCardView: View {
     @State private var showCityPicker    = false
     @State private var showServicePicker = false
     @State private var showTypePicker    = false
-    @State private var navigateToWebView = false
-    @State private var webViewURL        = ""
+    @StateObject private var webLoginVM  = WebLoginViewModel()
 
     private let accentRed = Color(red: 0.85, green: 0.2, blue: 0.2)
     private let fieldGray = Color(red: 0.55, green: 0.55, blue: 0.55)
@@ -207,29 +206,41 @@ struct HomeHeroCardView: View {
                 }
             }
 
-            // --- Get Started Button (opens CitizenServicesWebView via NavigationLink) ---
+            // --- Get Started Button ---
             ZStack {
                 NavigationLink(
-                    destination: CitizenServicesWebView(url: webViewURL, title: "Citizen Services"),
-                    isActive: $navigateToWebView
+                    destination: CitizenServicesWebView(
+                        url: webLoginVM.generatedURL ?? "",
+                        title: "Citizen Services"
+                    ),
+                    isActive: Binding(
+                        get: { webLoginVM.generatedURL != nil },
+                        set: { if !$0 { webLoginVM.reset() } }
+                    )
                 ) { EmptyView() }
                 .hidden()
 
                 Button(action: {
                     if let url = vm.buildUrl() {
-                        webViewURL        = url
-                        navigateToWebView = true
+                        webLoginVM.generateToken(urlString: url, title: "Citizen Services")
                     }
                 }) {
-                    Text("Get Started")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(vm.isGetStartedEnabled ? accentRed : accentRed.opacity(0.45))
-                        .cornerRadius(12)
+                    Group {
+                        if webLoginVM.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text("Get Started")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(vm.isGetStartedEnabled ? accentRed : accentRed.opacity(0.45))
+                    .cornerRadius(12)
                 }
-                .disabled(!vm.isGetStartedEnabled)
+                .disabled(!vm.isGetStartedEnabled || webLoginVM.isLoading)
             }
         }
         .padding(.horizontal)
@@ -265,6 +276,14 @@ struct HomeHeroCardView: View {
                 isSearchable: vm.isVisaSelected,
                 onSelect: { vm.selectedSubService = $0 }
             )
+        }
+        .alert("Something went wrong", isPresented: Binding(
+            get: { webLoginVM.errorMessage != nil },
+            set: { if !$0 { webLoginVM.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(webLoginVM.errorMessage ?? "")
         }
     }
 }
@@ -359,6 +378,7 @@ struct PickerSheetView<T: Identifiable>: View {
 struct HomeServicesGridView: View {
 
     @StateObject private var vm = HomeServicesViewModel()
+    @StateObject private var webLoginVM = WebLoginViewModel()
 
     // Non-web service items kept inline (RTO, Visa, Attestation)
     private let allServices: [(String, String)] = [
@@ -379,6 +399,18 @@ struct HomeServicesGridView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            NavigationLink(
+                destination: CitizenServicesWebView(
+                    url: webLoginVM.generatedURL ?? "",
+                    title: webLoginVM.generatedTitle
+                ),
+                isActive: Binding(
+                    get: { webLoginVM.generatedURL != nil },
+                    set: { if !$0 { webLoginVM.reset() } }
+                )
+            ) { EmptyView() }
+            .hidden()
+
             VStack(alignment: .leading, spacing: 1) {
                 Text("Services We Provide")
                     .font(.title3)
@@ -412,6 +444,14 @@ struct HomeServicesGridView: View {
                     )
             )
         }
+        .alert("Something went wrong", isPresented: Binding(
+            get: { webLoginVM.errorMessage != nil },
+            set: { if !$0 { webLoginVM.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(webLoginVM.errorMessage ?? "")
+        }
     }
 
     // MARK: - Cell builder
@@ -435,14 +475,15 @@ struct HomeServicesGridView: View {
         } else if label == "Attestation" {
             ServiceBoxView(title: label, iconName: icon)
 
-        // All other service items — open WebView
+        // All other service items — call token API then open WebView
         } else if let item = vm.webItems.first(where: { $0.label == label }) {
-            NavigationLink(
-                destination: CitizenServicesWebView(url: item.url, title: item.label)
-            ) {
+            Button {
+                webLoginVM.generateToken(urlString: item.url, title: item.label)
+            } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(NoHighlightButtonStyle())
+            .disabled(webLoginVM.isLoading)
 
         } else {
             ServiceBoxView(title: label, iconName: icon)
@@ -456,6 +497,7 @@ struct HomeServicesGridView: View {
 struct HomeUtilitiesGridView: View {
 
     @StateObject private var vm = HomeUtilitiesViewModel()
+    @StateObject private var webLoginVM = WebLoginViewModel()
 
     private let allUtilities: [(String, String)] = [
         ("Vehicle\nInfo", "vehicle_info"),
@@ -475,6 +517,18 @@ struct HomeUtilitiesGridView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            NavigationLink(
+                destination: CitizenServicesWebView(
+                    url: webLoginVM.generatedURL ?? "",
+                    title: webLoginVM.generatedTitle
+                ),
+                isActive: Binding(
+                    get: { webLoginVM.generatedURL != nil },
+                    set: { if !$0 { webLoginVM.reset() } }
+                )
+            ) { EmptyView() }
+            .hidden()
+
             VStack(alignment: .leading, spacing: 1) {
                 Text("Utilities")
                     .font(.title3)
@@ -507,6 +561,14 @@ struct HomeUtilitiesGridView: View {
                         )
                     )
             )
+        }
+        .alert("Something went wrong", isPresented: Binding(
+            get: { webLoginVM.errorMessage != nil },
+            set: { if !$0 { webLoginVM.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(webLoginVM.errorMessage ?? "")
         }
     }
 
@@ -557,14 +619,15 @@ struct HomeUtilitiesGridView: View {
             .buttonStyle(PlainButtonStyle())
 
         default:
-            // Road Tax, LL QB, LL Mock — open WebView
+            // Road Tax, LL QB, LL Mock — call token API then open WebView
             if let item = vm.webItems.first(where: { $0.label == label }) {
-                NavigationLink(
-                    destination: CitizenServicesWebView(url: item.url, title: item.label)
-                ) {
+                Button {
+                    webLoginVM.generateToken(urlString: item.url, title: item.label)
+                } label: {
                     ServiceBoxView(title: label, iconName: icon)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(NoHighlightButtonStyle())
+                .disabled(webLoginVM.isLoading)
             } else {
                 ServiceBoxView(title: label, iconName: icon)
             }
