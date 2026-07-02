@@ -3,15 +3,28 @@ import SwiftUI
 struct VisaView: View {
     @Environment(\.presentationMode) private var presentationMode
     @StateObject private var viewModel: VisaViewModel
+    @StateObject private var webLoginVM = WebLoginViewModel()
 
     init(selectedCountry: String = "Singapore") {
         _viewModel = StateObject(wrappedValue: VisaViewModel(selectedCountry: selectedCountry))
     }
-    
+
     var body: some View {
         ZStack(alignment: .top) {
             Color(white: 0.98).edgesIgnoringSafeArea(.all)
-            
+
+            NavigationLink(
+                destination: CitizenServicesWebView(
+                    url: webLoginVM.generatedURL ?? "",
+                    title: viewModel.selectedCountry
+                ),
+                isActive: Binding(
+                    get: { webLoginVM.generatedURL != nil },
+                    set: { if !$0 { webLoginVM.reset() } }
+                )
+            ) { EmptyView() }
+            .hidden()
+
             VStack(spacing: 0) {
                 // ── Dark Header Section ───────────
                 VStack(spacing: 0) {
@@ -130,19 +143,28 @@ struct VisaView: View {
                         
                         // Apply Now Button
                         Button(action: {
-                            // Apply action
+                            guard let encodedCountry = viewModel.selectedCountry.addingPercentEncoding(
+                                withAllowedCharacters: .urlPathAllowed
+                            ) else { return }
+                            let url = "https://itzeazy.in/order/visa/\(encodedCountry)"
+                            webLoginVM.generateToken(urlString: url, title: viewModel.selectedCountry)
                         }) {
                             ZStack {
-                                Text("APPLY NOW")
-                                    .font(Font.custom("PlusJakartaSans-Bold", size: 16))
-                                    .foregroundColor(.white)
-                                
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: "arrow.right")
+                                if webLoginVM.isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Text("APPLY NOW")
+                                        .font(Font.custom("PlusJakartaSans-Bold", size: 16))
                                         .foregroundColor(.white)
-                                        .font(.system(size: 18, weight: .bold))
-                                        .padding(.trailing, 24)
+
+                                    HStack {
+                                        Spacer()
+                                        Image(systemName: "arrow.right")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 18, weight: .bold))
+                                            .padding(.trailing, 24)
+                                    }
                                 }
                             }
                             .frame(maxWidth: .infinity)
@@ -150,6 +172,7 @@ struct VisaView: View {
                             .background(Color.red)
                             .cornerRadius(12)
                         }
+                        .disabled(webLoginVM.isLoading)
                         .padding(.horizontal, 20)
                         .padding(.top, 24)
                         
@@ -189,6 +212,14 @@ struct VisaView: View {
             }
         }
         .navigationBarHidden(true)
+        .alert("Something went wrong", isPresented: Binding(
+            get: { webLoginVM.errorMessage != nil },
+            set: { if !$0 { webLoginVM.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(webLoginVM.errorMessage ?? "")
+        }
     }
 }
 

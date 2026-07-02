@@ -405,6 +405,8 @@ private struct PasswordEntryView: View {
     @State private var navigateToOTP = false
     @State private var navigateToForgotPassword = false
     @State private var keyboardHeight: CGFloat = 0
+    @State private var isPasswordVisible = false
+    @State private var showLoginErrorToast = false
     @FocusState private var isPasswordFieldFocused: Bool
 
     private var isKeyboardPresented: Bool {
@@ -413,7 +415,8 @@ private struct PasswordEntryView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack(alignment: .top) {
+            ZStack(alignment: .bottom) {
+                ZStack(alignment: .top) {
                 Color.white
                     .ignoresSafeArea()
                     .onTapGesture {
@@ -503,23 +506,40 @@ private struct PasswordEntryView: View {
                                     .foregroundColor(.red)
                                 }
 
-                                SecureField("Enter your password", text: $password)
+                                HStack(spacing: 0) {
+                                    Group {
+                                        if isPasswordVisible {
+                                            TextField("Enter your password", text: $password)
+                                        } else {
+                                            SecureField("Enter your password", text: $password)
+                                        }
+                                    }
                                     .font(Font.custom("Inter", size: 14))
                                     .foregroundColor(Color(hex: "#191c1d"))
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled(true)
                                     .focused($isPasswordFieldFocused)
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 18)
-                                    .background(Color(hex: "#f3f4f5"))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 24)
-                                            .stroke(
-                                                isPasswordFieldFocused ? Color.red : Color(hex: "#b7b7b7"),
-                                                lineWidth: isPasswordFieldFocused ? 1.5 : 1
-                                            )
-                                    )
-                                    .cornerRadius(24)
+
+                                    Button {
+                                        isPasswordVisible.toggle()
+                                    } label: {
+                                        Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
+                                            .font(.system(size: 15))
+                                            .foregroundColor(Color(hex: "#5f5e5e"))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 18)
+                                .background(Color(hex: "#f3f4f5"))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 24)
+                                        .stroke(
+                                            isPasswordFieldFocused ? Color.red : Color(hex: "#b7b7b7"),
+                                            lineWidth: isPasswordFieldFocused ? 1.5 : 1
+                                        )
+                                )
+                                .cornerRadius(24)
 
                                 if let passwordError {
                                     Text(passwordError)
@@ -630,7 +650,15 @@ private struct PasswordEntryView: View {
                     .offset(y: isKeyboardPresented ? -12 : 0)
                 .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
                 .ignoresSafeArea(edges: .bottom)
+                }
+
+                if showLoginErrorToast, let error = authViewModel.errorMessage {
+                    ToastView(icon: "exclamationmark.circle.fill", message: error)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 140)
+                }
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showLoginErrorToast)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
@@ -647,6 +675,13 @@ private struct PasswordEntryView: View {
         }
         .onChange(of: authViewModel.otpSent) { _, sent in
             if sent { navigateToOTP = true }
+        }
+        .onChange(of: authViewModel.errorMessage) { _, message in
+            guard message != nil else { return }
+            showLoginErrorToast = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                showLoginErrorToast = false
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
             updateKeyboardHeight(from: notification)

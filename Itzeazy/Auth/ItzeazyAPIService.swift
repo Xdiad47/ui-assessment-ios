@@ -93,7 +93,7 @@ final class ItzeazyAPIService {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            try throwHTTPError(statusCode: http.statusCode, data: data)
+            try throwHTTPError(statusCode: http.statusCode, data: data, isAuthenticatedRequest: token != nil)
         }
 
         do {
@@ -149,7 +149,7 @@ final class ItzeazyAPIService {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            try throwHTTPError(statusCode: http.statusCode, data: data)
+            try throwHTTPError(statusCode: http.statusCode, data: data, isAuthenticatedRequest: token != nil)
         }
 
         do {
@@ -217,7 +217,7 @@ final class ItzeazyAPIService {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            try throwHTTPError(statusCode: http.statusCode, data: data)
+            try throwHTTPError(statusCode: http.statusCode, data: data, isAuthenticatedRequest: token != nil)
         }
 
         do {
@@ -273,7 +273,7 @@ final class ItzeazyAPIService {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            try throwHTTPError(statusCode: http.statusCode, data: data)
+            try throwHTTPError(statusCode: http.statusCode, data: data, isAuthenticatedRequest: token != nil)
         }
 
         do {
@@ -284,8 +284,11 @@ final class ItzeazyAPIService {
         }
     }
 
-    private func throwHTTPError(statusCode: Int, data: Data) throws -> Never {
-        if statusCode == 401 {
+    private func throwHTTPError(statusCode: Int, data: Data, isAuthenticatedRequest: Bool) throws -> Never {
+        // Only a 401 on a request that carried a session token means the session
+        // itself expired. A 401 on an unauthenticated call (e.g. login) just means
+        // the submitted credentials were wrong and should not log the user out.
+        if statusCode == 401 && isAuthenticatedRequest {
             NotificationCenter.default.post(name: .itzeazyUnauthorized, object: nil)
         }
         let serverMessage = try? JSONDecoder().decode(ServerErrorBody.self, from: data)
