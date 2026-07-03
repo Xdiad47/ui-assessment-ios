@@ -1,5 +1,9 @@
 import SwiftUI
 
+//Here enable web view for the My orders, payment screens etc, and remove old ones. Use links and input web generate token API
+//In bottom nav bar enable My Orders button to launch web view (website) with web generate token API,
+//In Visa Apply now button should launch web view
+
 struct ProfileView: View {
     @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
     @StateObject private var viewModel = ProfileViewModel()

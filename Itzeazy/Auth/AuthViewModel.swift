@@ -61,7 +61,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    // MARK: - OTP Login Step 2: Verify OTP (same send-otp endpoint with otp included)
+    // MARK: - OTP Login Step 2: Verify OTP
 
     func verifyOTP(mobile: String, otp: String) {
         guard !isLoading else { return }
@@ -72,7 +72,7 @@ final class AuthViewModel: ObservableObject {
             defer { isLoading = false }
             do {
                 let response: AuthResponse = try await api.post(
-                    endpoint: "user/mobile/send-otp",
+                    endpoint: "user/mobile/verify-otp",
                     body: VerifyOTPRequest(mobile: mobile, otp: otp, type: "login")
                 )
                 persistSession(from: response)

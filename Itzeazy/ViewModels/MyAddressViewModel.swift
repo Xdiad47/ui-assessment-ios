@@ -9,10 +9,6 @@ struct AddressItem: Identifiable {
 }
 
 class MyAddressViewModel: ObservableObject {
-    @Published var accountName: String = "amar patil"
-    @Published var accountEmail: String = "amarpatil8910@gmail.com"
-    @Published var accountPhone: String = "9075289977"
-
     let pageTitle: String = "My Account"
     let addressesTitle: String = "My Adderesses"
 

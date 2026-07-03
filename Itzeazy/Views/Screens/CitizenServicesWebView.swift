@@ -25,15 +25,20 @@ struct WebViewRepresentable: UIViewRepresentable {
 struct CitizenServicesWebView: View {
     let url: String
     var title: String = "Citizen Services"
+    // Screens presented as a NavigationLink push (RTO/Passport/Visa/etc.) leave this nil
+    // and rely on presentationMode.dismiss(). Screens hosting this as tab-root content
+    // (e.g. MyOrdersView) have nothing to dismiss, so they pass their own back action.
+    var onBack: (() -> Void)? = nil
 
     @StateObject private var vm: WebViewModel
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject private var tabBarState: TabBarState
     @State private var navigateToProfile = false
 
-    init(url: String, title: String = "Citizen Services") {
-        self.url   = url
-        self.title = title
+    init(url: String, title: String = "Citizen Services", onBack: (() -> Void)? = nil) {
+        self.url     = url
+        self.title   = title
+        self.onBack  = onBack
         _vm = StateObject(wrappedValue: WebViewModel(title: title, urlString: url))
     }
 
@@ -74,7 +79,7 @@ struct CitizenServicesWebView: View {
 
             // Content row
             HStack(spacing: 0) {
-                Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                Button(action: { onBack?() ?? presentationMode.wrappedValue.dismiss() }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.red)

@@ -3,6 +3,7 @@ import SwiftUI
 struct OverviewView: View {
     @Environment(\.presentationMode) private var presentationMode
     @StateObject private var viewModel = OverviewViewModel()
+    @StateObject private var webLoginVM = WebLoginViewModel()
     @State private var naturalHeight: CGFloat = 0
 
     private let backgroundColor = Color(red: 0.96, green: 0.96, blue: 0.96)
@@ -16,6 +17,20 @@ struct OverviewView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .top) {
+                // Web view destination for the four cards below — reached only once
+                // WebLoginViewModel resolves a generate-web-login-token URL for the tapped card.
+                NavigationLink(
+                    destination: CitizenServicesWebView(
+                        url: webLoginVM.generatedURL ?? "",
+                        title: webLoginVM.generatedTitle
+                    ),
+                    isActive: Binding(
+                        get: { webLoginVM.generatedURL != nil },
+                        set: { if !$0 { webLoginVM.reset() } }
+                    )
+                ) { EmptyView() }
+                .hidden()
+
                 Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
 
                 ScrollView(.vertical, showsIndicators: false) {
@@ -29,7 +44,13 @@ struct OverviewView: View {
 
                         LazyVGrid(columns: gridColumns, spacing: 16) {
                             ForEach(viewModel.cards) { card in
-                                OverviewFeatureCard(item: card, strokeColor: strokeColor)
+                                Button {
+                                    handleTap(on: card)
+                                } label: {
+                                    OverviewFeatureCard(item: card, strokeColor: strokeColor)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .disabled(webLoginVM.isLoading)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -46,6 +67,28 @@ struct OverviewView: View {
             }
         }
         .navigationBarHidden(true)
+        .alert("Something went wrong", isPresented: Binding(
+            get: { webLoginVM.errorMessage != nil },
+            set: { if !$0 { webLoginVM.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(webLoginVM.errorMessage ?? "")
+        }
+    }
+
+    // Documents Required has no destination yet — left as a no-op on purpose.
+    private func handleTap(on card: OverviewCardItem) {
+        switch card.title {
+        case "My Order":
+            webLoginVM.generateToken(urlString: "https://itzeazy.in/profile/allorders", title: "My Orders")
+        case "Payments":
+            webLoginVM.generateToken(urlString: "https://itzeazy.in/profile/payment", title: "Payments")
+        case "Help & Support":
+            webLoginVM.generateToken(urlString: "https://itzeazy.in/profile/help-n-support", title: "Help & Support")
+        default:
+            break
+        }
     }
 
     private struct ContentHeightKey: PreferenceKey {

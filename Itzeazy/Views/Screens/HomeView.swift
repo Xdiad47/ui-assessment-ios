@@ -315,6 +315,7 @@ struct PickerSheetView<T: Identifiable>: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
                         TextField("Search country…", text: $query)
+                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
                         if !query.isEmpty {
@@ -369,6 +370,9 @@ struct PickerSheetView<T: Identifiable>: View {
                 }
             }
         }
+        // Every color in this sheet is hardcoded for a light background;
+        // pinning the color scheme keeps text/backgrounds from mismatching in Dark Mode.
+        .colorScheme(.light)
     }
 }
 

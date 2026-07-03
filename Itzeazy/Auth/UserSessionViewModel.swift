@@ -77,4 +77,8 @@ final class UserSessionViewModel: ObservableObject {
     var displayEmail: String {
         user?.email ?? ""
     }
+
+    var displayPhone: String {
+        user?.phone ?? ""
+    }
 }

@@ -265,6 +265,9 @@ struct VisaViewInitial: View {
         .frame(maxWidth: .infinity)
         .background(Color.clear)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.isResultsVisible)
+        // Card colors are hardcoded for a white background; pin to light so the
+        // search field text and dropdown never blend into a Dark Mode background.
+        .colorScheme(.light)
     }
 
     // MARK: - Search field

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MyAddressView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var userSession: UserSessionViewModel
     @StateObject private var viewModel = MyAddressViewModel()
     @State private var naturalHeight: CGFloat = 0
 
@@ -123,15 +124,15 @@ struct MyAddressView: View {
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(viewModel.accountName)
+                Text(userSession.displayFullName)
                     .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
                     .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
 
-                Text(viewModel.accountEmail)
+                Text(userSession.displayEmail)
                     .font(Font.custom("Inter", size: 14).weight(.medium))
                     .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
 
-                Text(viewModel.accountPhone)
+                Text(userSession.displayPhone)
                     .font(Font.custom("Inter", size: 14).weight(.medium))
                     .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
             }
@@ -278,4 +279,5 @@ private struct AddressCardView: View {
     NavigationView {
         MyAddressView()
     }
+    .environmentObject(UserSessionViewModel())
 }
