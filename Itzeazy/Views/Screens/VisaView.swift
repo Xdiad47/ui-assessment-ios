@@ -132,9 +132,9 @@ struct VisaView: View {
                             )
                             
                             MetricCardView(
-                                icon: "person.crop.circle.badge.checkmark", 
-                                title: "VISIT REQUIRED", 
-                                value: "",
+                                icon: "person.crop.circle.badge.checkmark",
+                                title: "VISIT REQUIRED",
+                                value: viewModel.visitRequired,
                                 subtitle: ""
                             )
                         }
@@ -187,18 +187,30 @@ struct VisaView: View {
                                     .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
                             }
                             
-                            VStack(alignment: .leading, spacing: 12) {
-                                ForEach(viewModel.requiredDocuments) { doc in
-                                    HStack(alignment: .top, spacing: 12) {
-                                        Circle()
-                                            .fill(Color.red)
-                                            .frame(width: 6, height: 6)
-                                            .offset(y: 8)
-                                        
-                                        Text(doc.name)
-                                            .font(Font.custom("Inter", size: 14))
-                                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                                            .lineSpacing(4)
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                            } else if let documentsMessage = viewModel.documentsMessage {
+                                Text(documentsMessage)
+                                    .font(Font.custom("Inter", size: 14))
+                                    .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    ForEach(viewModel.requiredDocuments) { doc in
+                                        HStack(alignment: .top, spacing: 12) {
+                                            Circle()
+                                                .fill(Color.red)
+                                                .frame(width: 6, height: 6)
+                                                .offset(y: 8)
+
+                                            Text(doc.name)
+                                                .font(Font.custom("Inter", size: 14))
+                                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                                .lineSpacing(4)
+                                        }
                                     }
                                 }
                             }
@@ -219,6 +231,15 @@ struct VisaView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(webLoginVM.errorMessage ?? "")
+        }
+        .alert("Something went wrong", isPresented: Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Button("Retry") { viewModel.fetchRequiredDocuments() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage ?? "")
         }
     }
 }

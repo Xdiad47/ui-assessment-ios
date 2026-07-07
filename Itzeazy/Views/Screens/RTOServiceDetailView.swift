@@ -3,6 +3,8 @@ import SwiftUI
 struct RTOServiceDetailView: View {
     @Environment(\.presentationMode) private var presentationMode
     @StateObject private var viewModel: RTOServiceDetailViewModel
+    @StateObject private var webLoginVM = WebLoginViewModel()
+    @State private var showWebView = false
 
     init(serviceTitle: String, city: String = "Bengaluru") {
         _viewModel = StateObject(
@@ -26,7 +28,7 @@ struct RTOServiceDetailView: View {
                                 .frame(width: 24, height: 24)
                         }
 
-                        Text(viewModel.serviceDetail.navigationTitle)
+                        Text(viewModel.navigationTitle)
                             .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
                             .foregroundColor(.white)
                             .lineLimit(1)
@@ -54,17 +56,17 @@ struct RTOServiceDetailView: View {
                             RTOMetricCard(
                                 icon: "processing_rto",
                                 label: "PROCESSING",
-                                value: viewModel.serviceDetail.processingTime
+                                value: viewModel.processingTime
                             )
                             RTOMetricCard(
                                 icon: "document_rto",
                                 label: "DOCUMENT\nCOLLECTION",
-                                value: viewModel.serviceDetail.documentCollection
+                                value: viewModel.documentCollection
                             )
                             RTOMetricCard(
                                 icon: "visit_rto",
                                 label: "VISIT\nREQUIRED",
-                                value: viewModel.serviceDetail.visitRequired
+                                value: viewModel.visitRequired
                             )
                         }
                         .padding(.horizontal, 24)
@@ -73,20 +75,32 @@ struct RTOServiceDetailView: View {
 
                         // Apply Now button
                         Button(action: {
-                            // Apply action — wire to API later
+                            if let path = viewModel.redirectPath {
+                                webLoginVM.generateToken(
+                                    urlString: "https://itzeazy.in\(path)",
+                                    title: viewModel.serviceTitle
+                                )
+                            } else {
+                                viewModel.showUnavailableAlert = true
+                            }
                         }) {
                             ZStack {
-                                Text("APPLY NOW")
-                                    .font(Font.custom("PlusJakartaSans-ExtraBold", size: 14))
-                                    .foregroundColor(.white)
-                                    .tracking(0.35)
-
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: "arrow.right")
+                                if webLoginVM.isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Text("APPLY NOW")
+                                        .font(Font.custom("PlusJakartaSans-ExtraBold", size: 14))
                                         .foregroundColor(.white)
-                                        .font(.system(size: 16, weight: .bold))
-                                        .padding(.trailing, 24)
+                                        .tracking(0.35)
+
+                                    HStack {
+                                        Spacer()
+                                        Image(systemName: "arrow.right")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 16, weight: .bold))
+                                            .padding(.trailing, 24)
+                                    }
                                 }
                             }
                             .frame(maxWidth: .infinity)
@@ -95,6 +109,7 @@ struct RTOServiceDetailView: View {
                             .cornerRadius(16)
                             .shadow(color: Color.red.opacity(0.3), radius: 8, x: 0, y: 4)
                         }
+                        .disabled(webLoginVM.isLoading)
                         .padding(.horizontal, 48)
                         .padding(.bottom, 32)
 
@@ -113,18 +128,30 @@ struct RTOServiceDetailView: View {
                             .padding(.bottom, 4)
 
                             // Document list
-                            VStack(alignment: .leading, spacing: 12) {
-                                ForEach(viewModel.serviceDetail.requiredDocuments, id: \.self) { doc in
-                                    HStack(alignment: .top, spacing: 12) {
-                                        Circle()
-                                            .fill(Color.red)
-                                            .frame(width: 6, height: 6)
-                                            .padding(.top, 8)
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                            } else if let documentsMessage = viewModel.documentsMessage {
+                                Text(documentsMessage)
+                                    .font(Font.custom("Inter", size: 14))
+                                    .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    ForEach(viewModel.requiredDocuments, id: \.self) { doc in
+                                        HStack(alignment: .top, spacing: 12) {
+                                            Circle()
+                                                .fill(Color.red)
+                                                .frame(width: 6, height: 6)
+                                                .padding(.top, 8)
 
-                                        Text(doc)
-                                            .font(Font.custom("Inter", size: 14))
-                                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                                            .fixedSize(horizontal: false, vertical: true)
+                                            Text(doc)
+                                                .font(Font.custom("Inter", size: 14))
+                                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
                                     }
                                 }
                             }
@@ -139,6 +166,40 @@ struct RTOServiceDetailView: View {
             }
         }
         .navigationBarHidden(true)
+        .onChange(of: webLoginVM.generatedURL) { _, url in
+            if url != nil { showWebView = true }
+        }
+        .fullScreenCover(isPresented: $showWebView, onDismiss: { webLoginVM.reset() }) {
+            if let url = webLoginVM.generatedURL {
+                CitizenServicesWebView(
+                    url: url,
+                    title: webLoginVM.generatedTitle,
+                    onBack: { showWebView = false }
+                )
+            }
+        }
+        .alert("Service Unavailable", isPresented: $viewModel.showUnavailableAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("This service is currently unavailable")
+        }
+        .alert("Something went wrong", isPresented: Binding(
+            get: { webLoginVM.errorMessage != nil },
+            set: { if !$0 { webLoginVM.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(webLoginVM.errorMessage ?? "")
+        }
+        .alert("Something went wrong", isPresented: Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Button("Retry") { viewModel.fetchRequiredDocuments() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
     }
 }
 

@@ -254,7 +254,8 @@ struct VisaViewInitial: View {
 
             // Floating results — overlays Get Started, never moves it
             // Offset: 20pt (top pad) + 58pt (field height) + 8pt (gap) = 86pt
-            if viewModel.isResultsVisible && !viewModel.filteredCountries.isEmpty {
+            if viewModel.isResultsVisible
+                && (!viewModel.filteredCountries.isEmpty || viewModel.isLoading || viewModel.errorMessage != nil) {
                 resultsDropdown
                     .padding(.horizontal, 16)
                     .offset(y: 86)
@@ -294,6 +295,7 @@ struct VisaViewInitial: View {
                             viewModel.selectedCountry = ""
                         }
                         viewModel.isResultsVisible = true
+                        viewModel.fetchCountries()
                     }
                 }
                 .onChange(of: viewModel.searchText) { _, newValue in
@@ -311,6 +313,7 @@ struct VisaViewInitial: View {
                     } else {
                         viewModel.isResultsVisible = true
                         isSearchFocused = true
+                        viewModel.fetchCountries()
                     }
                 }
             }) {
@@ -344,48 +347,73 @@ struct VisaViewInitial: View {
     // MARK: - Results dropdown
 
     private var resultsDropdown: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 0) {
-                ForEach(viewModel.filteredCountries, id: \.self) { country in
-                    HStack(spacing: 12) {
-                        Text(country)
-                            .font(Font.custom("Inter", size: 15).weight(.medium))
-                            .foregroundColor(
+        Group {
+            if viewModel.isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: activeButtonColor))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 160)
+            } else if let errorMessage = viewModel.errorMessage {
+                VStack(spacing: 10) {
+                    Text(errorMessage)
+                        .font(Font.custom("Inter", size: 13))
+                        .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
+                        .multilineTextAlignment(.center)
+
+                    Button("Retry") {
+                        viewModel.fetchCountries()
+                    }
+                    .font(Font.custom("Inter", size: 13).weight(.bold))
+                    .foregroundColor(activeButtonColor)
+                }
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity)
+                .frame(height: 160)
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        ForEach(viewModel.filteredCountries, id: \.self) { country in
+                            HStack(spacing: 12) {
+                                Text(country)
+                                    .font(Font.custom("Inter", size: 15).weight(.medium))
+                                    .foregroundColor(
+                                        country == viewModel.selectedCountry
+                                            ? activeButtonColor
+                                            : Color(red: 0.12, green: 0.12, blue: 0.12)
+                                    )
+                                Spacer()
+                                if country == viewModel.selectedCountry {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 15))
+                                        .foregroundColor(activeButtonColor)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .frame(height: 44)
+                            .background(
                                 country == viewModel.selectedCountry
-                                    ? activeButtonColor
-                                    : Color(red: 0.12, green: 0.12, blue: 0.12)
+                                    ? activeButtonColor.opacity(0.06)
+                                    : Color.white
                             )
-                        Spacer()
-                        if country == viewModel.selectedCountry {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 15))
-                                .foregroundColor(activeButtonColor)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                viewModel.select(country: country)
+                                isSearchFocused = false
+                                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                            }
+
+                            if country != viewModel.filteredCountries.last {
+                                Rectangle()
+                                    .fill(Color(red: 0.92, green: 0.92, blue: 0.92))
+                                    .frame(height: 1)
+                            }
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .frame(height: 44)
-                    .background(
-                        country == viewModel.selectedCountry
-                            ? activeButtonColor.opacity(0.06)
-                            : Color.white
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        viewModel.select(country: country)
-                        isSearchFocused = false
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    }
-
-                    if country != viewModel.filteredCountries.last {
-                        Rectangle()
-                            .fill(Color(red: 0.92, green: 0.92, blue: 0.92))
-                            .frame(height: 1)
-                    }
                 }
+                .scrollDismissesKeyboard(.never)
+                .frame(height: 160)
             }
         }
-        .scrollDismissesKeyboard(.never)
-        .frame(height: 160)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: Color.black.opacity(0.14), radius: 20, x: 0, y: 8)

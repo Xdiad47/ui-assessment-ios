@@ -137,6 +137,9 @@ struct RTOServiceInitialView: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             isLocationDropdownExpanded.toggle()
                         }
+                        if isLocationDropdownExpanded {
+                            viewModel.fetchCities()
+                        }
                     }) {
                         HStack(spacing: 12) {
                             Text(viewModel.selectedLocation.isEmpty ? "Choose Location" : viewModel.selectedLocation)
@@ -212,51 +215,76 @@ struct RTOServiceInitialView: View {
             // Floating dropdown — overlays the Get Started button, never moves it
             // Offset: 20pt (top pad) + 58pt (button height) + 8pt (gap) = 86pt
             if isLocationDropdownExpanded {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        ForEach(viewModel.locations, id: \.self) { location in
-                            Button(action: {
-                                viewModel.selectedLocation = location
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isLocationDropdownExpanded = false
-                                }
-                            }) {
-                                HStack(spacing: 12) {
-                                    Text(location)
-                                        .font(Font.custom("Inter", size: 15).weight(.medium))
-                                        .foregroundColor(
+                Group {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: activeButtonColor))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 100)
+                    } else if let errorMessage = viewModel.errorMessage {
+                        VStack(spacing: 10) {
+                            Text(errorMessage)
+                                .font(Font.custom("Inter", size: 13))
+                                .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
+                                .multilineTextAlignment(.center)
+
+                            Button("Retry") {
+                                viewModel.fetchCities()
+                            }
+                            .font(Font.custom("Inter", size: 13).weight(.bold))
+                            .foregroundColor(activeButtonColor)
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                    } else {
+                        ScrollView(.vertical, showsIndicators: false) {
+                            VStack(spacing: 0) {
+                                ForEach(viewModel.locations, id: \.self) { location in
+                                    Button(action: {
+                                        viewModel.selectedLocation = location
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            isLocationDropdownExpanded = false
+                                        }
+                                    }) {
+                                        HStack(spacing: 12) {
+                                            Text(location)
+                                                .font(Font.custom("Inter", size: 15).weight(.medium))
+                                                .foregroundColor(
+                                                    location == viewModel.selectedLocation
+                                                        ? activeButtonColor
+                                                        : Color(red: 0.12, green: 0.12, blue: 0.12)
+                                                )
+
+                                            Spacer()
+
+                                            if location == viewModel.selectedLocation {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.system(size: 15))
+                                                    .foregroundColor(activeButtonColor)
+                                            }
+                                        }
+                                        .padding(.horizontal, 16)
+                                        .frame(height: 40)
+                                        .background(
                                             location == viewModel.selectedLocation
-                                                ? activeButtonColor
-                                                : Color(red: 0.12, green: 0.12, blue: 0.12)
+                                                ? activeButtonColor.opacity(0.06)
+                                                : Color.clear
                                         )
+                                    }
+                                    .buttonStyle(.plain)
 
-                                    Spacer()
-
-                                    if location == viewModel.selectedLocation {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 15))
-                                            .foregroundColor(activeButtonColor)
+                                    if location != viewModel.locations.last {
+                                        Rectangle()
+                                            .fill(Color(red: 0.92, green: 0.92, blue: 0.92))
+                                            .frame(height: 1)
                                     }
                                 }
-                                .padding(.horizontal, 16)
-                                .frame(height: 40)
-                                .background(
-                                    location == viewModel.selectedLocation
-                                        ? activeButtonColor.opacity(0.06)
-                                        : Color.clear
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            if location != viewModel.locations.last {
-                                Rectangle()
-                                    .fill(Color(red: 0.92, green: 0.92, blue: 0.92))
-                                    .frame(height: 1)
                             }
                         }
+                        .frame(height: 200)
                     }
                 }
-                .frame(height: 200)
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: Color.black.opacity(0.14), radius: 20, x: 0, y: 8)

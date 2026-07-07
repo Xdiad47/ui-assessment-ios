@@ -13,26 +13,80 @@ struct DocumentRequirement: Identifiable {
     let name: String
 }
 
-class VisaViewModel: ObservableObject {
+// MARK: - Required documents API models
+
+private struct RequiredDocumentsResponse: Decodable {
+    let data: RequiredDocumentsData?
+    let message: String?
+    let statusCode: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case data, message
+        case statusCode = "status_code"
+    }
+}
+
+private struct RequiredDocumentsData: Decodable {
+    let documents: [RequiredDocumentItem]?
+    let extraFields: RequiredDocumentsExtraFields?
+
+    enum CodingKeys: String, CodingKey {
+        case documents
+        case extraFields = "extra_fields"
+    }
+}
+
+private struct RequiredDocumentItem: Decodable {
+    let id: Int
+    let documentName: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case documentName = "document_name"
+    }
+}
+
+private struct RequiredDocumentsExtraFields: Decodable {
+    let processing: String?
+    let visaFeeINR: String?
+    let visaFeeUSD: String?
+    let visitRequired: String?
+
+    enum CodingKeys: String, CodingKey {
+        case processing = "PROCESSING"
+        case visaFeeINR = "VISA FEE INR"
+        case visaFeeUSD = "VISA FEE USD"
+        case visitRequired = "VISIT REQUIRED"
+    }
+}
+
+@MainActor
+final class VisaViewModel: ObservableObject {
     let selectedCountry: String
-    @Published var selectedCategory: VisaCategory = .leisure
+
+    @Published var selectedCategory: VisaCategory = .leisure {
+        didSet {
+            guard oldValue != selectedCategory else { return }
+            fetchRequiredDocuments()
+        }
+    }
+
+    @Published var requiredDocuments: [DocumentRequirement] = []
+    @Published var documentsMessage: String? = nil
     @Published var isLoading: Bool = false
+    @Published var errorMessage: String? = nil
+
+    @Published var processingTime: String = "-"
+    @Published var visaFee: String = "-"
+    @Published var visaFeeUSD: String = ""
+    @Published var visitRequired: String = "-"
+
+    private let api = ItzeazyAPIService.shared
+    private var activeFetchToken = UUID()
 
     init(selectedCountry: String = "Singapore") {
         self.selectedCountry = selectedCountry
-    }
-    
-    // Static details matching the Figma design
-    var processingTime: String {
-        return "3-5 days"
-    }
-    
-    var visaFee: String {
-        return "₹2,846"
-    }
-    
-    var visaFeeUSD: String {
-        return "(~$30 USD)"
+        fetchRequiredDocuments()
     }
 
     var countryFlag: String {
@@ -46,13 +100,13 @@ class VisaViewModel: ObservableObject {
         case "Denmark": return "🇩🇰"
         case "Egypt": return "🇪🇬"
         case "Finland": return "🇫🇮"
-        case "France": return "🇫🇷"
+        case "France", "france": return "🇫🇷"
         case "Georgia": return "🇬🇪"
         case "Germany": return "🇩🇪"
-        case "Greece": return "🇬🇷"
+        case "Greece", "greece": return "🇬🇷"
         case "Hungary": return "🇭🇺"
         case "Indonesia": return "🇮🇩"
-        case "Italy": return "🇮🇹"
+        case "Italy", "italy": return "🇮🇹"
         case "Japan": return "🇯🇵"
         case "Jordan": return "🇯🇴"
         case "Kenya": return "🇰🇪"
@@ -73,13 +127,13 @@ class VisaViewModel: ObservableObject {
         case "Qatar": return "🇶🇦"
         case "Russia": return "🇷🇺"
         case "Saudi Arabia": return "🇸🇦"
-        case "Singapore": return "🇸🇬"
+        case "Singapore", "singapore": return "🇸🇬"
         case "South Africa": return "🇿🇦"
         case "South Korea": return "🇰🇷"
         case "Spain": return "🇪🇸"
         case "Sri Lanka": return "🇱🇰"
         case "Sweden": return "🇸🇪"
-        case "Switzerland": return "🇨🇭"
+        case "Switzerland", "switzerland": return "🇨🇭"
         case "Taiwan": return "🇹🇼"
         case "Thailand": return "🇹🇭"
         case "Turkey": return "🇹🇷"
@@ -93,33 +147,56 @@ class VisaViewModel: ObservableObject {
         default: return "🌍"
         }
     }
-    
-    var requiredDocuments: [DocumentRequirement] {
-        switch selectedCategory {
-        case .leisure:
-            return [
-                DocumentRequirement(name: "Valid passport (at least 6 months validity; 2 blank pages)"),
-                DocumentRequirement(name: "Completed Singapore visa application form (SAVE system or through embassy)"),
-                DocumentRequirement(name: "1 recent passport-size photograph (white background)"),
-                DocumentRequirement(name: "Confirmed return flight booking"),
-                DocumentRequirement(name: "Hotel / accommodation bookings"),
-                DocumentRequirement(name: "Bank statements for last 3 months"),
-                DocumentRequirement(name: "Employment letter or business registration"),
-                DocumentRequirement(name: "Invitation letter from Singapore host (if staying with contacts)")
-            ]
-        case .business:
-            return [
-                DocumentRequirement(name: "Valid passport (at least 6 months validity)"),
-                DocumentRequirement(name: "Completed Singapore visa application form"),
-                DocumentRequirement(name: "Business invitation letter from Singapore company"),
-                DocumentRequirement(name: "Company registration certificate")
-            ]
-        case .transit:
-            return [
-                DocumentRequirement(name: "Valid passport (at least 6 months validity)"),
-                DocumentRequirement(name: "Confirmed onward flight tickets"),
-                DocumentRequirement(name: "Visa for next destination (if applicable)")
-            ]
+
+    // MARK: - Fetch required documents + fee/processing details
+    // GET user/documents/required?work=visa&address_status=<country>&type=<category>&service_type=visa
+
+    func fetchRequiredDocuments() {
+        let token = UUID()
+        activeFetchToken = token
+
+        guard let endpoint = requiredDocumentsEndpoint(for: selectedCategory) else { return }
+
+        isLoading = true
+        errorMessage = nil
+        documentsMessage = nil
+
+        Task {
+            defer {
+                if token == activeFetchToken { isLoading = false }
+            }
+            do {
+                let response: RequiredDocumentsResponse = try await api.get(endpoint: endpoint)
+                guard token == activeFetchToken else { return }
+
+                let docs = response.data?.documents ?? []
+                requiredDocuments = docs.map { DocumentRequirement(name: $0.documentName) }
+                documentsMessage = docs.isEmpty ? "No documents required for this visa type." : nil
+
+                let extraFields = response.data?.extraFields
+                processingTime = extraFields?.processing ?? "-"
+                visaFee = extraFields?.visaFeeINR.map { "₹\($0)" } ?? "-"
+                visaFeeUSD = extraFields?.visaFeeUSD ?? ""
+                visitRequired = extraFields?.visitRequired ?? "-"
+            } catch let error as ItzeazyAPIError {
+                guard token == activeFetchToken else { return }
+                errorMessage = error.errorDescription
+            } catch {
+                guard token == activeFetchToken else { return }
+                errorMessage = "Failed to load visa details. Please try again."
+            }
         }
+    }
+
+    private func requiredDocumentsEndpoint(for category: VisaCategory) -> String? {
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "work", value: "visa"),
+            URLQueryItem(name: "address_status", value: selectedCountry),
+            URLQueryItem(name: "type", value: category.rawValue),
+            URLQueryItem(name: "service_type", value: "visa")
+        ]
+        guard let query = components.percentEncodedQuery else { return nil }
+        return "user/documents/required?\(query)"
     }
 }
