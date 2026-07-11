@@ -5,6 +5,10 @@ import SwiftUI
 //Login dev API
 
 struct LoginView: View {
+    /// When true, immediately pushes to CreateAccountView on appear — used when the
+    /// AuthGatePopupView's "Create Account" action presents this view.
+    var startAtCreateAccount: Bool = false
+
     private let countryDropdownWidth: CGFloat = 220
 
     @StateObject private var authViewModel = AuthViewModel()
@@ -129,6 +133,11 @@ struct LoginView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .passwordUpdated)) { _ in
                 navigateToPassword = false
+            }
+            .onAppear {
+                if startAtCreateAccount {
+                    navigateToCreateAccount = true
+                }
             }
         }
     }
@@ -331,6 +340,10 @@ struct LoginView: View {
                 }
             }
             .buttonStyle(.plain)
+
+            AppleSignInButton(label: .signIn) { result in
+                // TODO: hook up Apple credential to backend auth once the Apple Developer account (currently in review) and Sign In with Apple capability are available.
+            }
         }
     }
 
@@ -636,6 +649,10 @@ private struct PasswordEntryView: View {
                                         .font(Font.custom("Inter", size: 15).weight(.bold))
                                         .foregroundColor(.red)
                                 }
+                            }
+
+                            AppleSignInButton(label: .signIn) { result in
+                                // TODO: hook up Apple credential to backend auth once the Apple Developer account (currently in review) and Sign In with Apple capability are available.
                             }
                         }
                     }

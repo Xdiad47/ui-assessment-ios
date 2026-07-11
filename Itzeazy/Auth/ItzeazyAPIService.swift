@@ -104,6 +104,70 @@ final class ItzeazyAPIService {
         }
     }
 
+    func put<Req: Encodable, Res: Decodable>(
+        endpoint: String,
+        body: Req,
+        token: String? = nil
+    ) async throws -> Res {
+        let urlString = AppEnvironment.current.baseURL + endpoint
+        guard let url = URL(string: urlString) else {
+            throw ItzeazyAPIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if let token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+        } catch {
+            throw ItzeazyAPIError.networkError(error)
+        }
+
+        logger.debug("➡️ PUT \(urlString)")
+        if let bodyData = request.httpBody,
+           let bodyString = String(data: bodyData, encoding: .utf8) {
+            logger.debug("   Body: \(bodyString)")
+        }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            logger.error("❌ Network error [\(endpoint)]: \(error.localizedDescription)")
+            throw ItzeazyAPIError.networkError(error)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw ItzeazyAPIError.networkError(URLError(.badServerResponse))
+        }
+
+        let rawBody = String(data: data, encoding: .utf8) ?? "<non-UTF8 body>"
+        if (200...299).contains(http.statusCode) {
+            logger.debug("✅ \(http.statusCode) [\(endpoint)]")
+            logger.debug("   Response: \(rawBody)")
+        } else {
+            logger.error("❌ \(http.statusCode) [\(endpoint)]")
+            logger.error("   Response: \(rawBody)")
+        }
+
+        guard (200...299).contains(http.statusCode) else {
+            try throwHTTPError(statusCode: http.statusCode, data: data, isAuthenticatedRequest: token != nil)
+        }
+
+        do {
+            return try JSONDecoder().decode(Res.self, from: data)
+        } catch let decodeError {
+            logger.error("❌ Decode error [\(endpoint)]: \(decodeError)")
+            throw ItzeazyAPIError.decodingError
+        }
+    }
+
     func get<Res: Decodable>(
         endpoint: String,
         token: String? = nil

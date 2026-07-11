@@ -11,6 +11,8 @@ struct MainTabView: View {
     @State private var selectedTab: Tab = .home
     @State private var homeNavID = UUID()
     @EnvironmentObject private var tabBarState: TabBarState
+    @StateObject private var authGate = AuthGateController()
+    @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -70,10 +72,17 @@ struct MainTabView: View {
 
                 // White tab bar on top
                 CustomTabBar(selectedTab: $selectedTab) { tappedTab in
-                    if tappedTab == .home {
+                    switch tappedTab {
+                    case .home:
                         homeNavID = UUID()
+                        selectedTab = .home
+                    case .orders, .profile:
+                        // My Orders and Profile hold personal account data — require auth.
+                        guard authGate.requireAuth() else { return }
+                        selectedTab = tappedTab
+                    case .call:
+                        selectedTab = .call
                     }
-                    selectedTab = tappedTab
                 }
                 .padding(.bottom, 1)
                 .background(
@@ -84,6 +93,31 @@ struct MainTabView: View {
                     }
                 )
             } } // end ZStack + if
+
+            if authGate.isPopupPresented {
+                AuthGatePopupView(
+                    onLogin: { authGate.chooseLogin() },
+                    onCreateAccount: { authGate.chooseCreateAccount() },
+                    onDismiss: { authGate.dismissPopup() }
+                )
+                .transition(.opacity)
+                .zIndex(10)
+            }
+        }
+        .environmentObject(authGate)
+        .animation(.easeInOut(duration: 0.2), value: authGate.isPopupPresented)
+        .fullScreenCover(item: $authGate.authFlow) { destination in
+            switch destination {
+            case .login:
+                LoginView()
+            case .createAccount:
+                LoginView(startAtCreateAccount: true)
+            }
+        }
+        .onChange(of: isLoggedIn) { _, loggedIn in
+            if loggedIn {
+                authGate.authFlow = nil
+            }
         }
         .edgesIgnoringSafeArea(.bottom)
     }

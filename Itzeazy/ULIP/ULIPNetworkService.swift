@@ -1,4 +1,33 @@
 import Foundation
+import OSLog
+
+private let logger = Logger(subsystem: "com.itzeazy.app", category: "ULIP")
+
+#if DEBUG
+/// DEBUG-only certificate trust override, scoped to ULIP's host only.
+/// DPIIT's ulip.dpiit.gov.in cert is currently expired (confirmed server-side —
+/// the API itself responds correctly once TLS trust is skipped). This delegate
+/// exists solely so development/testing isn't blocked while they renew it, and
+/// it is never compiled into Release builds, so App Store builds always enforce
+/// normal certificate validation.
+final class ULIPDebugTrustDelegate: NSObject, URLSessionDelegate {
+    private let trustedHost = "www.ulip.dpiit.gov.in"
+
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard challenge.protectionSpace.host == trustedHost,
+              challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let serverTrust = challenge.protectionSpace.serverTrust else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        completionHandler(.useCredential, URLCredential(trust: serverTrust))
+    }
+}
+#endif
 
 enum ULIPNetworkError: Error, LocalizedError {
     case invalidURL
@@ -30,7 +59,14 @@ final class ULIPNetworkService {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
+        #if DEBUG
+        // ULIP's server certificate is currently expired on DPIIT's side (server-side issue,
+        // not ours — see ULIPTrustDelegate). Trusting it here unblocks local development;
+        // this delegate is compiled out of Release builds entirely.
+        return URLSession(configuration: config, delegate: ULIPDebugTrustDelegate(), delegateQueue: nil)
+        #else
         return URLSession(configuration: config)
+        #endif
     }()
 
     private init() {}
@@ -43,7 +79,8 @@ final class ULIPNetworkService {
     ) async throws -> Res {
         var request = try buildRequest(endpoint: endpoint, method: "POST")
         request.httpBody = try JSONEncoder().encode(body)
-        return try await execute(request: request, responseType: responseType)
+        logRequest(request, endpoint: endpoint)
+        return try await execute(request: request, endpoint: endpoint, responseType: responseType)
     }
 
     // Use for all ULIP data APIs — auto-attaches Bearer token
@@ -54,7 +91,8 @@ final class ULIPNetworkService {
     ) async throws -> Res {
         var request = try buildAuthenticatedRequest(endpoint: endpoint, method: "POST")
         request.httpBody = try JSONEncoder().encode(body)
-        return try await execute(request: request, responseType: responseType)
+        logRequest(request, endpoint: endpoint)
+        return try await execute(request: request, endpoint: endpoint, responseType: responseType)
     }
 
     func authenticatedGet<Res: Decodable>(
@@ -62,7 +100,8 @@ final class ULIPNetworkService {
         responseType: Res.Type
     ) async throws -> Res {
         let request = try buildAuthenticatedRequest(endpoint: endpoint, method: "GET")
-        return try await execute(request: request, responseType: responseType)
+        logRequest(request, endpoint: endpoint)
+        return try await execute(request: request, endpoint: endpoint, responseType: responseType)
     }
 
     // MARK: - Private helpers
@@ -87,24 +126,60 @@ final class ULIPNetworkService {
         return request
     }
 
-    private func execute<Res: Decodable>(request: URLRequest, responseType: Res.Type) async throws -> Res {
+    private func logRequest(_ request: URLRequest, endpoint: String) {
+        logger.debug("➡️ ULIP \(request.httpMethod ?? "?") \(request.url?.absoluteString ?? endpoint)")
+        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+            logger.debug("   Body: \(bodyString)")
+        }
+        if request.value(forHTTPHeaderField: "Authorization") != nil {
+            logger.debug("   Auth: Bearer token attached")
+        }
+    }
+
+    private func execute<Res: Decodable>(request: URLRequest, endpoint: String, responseType: Res.Type) async throws -> Res {
+        let data: Data
+        let response: URLResponse
         do {
-            let (data, response) = try await session.data(for: request)
-            if let http = response as? HTTPURLResponse {
-                if http.statusCode == 401 { throw ULIPNetworkError.tokenExpired }
-                guard (200...299).contains(http.statusCode) else {
-                    throw ULIPNetworkError.httpError(http.statusCode)
-                }
+            (data, response) = try await session.data(for: request)
+        } catch {
+            let nsError = error as NSError
+            logger.error("❌ ULIP network error [\(endpoint)]: domain=\(nsError.domain) code=\(nsError.code) — \(nsError.localizedDescription)")
+            if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
+                logger.error("   Underlying: domain=\(underlying.domain) code=\(underlying.code) — \(underlying.localizedDescription)")
             }
+            throw ULIPNetworkError.networkError(error)
+        }
+
+        let rawBody = String(data: data, encoding: .utf8) ?? "<non-UTF8 body, \(data.count) bytes>"
+
+        do {
+            guard let http = response as? HTTPURLResponse else {
+                logger.error("❌ ULIP [\(endpoint)]: non-HTTP response")
+                logger.error("   Response: \(rawBody)")
+                throw ULIPNetworkError.httpError(-1)
+            }
+
+            if (200...299).contains(http.statusCode) {
+                logger.debug("✅ ULIP \(http.statusCode) [\(endpoint)]")
+                logger.debug("   Response: \(rawBody)")
+            } else {
+                logger.error("❌ ULIP \(http.statusCode) [\(endpoint)]")
+                logger.error("   Response: \(rawBody)")
+            }
+
+            if http.statusCode == 401 { throw ULIPNetworkError.tokenExpired }
+            guard (200...299).contains(http.statusCode) else {
+                throw ULIPNetworkError.httpError(http.statusCode)
+            }
+
             do {
                 return try JSONDecoder().decode(Res.self, from: data)
             } catch {
+                logger.error("❌ ULIP decode error [\(endpoint)]: \(error)")
                 throw ULIPNetworkError.decodingError(error)
             }
         } catch let error as ULIPNetworkError {
             throw error
-        } catch {
-            throw ULIPNetworkError.networkError(error)
         }
     }
 }

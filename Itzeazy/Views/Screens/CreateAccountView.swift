@@ -105,7 +105,7 @@ struct CreateAccountView: View {
                 
                 VStack(spacing: 0) {
                     Spacer()
-                        .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : geometry.safeAreaInsets.top + 218)
+                        .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : geometry.safeAreaInsets.top + 190)
                         
                     VStack(spacing: 16) {
                             HStack {
@@ -318,8 +318,27 @@ struct CreateAccountView: View {
                                         .multilineTextAlignment(.center)
                                         .padding(.horizontal, 4)
                                 }
+
+                                HStack(spacing: 8) {
+                                    Rectangle()
+                                        .fill(Color(hex: "#e1e3e4"))
+                                        .frame(height: 1)
+
+                                    Text("OR")
+                                        .font(Font.custom("Inter", size: 12).weight(.medium))
+                                        .foregroundColor(Color(hex: "#5f5e5e"))
+                                        .tracking(1.2)
+
+                                    Rectangle()
+                                        .fill(Color(hex: "#e1e3e4"))
+                                        .frame(height: 1)
+                                }
+
+                                AppleSignInButton(label: .signUp) { result in
+                                    // TODO: hook up Apple credential to backend auth once the Apple Developer account (currently in review) and Sign In with Apple capability are available.
+                                }
                             }
-                            
+
                             HStack(spacing: 4) {
                                 Text("Already have an account?")
                                     .font(Font.custom("Inter", size: 14).weight(.medium))
@@ -335,7 +354,7 @@ struct CreateAccountView: View {
                     }
                     .padding(.horizontal, 32)
                     .padding(.top, 18)
-                    .padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 42)
+                    //.padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 28)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(Color.white.ignoresSafeArea(.container, edges: .bottom))
                     .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 32))

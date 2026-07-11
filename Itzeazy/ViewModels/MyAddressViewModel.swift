@@ -1,22 +1,60 @@
 import Foundation
 import Combine
 
-struct AddressItem: Identifiable {
-    let id = UUID()
-    let title: String
-    let phoneNumber: String
-    let isDefault: Bool
-}
+@MainActor
+final class MyAddressViewModel: ObservableObject {
+    @Published var addresses: [UserAddress] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String? = nil
+    @Published var deletingId: Int? = nil
 
-class MyAddressViewModel: ObservableObject {
-    let pageTitle: String = "My Account"
-    let addressesTitle: String = "My Adderesses"
+    let pageTitle      = "My Account"
+    let addressesTitle = "My Addresses"
 
-    let addresses: [AddressItem] = [
-        AddressItem(
-            title: "At - Saint road, New Delhi",
-            phoneNumber: "9058956588",
-            isDefault: true
-        )
-    ]
+    private let api     = ItzeazyAPIService.shared
+    private let storage = AuthSessionStorage.shared
+
+    init() {
+        fetchAddresses()
+    }
+
+    func fetchAddresses() {
+        guard let token = storage.getToken() else { return }
+        isLoading = true
+        errorMessage = nil
+        Task {
+            defer { isLoading = false }
+            do {
+                let response: AddressListResponse = try await api.get(
+                    endpoint: "user/address",
+                    token: token
+                )
+                addresses = response.data ?? []
+            } catch let error as ItzeazyAPIError {
+                errorMessage = error.errorDescription
+            } catch {
+                errorMessage = "Failed to load addresses. Please try again."
+            }
+        }
+    }
+
+    func deleteAddress(id: Int) {
+        guard let token = storage.getToken() else { return }
+        deletingId = id
+        errorMessage = nil
+        Task {
+            defer { deletingId = nil }
+            do {
+                let _: SimpleMessageResponse = try await api.delete(
+                    endpoint: "user/address?id=\(id)",
+                    token: token
+                )
+                addresses.removeAll { $0.id == id }
+            } catch let error as ItzeazyAPIError {
+                errorMessage = error.errorDescription
+            } catch {
+                errorMessage = "Failed to delete address. Please try again."
+            }
+        }
+    }
 }

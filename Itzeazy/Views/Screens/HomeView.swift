@@ -49,6 +49,7 @@ struct HomeView: View {
 
 struct HomeHeaderView: View {
     @EnvironmentObject private var userSession: UserSessionViewModel
+    @EnvironmentObject private var authGate: AuthGateController
     @State private var navigateToProfile = false
 
     var body: some View {
@@ -93,7 +94,10 @@ struct HomeHeaderView: View {
                         .font(.system(size: 18))
                         .foregroundColor(.white)
 
-                    Button(action: { navigateToProfile = true }) {
+                    Button(action: {
+                        guard authGate.requireAuth() else { return }
+                        navigateToProfile = true
+                    }) {
                         ZStack {
                             Circle()
                                 .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
@@ -115,6 +119,7 @@ struct HomeHeaderView: View {
 struct HomeHeroCardView: View {
 
     @StateObject private var vm = HomeHeroViewModel()
+    @EnvironmentObject private var authGate: AuthGateController
 
     @State private var showCityPicker    = false
     @State private var showServicePicker = false
@@ -221,6 +226,7 @@ struct HomeHeroCardView: View {
                 .hidden()
 
                 Button(action: {
+                    guard authGate.requireAuth() else { return }
                     if let url = vm.buildUrl() {
                         webLoginVM.generateToken(urlString: url, title: "Citizen Services")
                     }
@@ -383,6 +389,7 @@ struct HomeServicesGridView: View {
 
     @StateObject private var vm = HomeServicesViewModel()
     @StateObject private var webLoginVM = WebLoginViewModel()
+    @EnvironmentObject private var authGate: AuthGateController
 
     // Non-web service items kept inline (RTO, Visa, Attestation)
     private let allServices: [(String, String)] = [
@@ -482,6 +489,7 @@ struct HomeServicesGridView: View {
         // All other service items — call token API then open WebView
         } else if let item = vm.webItems.first(where: { $0.label == label }) {
             Button {
+                guard authGate.requireAuth() else { return }
                 webLoginVM.generateToken(urlString: item.url, title: item.label)
             } label: {
                 ServiceBoxView(title: label, iconName: icon)
@@ -502,6 +510,7 @@ struct HomeUtilitiesGridView: View {
 
     @StateObject private var vm = HomeUtilitiesViewModel()
     @StateObject private var webLoginVM = WebLoginViewModel()
+    @EnvironmentObject private var authGate: AuthGateController
 
     private let allUtilities: [(String, String)] = [
         ("Vehicle\nInfo", "vehicle_info"),
@@ -626,6 +635,7 @@ struct HomeUtilitiesGridView: View {
             // Road Tax, LL QB, LL Mock — call token API then open WebView
             if let item = vm.webItems.first(where: { $0.label == label }) {
                 Button {
+                    guard authGate.requireAuth() else { return }
                     webLoginVM.generateToken(urlString: item.url, title: item.label)
                 } label: {
                     ServiceBoxView(title: label, iconName: icon)

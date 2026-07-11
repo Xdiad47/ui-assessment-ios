@@ -26,9 +26,9 @@ struct ItzeazyApp: App {
                     }
                 } else if !hasSeenOnboarding {
                     OnboardingView()
-                } else if !isLoggedIn {
-                    LoginView()
                 } else {
+                    // Login/registration is no longer a blocking gate — guests land on Home and
+                    // only hit the AuthGatePopupView when they tap an action that needs an account.
                     MainTabView()
                         .environmentObject(tabBarState)
                         .environmentObject(userSession)
