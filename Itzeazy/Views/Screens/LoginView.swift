@@ -426,6 +426,17 @@ private struct PasswordEntryView: View {
         keyboardHeight > 0
     }
 
+    /// Extra vertical space the "Get OTP on your phone" button (plus its stack spacing)
+    /// takes up, only present for phone contacts — used to grow the white card upward
+    /// so the Apple Sign-In button keeps its bottom breathing room instead of being
+    /// squeezed against the screen edge.
+    private static let otpButtonBlockHeight: CGFloat = 76
+    private static let defaultCardTopOffset: CGFloat = 288
+
+    private var cardTopOffset: CGFloat {
+        isPhoneContact ? Self.defaultCardTopOffset - Self.otpButtonBlockHeight : Self.defaultCardTopOffset
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
@@ -478,7 +489,7 @@ private struct PasswordEntryView: View {
 
                 VStack(spacing: 0) {
                     Spacer()
-                        .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : 288)
+                        .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : cardTopOffset)
 
                     VStack(spacing: 32) {
                         VStack(alignment: .leading, spacing: 8) {

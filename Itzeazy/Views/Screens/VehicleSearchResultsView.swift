@@ -279,7 +279,7 @@ struct VehicleSearchResultsView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .frame(height: 0)
+            .frame(height: 60)
         }
     }
 }
