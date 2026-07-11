@@ -122,8 +122,7 @@ struct CitizenServicesWebView: View {
         ZStack {
             WebViewRepresentable(url: url)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                //.padding(.bottom, tabBarState.height)
-                .padding(.bottom, 50) 
+                .padding(.bottom, 50)
 
             if vm.isLoading {
                 VStack(spacing: 16) {

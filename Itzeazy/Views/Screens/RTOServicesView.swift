@@ -6,6 +6,7 @@ struct RTOServicesView: View {
 
     @State private var showTypePicker  = false
     @State private var webViewUrl: IdentifiableURL? = nil
+    @State private var navigateToWebView = false
     @State private var navigateToProfile = false
 
     init(selectedLocation: String = "", selectedType: String = "") {
@@ -21,6 +22,17 @@ struct RTOServicesView: View {
     var body: some View {
         ZStack {
             NavigationLink(destination: ProfileView(onBackToHome: nil), isActive: $navigateToProfile) {
+                EmptyView()
+            }.hidden()
+
+            NavigationLink(
+                destination: Group {
+                    if let webViewUrl {
+                        CitizenServicesWebView(url: webViewUrl.url)
+                    }
+                },
+                isActive: $navigateToWebView
+            ) {
                 EmptyView()
             }.hidden()
 
@@ -167,6 +179,7 @@ struct RTOServicesView: View {
                         Button(action: {
                             if let url = viewModel.buildUrl() {
                                 webViewUrl = IdentifiableURL(url: url)
+                                navigateToWebView = true
                             }
                         }) {
                             Text("Get Started")
@@ -264,10 +277,6 @@ struct RTOServicesView: View {
                 isSearchable: false,
                 onSelect: { viewModel.selectedSubService = $0 }
             )
-        }
-        // Full-screen WebView — covers bottom tab bar
-        .fullScreenCover(item: $webViewUrl) { identifiable in
-            CitizenServicesWebView(url: identifiable.url)
         }
     }
 }

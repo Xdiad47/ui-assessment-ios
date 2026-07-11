@@ -3,6 +3,7 @@ import SwiftUI
 struct MyAddressView: View {
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject private var userSession: UserSessionViewModel
+    @EnvironmentObject private var tabBarState: TabBarState
     @StateObject private var viewModel = MyAddressViewModel()
     @State private var naturalHeight: CGFloat = 0
     @State private var addressToDelete: UserAddress? = nil
@@ -14,65 +15,62 @@ struct MyAddressView: View {
     private let dark        = Color(red: 0.10, green: 0.11, blue: 0.11)
 
     var body: some View {
-        NavigationView {
-            GeometryReader { proxy in
-                ZStack(alignment: .top) {
-                    dark.ignoresSafeArea()
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                dark.ignoresSafeArea()
 
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 16) {
-                            myAddressHeader
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        myAddressHeader
 
-                            accountStrip
-                                .padding(.horizontal, 16)
+                        accountStrip
+                            .padding(.horizontal, 16)
 
-                            profileCard
-                                .padding(.horizontal, 16)
+                        profileCard
+                            .padding(.horizontal, 16)
 
-                            addressesHeader
-                                .padding(.horizontal, 16)
+                        addressesHeader
+                            .padding(.horizontal, 16)
 
-                            addressesSection
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 24)
-                        }
-                        .background(GeometryReader { geo in
-                            Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)
-                        })
-                        .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
-                        .background(bgColor)
+                        addressesSection
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 24 + tabBarState.height)
                     }
-                    .scrollDisabled(naturalHeight <= proxy.size.height)
-                    .onPreferenceChange(ContentHeightKey.self) { naturalHeight = $0 }
+                    .background(GeometryReader { geo in
+                        Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)
+                    })
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
+                    .background(bgColor)
                 }
-            }
-            .navigationBarHidden(true)
-            .onAppear { viewModel.fetchAddresses() }
-            .confirmationDialog(
-                "Delete Address",
-                isPresented: $showDeleteConfirm,
-                titleVisibility: .visible
-            ) {
-                Button("Delete", role: .destructive) {
-                    if let addr = addressToDelete {
-                        viewModel.deleteAddress(id: addr.id)
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Are you sure you want to remove this address?")
-            }
-            .alert("Error", isPresented: Binding(
-                get: { viewModel.errorMessage != nil },
-                set: { if !$0 { viewModel.errorMessage = nil } }
-            )) {
-                Button("Retry") { viewModel.fetchAddresses() }
-                Button("Cancel", role: .cancel) { viewModel.errorMessage = nil }
-            } message: {
-                Text(viewModel.errorMessage ?? "")
+                .scrollDisabled(naturalHeight <= proxy.size.height)
+                .onPreferenceChange(ContentHeightKey.self) { naturalHeight = $0 }
             }
         }
-        .navigationViewStyle(.stack)
+        .navigationBarHidden(true)
+        .onAppear { viewModel.fetchAddresses() }
+        .confirmationDialog(
+            "Delete Address",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let addr = addressToDelete {
+                    viewModel.deleteAddress(id: addr.id)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to remove this address?")
+        }
+        .alert("Error", isPresented: Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Button("Retry") { viewModel.fetchAddresses() }
+            Button("Cancel", role: .cancel) { viewModel.errorMessage = nil }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
     }
 
     // MARK: - Addresses Section
@@ -393,4 +391,5 @@ private struct AddressDetailRow: View {
         MyAddressView()
     }
     .environmentObject(UserSessionViewModel())
+    .environmentObject(TabBarState())
 }

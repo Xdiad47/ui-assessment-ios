@@ -14,6 +14,21 @@ struct RTOServiceDetailView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
+            NavigationLink(
+                destination: Group {
+                    if let url = webLoginVM.generatedURL {
+                        CitizenServicesWebView(
+                            url: url,
+                            title: webLoginVM.generatedTitle,
+                            onBack: { showWebView = false }
+                        )
+                    }
+                },
+                isActive: $showWebView
+            ) {
+                EmptyView()
+            }.hidden()
+
             Color.white.edgesIgnoringSafeArea(.all)
 
             VStack(spacing: 0) {
@@ -169,14 +184,8 @@ struct RTOServiceDetailView: View {
         .onChange(of: webLoginVM.generatedURL) { _, url in
             if url != nil { showWebView = true }
         }
-        .fullScreenCover(isPresented: $showWebView, onDismiss: { webLoginVM.reset() }) {
-            if let url = webLoginVM.generatedURL {
-                CitizenServicesWebView(
-                    url: url,
-                    title: webLoginVM.generatedTitle,
-                    onBack: { showWebView = false }
-                )
-            }
+        .onChange(of: showWebView) { _, isActive in
+            if !isActive { webLoginVM.reset() }
         }
         .alert("Service Unavailable", isPresented: $viewModel.showUnavailableAlert) {
             Button("OK", role: .cancel) {}
