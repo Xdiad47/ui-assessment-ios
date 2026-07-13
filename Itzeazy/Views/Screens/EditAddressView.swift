@@ -91,11 +91,11 @@ struct EditAddressView: View {
 
     private var formCard: some View {
         VStack(spacing: 0) {
-            AddressTextField(label: "Full Name",          text: $viewModel.userName,  keyboardType: .default)
+            AddressTextField(label: "Full Name",          text: $viewModel.userName,  keyboardType: .default,      isRequired: true)
             fieldDivider
             AddressTextField(label: "Mobile Number",      text: $viewModel.mobile,    keyboardType: .phonePad)
             fieldDivider
-            AddressTextField(label: "Email",              text: $viewModel.email,     keyboardType: .emailAddress)
+            AddressTextField(label: "Email",              text: $viewModel.email,     keyboardType: .emailAddress, isRequired: true)
             fieldDivider
             AddressTextField(label: "Flat / House No.",   text: $viewModel.flatHouse, keyboardType: .default)
             fieldDivider
@@ -103,13 +103,13 @@ struct EditAddressView: View {
             fieldDivider
             AddressTextField(label: "Landmark",           text: $viewModel.landmark,  keyboardType: .default)
             fieldDivider
-            AddressTextField(label: "City",               text: $viewModel.city,      keyboardType: .default)
+            AddressTextField(label: "City",               text: $viewModel.city,      keyboardType: .default,      isRequired: true)
             fieldDivider
-            AddressTextField(label: "State",              text: $viewModel.state,     keyboardType: .default)
+            AddressTextField(label: "State",              text: $viewModel.state,     keyboardType: .default,      isRequired: true)
             fieldDivider
             AddressTextField(label: "Country",            text: $viewModel.country,   keyboardType: .default)
             fieldDivider
-            AddressTextField(label: "Pin Code",           text: $viewModel.pinCode,   keyboardType: .numberPad)
+            AddressTextField(label: "Pin Code",           text: $viewModel.pinCode,   keyboardType: .numberPad,    isRequired: true)
         }
         .background(Color.white)
         .overlay(
@@ -156,12 +156,21 @@ private struct AddressTextField: View {
     let label: String
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
+    var isRequired: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(Font.custom("Inter", size: 11).weight(.medium))
-                .foregroundColor(Color(red: 0.60, green: 0.60, blue: 0.60))
+            HStack(spacing: 2) {
+                Text(label)
+                    .font(Font.custom("Inter", size: 11).weight(.medium))
+                    .foregroundColor(Color(red: 0.60, green: 0.60, blue: 0.60))
+
+                if isRequired {
+                    Text("*")
+                        .font(Font.custom("Inter", size: 11).weight(.bold))
+                        .foregroundColor(.red)
+                }
+            }
 
             TextField("", text: $text)
                 .font(Font.custom("PlusJakartaSans-SemiBold", size: 14))

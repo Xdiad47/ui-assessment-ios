@@ -32,6 +32,30 @@ struct UserAddress: Identifiable, Decodable {
         case defaultSet  = "default_set"
     }
 
+    // The backend stores older addresses with several string fields (flat_house,
+    // area, landmark, state, etc.) saved as JSON null rather than "". A plain
+    // Decodable synthesis would fail the whole list decode on the first null
+    // field, so each string is decoded leniently and defaults to "" instead.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id          = try container.decode(Int.self, forKey: .id)
+        uid         = try container.decode(Int.self, forKey: .uid)
+        userName    = try container.decodeIfPresent(String.self, forKey: .userName) ?? ""
+        mobile      = try container.decodeIfPresent(String.self, forKey: .mobile) ?? ""
+        email       = try container.decodeIfPresent(String.self, forKey: .email) ?? ""
+        country     = try container.decodeIfPresent(String.self, forKey: .country) ?? ""
+        pinCode     = try container.decode(Int.self, forKey: .pinCode)
+        flatHouse   = try container.decodeIfPresent(String.self, forKey: .flatHouse) ?? ""
+        area        = try container.decodeIfPresent(String.self, forKey: .area) ?? ""
+        landmark    = try container.decodeIfPresent(String.self, forKey: .landmark) ?? ""
+        city        = try container.decodeIfPresent(String.self, forKey: .city) ?? ""
+        state       = try container.decodeIfPresent(String.self, forKey: .state) ?? ""
+        addressType = try container.decodeIfPresent(String.self, forKey: .addressType) ?? ""
+        address     = try container.decodeIfPresent(String.self, forKey: .address) ?? ""
+        status      = try container.decode(Int.self, forKey: .status)
+        defaultSet  = try container.decode(Int.self, forKey: .defaultSet)
+    }
+
     var isDefault: Bool { defaultSet == 1 }
 
     /// Human-readable display line shown on the card

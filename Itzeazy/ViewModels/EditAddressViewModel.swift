@@ -18,7 +18,7 @@ final class EditAddressViewModel: ObservableObject {
     @Published var landmark   = ""
     @Published var city       = ""
     @Published var state      = ""
-    @Published var country    = "India"
+    @Published var country    = ""
     @Published var pinCode    = ""
 
     // MARK: - State
@@ -43,13 +43,6 @@ final class EditAddressViewModel: ObservableObject {
         self.mode = mode
         if case .edit(let id) = mode {
             fetchAddress(id: id)
-        } else {
-            // Pre-fill email / mobile / name from the session profile for convenience
-            if let user = storage.getUser() {
-                userName = user.name
-                email    = user.email  ?? ""
-                mobile   = user.phone  ?? ""
-            }
         }
     }
 
@@ -152,8 +145,8 @@ final class EditAddressViewModel: ObservableObject {
             errorMessage = "Please enter your name."
             return false
         }
-        if mobile.trimmingCharacters(in: .whitespaces).isEmpty {
-            errorMessage = "Please enter a mobile number."
+        if email.trimmingCharacters(in: .whitespaces).isEmpty {
+            errorMessage = "Please enter your email."
             return false
         }
         if city.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -162,6 +155,10 @@ final class EditAddressViewModel: ObservableObject {
         }
         if state.trimmingCharacters(in: .whitespaces).isEmpty {
             errorMessage = "Please enter a state."
+            return false
+        }
+        if pinCode.trimmingCharacters(in: .whitespaces).isEmpty {
+            errorMessage = "Please enter a pin code."
             return false
         }
         return true

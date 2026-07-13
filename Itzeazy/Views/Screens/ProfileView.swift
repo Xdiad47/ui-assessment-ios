@@ -8,6 +8,7 @@ struct ProfileView: View {
     @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
     @StateObject private var viewModel = ProfileViewModel()
     @EnvironmentObject private var userSession: UserSessionViewModel
+    @EnvironmentObject private var authGate: AuthGateController
     @State private var naturalHeight: CGFloat = 0
     @State private var showDeleteConfirmation = false
     let onBackToHome: (() -> Void)?
@@ -42,6 +43,7 @@ struct ProfileView: View {
                                 withAnimation {
                                     isLoggedIn = false
                                 }
+                                authGate.chooseLogin()
                             }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "rectangle.portrait.and.arrow.right")
@@ -435,4 +437,5 @@ private struct ProfileSocialCardView: View {
 #Preview {
     ProfileView(onBackToHome: nil)
         .environmentObject(UserSessionViewModel())
+        .environmentObject(AuthGateController())
 }
