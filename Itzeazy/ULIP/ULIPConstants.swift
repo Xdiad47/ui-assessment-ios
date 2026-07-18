@@ -1,20 +1,15 @@
 import Foundation
 
+// Relative paths on the Itzeazy backend's own ULIP gateway (AppEnvironment.current.baseURL + path).
+// No separate ULIP login is needed anymore — every call is authenticated with the
+// user's existing Itzeazy session token instead.
 enum ULIPEndpoints {
-    static let login            = "/user/login"
-    static let vehicleRC        = "/VAHAN/04"
-    static let chassisRC        = "/VAHAN/05"
-    static let engineRC         = "/VAHAN/06"
-    static let dlDetails        = "/SARATHI/01"
-    static let challan          = "/ECHALLAN/01"
-    static let tgVehicle        = "/TGVAHAN/01"
-    static let tgDL             = "/TGSARATHI/01"
-    static let evyatra          = "/EVYATRA/01"
-}
-
-// Credentials are stored here for the client app.
-// Do NOT expose these in logs or analytics.
-enum ULIPCredentials {
-    static let username = "ehqo_itzeazy_usr"
-    static let password = "kL1z.TGr33"
+    static let vehicleRC        = "ulip/vahan/04"
+    static let chassisRC        = "ulip/vahan/05"
+    static let engineRC         = "ulip/vahan/06"
+    static let dlDetails        = "ulip/sarathi/01"
+    static let challan          = "ulip/echallan/01"
+    static let tgVehicle        = "ulip/tgvahan/01"
+    static let tgDL             = "ulip/tgsarathi/01"
+    static let evyatra          = "ulip/evyatra/01"
 }

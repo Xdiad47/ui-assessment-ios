@@ -1,26 +1,23 @@
 import Foundation
 
-// MARK: - Auth
+// MARK: - Itzeazy gateway envelope
+// Every ULIP call is now routed through the Itzeazy backend's own ULIP gateway
+// (authenticated with the user's existing session token, no separate ULIP
+// login needed). The gateway wraps the original ULIP response body — unchanged
+// — inside `data`.
 
-struct ULIPLoginRequest: Encodable {
-    let username: String
-    let password: String
-}
-
-struct ULIPLoginResponse: Decodable {
-    let response: ULIPTokenBody
-    let error: String
-    let code: String
+struct ItzeazyGatewayResponse<T: Decodable>: Decodable {
+    let data: T?
     let message: String
+    let statusCode: Int
+
+    enum CodingKeys: String, CodingKey {
+        case data, message
+        case statusCode = "status_code"
+    }
 }
 
-struct ULIPTokenBody: Decodable {
-    let id: String
-    let params: String?
-    let text: String?
-}
-
-// MARK: - Generic envelope
+// MARK: - Generic envelope (original ULIP response shape, now nested under `data`)
 
 struct ULIPResponse<T: Decodable>: Decodable {
     let response: T?
