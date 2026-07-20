@@ -1,7 +1,7 @@
 import Foundation
 
 final class YoutubeRepository {
-    private let baseURL = "https://dev.itzeazy.in/api/v1/youtube/playlist/videos"
+    private let baseURL = AppEnvironment.current.baseURL + "youtube/playlist/videos"
 
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
