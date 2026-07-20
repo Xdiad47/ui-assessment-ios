@@ -390,6 +390,7 @@ struct HomeServicesGridView: View {
     @StateObject private var vm = HomeServicesViewModel()
     @StateObject private var webLoginVM = WebLoginViewModel()
     @EnvironmentObject private var authGate: AuthGateController
+    @State private var showComingSoonToast = false
 
     // Non-web service items kept inline (RTO, Visa, Attestation)
     private let allServices: [(String, String)] = [
@@ -405,64 +406,76 @@ struct HomeServicesGridView: View {
         ("Pan Card",      "pan_card")
     ]
 
+    // Not functional yet — tapping these shows a "coming soon" toast instead of navigating.
+    private let comingSoonLabels: Set<String> = ["IT Returns", "Affidavit", "POI/FRRO", "Attestation"]
+
     // 5 Columns as per Figma
     let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            NavigationLink(
-                destination: CitizenServicesWebView(
-                    url: webLoginVM.generatedURL ?? "",
-                    title: webLoginVM.generatedTitle
-                ),
-                isActive: Binding(
-                    get: { webLoginVM.generatedURL != nil },
-                    set: { if !$0 { webLoginVM.reset() } }
-                )
-            ) { EmptyView() }
-            .hidden()
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Services We Provide")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.black)
-                Rectangle()
-                    .fill(Color(red: 0.85, green: 0.2, blue: 0.2))
-                    .frame(width: 203, height: 3)
-            }
-            .padding(.horizontal, 16)
-
-            LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(allServices, id: \.0) { service in
-                    serviceCell(label: service.0, icon: service.1)
-                }
-            }
-            .padding(12)
-            .padding(.bottom, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white,
-                                Color(red: 0.894, green: 0.894, blue: 0.894),
-                                Color(red: 0.729, green: 0.729, blue: 0.729)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+        ZStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 10) {
+                NavigationLink(
+                    destination: CitizenServicesWebView(
+                        url: webLoginVM.generatedURL ?? "",
+                        title: webLoginVM.generatedTitle
+                    ),
+                    isActive: Binding(
+                        get: { webLoginVM.generatedURL != nil },
+                        set: { if !$0 { webLoginVM.reset() } }
                     )
-            )
+                ) { EmptyView() }
+                .hidden()
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Services We Provide")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                    Rectangle()
+                        .fill(Color(red: 0.85, green: 0.2, blue: 0.2))
+                        .frame(width: 203, height: 3)
+                }
+                .padding(.horizontal, 16)
+
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(allServices, id: \.0) { service in
+                        serviceCell(label: service.0, icon: service.1)
+                    }
+                }
+                .padding(12)
+                .padding(.bottom, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white,
+                                    Color(red: 0.894, green: 0.894, blue: 0.894),
+                                    Color(red: 0.729, green: 0.729, blue: 0.729)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                )
+            }
+            .alert("Something went wrong", isPresented: Binding(
+                get: { webLoginVM.errorMessage != nil },
+                set: { if !$0 { webLoginVM.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(webLoginVM.errorMessage ?? "")
+            }
+
+            if showComingSoonToast {
+                ToastView(icon: "hourglass", message: "Coming soon! We're working hard to bring this to you.")
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 12)
+            }
         }
-        .alert("Something went wrong", isPresented: Binding(
-            get: { webLoginVM.errorMessage != nil },
-            set: { if !$0 { webLoginVM.errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(webLoginVM.errorMessage ?? "")
-        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showComingSoonToast)
     }
 
     // MARK: - Cell builder
@@ -482,9 +495,17 @@ struct HomeServicesGridView: View {
             }
             .buttonStyle(PlainButtonStyle())
 
-        // Attestation — placeholder (no URL yet, no native screen yet)
-        } else if label == "Attestation" {
-            ServiceBoxView(title: label, iconName: icon)
+        // IT Returns, Affidavit, POI/FRRO, Attestation — not functional yet
+        } else if comingSoonLabels.contains(label) {
+            Button {
+                showComingSoonToast = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                    showComingSoonToast = false
+                }
+            } label: {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(NoHighlightButtonStyle())
 
         // All other service items — call token API then open WebView
         } else if let item = vm.webItems.first(where: { $0.label == label }) {
@@ -511,6 +532,7 @@ struct HomeUtilitiesGridView: View {
     @StateObject private var vm = HomeUtilitiesViewModel()
     @StateObject private var webLoginVM = WebLoginViewModel()
     @EnvironmentObject private var authGate: AuthGateController
+    @State private var showComingSoonToast = false
 
     private let allUtilities: [(String, String)] = [
         ("Vehicle\nInfo", "vehicle_info"),
@@ -529,60 +551,69 @@ struct HomeUtilitiesGridView: View {
     let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            NavigationLink(
-                destination: CitizenServicesWebView(
-                    url: webLoginVM.generatedURL ?? "",
-                    title: webLoginVM.generatedTitle
-                ),
-                isActive: Binding(
-                    get: { webLoginVM.generatedURL != nil },
-                    set: { if !$0 { webLoginVM.reset() } }
-                )
-            ) { EmptyView() }
-            .hidden()
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Utilities")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.black)
-                Rectangle()
-                    .fill(Color(red: 0.85, green: 0.2, blue: 0.2))
-                    .frame(width: 80, height: 3)
-            }
-            .padding(.horizontal, 16)
-
-            LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(allUtilities, id: \.0) { utility in
-                    utilityCell(label: utility.0, icon: utility.1)
-                }
-            }
-            .padding(12)
-            .padding(.bottom, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white,
-                                Color(red: 0.894, green: 0.894, blue: 0.894),
-                                Color(red: 0.729, green: 0.729, blue: 0.729)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+        ZStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 10) {
+                NavigationLink(
+                    destination: CitizenServicesWebView(
+                        url: webLoginVM.generatedURL ?? "",
+                        title: webLoginVM.generatedTitle
+                    ),
+                    isActive: Binding(
+                        get: { webLoginVM.generatedURL != nil },
+                        set: { if !$0 { webLoginVM.reset() } }
                     )
-            )
+                ) { EmptyView() }
+                .hidden()
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Utilities")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                    Rectangle()
+                        .fill(Color(red: 0.85, green: 0.2, blue: 0.2))
+                        .frame(width: 80, height: 3)
+                }
+                .padding(.horizontal, 16)
+
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(allUtilities, id: \.0) { utility in
+                        utilityCell(label: utility.0, icon: utility.1)
+                    }
+                }
+                .padding(12)
+                .padding(.bottom, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white,
+                                    Color(red: 0.894, green: 0.894, blue: 0.894),
+                                    Color(red: 0.729, green: 0.729, blue: 0.729)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                )
+            }
+            .alert("Something went wrong", isPresented: Binding(
+                get: { webLoginVM.errorMessage != nil },
+                set: { if !$0 { webLoginVM.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(webLoginVM.errorMessage ?? "")
+            }
+
+            if showComingSoonToast {
+                ToastView(icon: "hourglass", message: "Coming soon! We're working hard to bring this to you.")
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 12)
+            }
         }
-        .alert("Something went wrong", isPresented: Binding(
-            get: { webLoginVM.errorMessage != nil },
-            set: { if !$0 { webLoginVM.errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(webLoginVM.errorMessage ?? "")
-        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showComingSoonToast)
     }
 
     // MARK: - Cell builder
@@ -626,10 +657,15 @@ struct HomeUtilitiesGridView: View {
             .buttonStyle(PlainButtonStyle())
 
         case "Petrol\nPump":
-            NavigationLink(destination: PetrolPumpRouter()) {
+            Button {
+                showComingSoonToast = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                    showComingSoonToast = false
+                }
+            } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(NoHighlightButtonStyle())
 
         default:
             // Road Tax, LL QB, LL Mock — call token API then open WebView
