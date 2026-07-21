@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct OnboardingView: View {
     @StateObject private var viewModel = OnboardingViewModel()
@@ -63,10 +64,12 @@ struct OnboardingView: View {
                             .foregroundColor(.red)
                             .tracking(-1)
                         Spacer()
-                        Button(action: completeOnboarding) {
-                            Text("Skip")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color(hex: "#191c1d"))
+                        if !viewModel.isLastPage {
+                            Button(action: { viewModel.skipToDisclaimer() }) {
+                                Text("Skip")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(Color(hex: "#191c1d"))
+                            }
                         }
                     }
                     .frame(height: headerHeight)
@@ -89,25 +92,32 @@ struct OnboardingView: View {
     private func sheetContent(safeBottom: CGFloat, buttonShadow: Color) -> some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 16) {
-                // Title: Plus Jakarta Sans Bold, 32px, line-height 40px
+                // Title: Plus Jakarta Sans Bold — size/line-height vary per page
+                let page = viewModel.pages[viewModel.currentPage]
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(viewModel.pages[viewModel.currentPage].titleLine1)
-                        .font(Font.custom("PlusJakartaSans-Bold", size: 32))
+                    Text(page.titleLine1)
+                        .font(Font.custom("PlusJakartaSans-Bold", size: page.titleFontSize))
                         .foregroundColor(Color(hex: "#191c1d"))
                         .tracking(-0.8)
-                        .lineSpacing(8)  // 40px line-height on 32px font ≈ 8pt extra
-                    Text(viewModel.pages[viewModel.currentPage].titleLine2)
-                        .font(Font.custom("PlusJakartaSans-Bold", size: 32))
-                        .foregroundColor(viewModel.pages[viewModel.currentPage].titleLine2Color)
-                        .tracking(-0.8)
-                        .lineSpacing(8)
+                        .lineSpacing(page.titleLineSpacing)
+                    if !page.titleLine2.isEmpty {
+                        Text(page.titleLine2)
+                            .font(Font.custom("PlusJakartaSans-Bold", size: page.titleFontSize))
+                            .foregroundColor(page.titleLine2Color)
+                            .tracking(-0.8)
+                            .lineSpacing(page.titleLineSpacing)
+                    }
                 }
-                // Subtitle: Inter Regular, 18px, line-height ~29.25px
-                Text(viewModel.pages[viewModel.currentPage].subtitle)
-                    .font(Font.custom("Inter", size: 18))
+                // Subtitle: Inter Regular — size/line-height vary per page
+                Text(page.subtitle)
+                    .font(Font.custom("Inter", size: page.subtitleFontSize))
                     .foregroundColor(Color(hex: "#5f5e5e"))
-                    .lineSpacing(5.25) // 29.25 - 18*1.165... ≈ 5.25pt extra leading
+                    .lineSpacing(page.subtitleLineSpacing)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if page.showLegalLinks {
+                    legalLinksRow
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 32)
@@ -159,6 +169,33 @@ struct OnboardingView: View {
 
     private func completeOnboarding() {
         withAnimation { hasSeenOnboarding = true }
+    }
+
+    // Mirrors Android's LegalLinksRow — two separately tappable links,
+    // opened in the external browser like every other outbound link in the app.
+    private var legalLinksRow: some View {
+        HStack(spacing: 6) {
+            Button(action: { openURL("https://itzeazy.in/terms") }) {
+                Text("Terms & Conditions")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.red)
+                    .underline()
+            }
+            Text("•")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#5f5e5e"))
+            Button(action: { openURL("https://itzeazy.in/privacy-policy") }) {
+                Text("Privacy Policy")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.red)
+                    .underline()
+            }
+        }
+    }
+
+    private func openURL(_ urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        UIApplication.shared.open(url)
     }
 }
 
