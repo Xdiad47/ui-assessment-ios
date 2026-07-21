@@ -15,6 +15,16 @@ struct ItzeazyApp: App {
 
     init() {
         UIScrollView.appearance().keyboardDismissMode = .onDrag
+
+        // iOS Keychain items survive app deletion — UserDefaults does not. So on a
+        // genuinely fresh install (this flag is gone, wiped along with everything
+        // else in UserDefaults), any leftover Keychain token from a previous
+        // install (e.g. an App Review reviewer session) is stale and must be
+        // purged, or it would silently resurrect that old session on next launch.
+        if !UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {
+            AuthSessionStorage.shared.clearAll()
+            UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+        }
     }
 
     var body: some Scene {
@@ -32,7 +42,11 @@ struct ItzeazyApp: App {
                     MainTabView()
                         .environmentObject(tabBarState)
                         .environmentObject(userSession)
-                        .task { userSession.fetchUserProfile() }
+                        .task {
+                            if isLoggedIn {
+                                userSession.fetchUserProfile()
+                            }
+                        }
                 }
 
                 if showSessionToast {

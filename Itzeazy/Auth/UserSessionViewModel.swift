@@ -17,6 +17,11 @@ final class UserSessionViewModel: ObservableObject {
     // MARK: - Fetch user profile (GET user)
 
     func fetchUserProfile() {
+        // Guards against a stale Keychain token (Keychain items survive app
+        // deletion, unlike this UserDefaults flag) silently resurrecting a
+        // session the app itself doesn't believe is active.
+        guard UserDefaults.standard.bool(forKey: "isLoggedIn") else { return }
+
         // Show cached user immediately while the network call is in flight
         if user == nil {
             user = storage.getUser()
