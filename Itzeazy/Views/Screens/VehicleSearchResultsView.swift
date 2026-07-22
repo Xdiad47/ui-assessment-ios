@@ -4,6 +4,7 @@ import SwiftUI
 
 struct VehicleSearchResultsView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var tabBarState: TabBarState
     @StateObject private var viewModel = ULIPVehicleViewModel()
     @State private var selectedChallan: Challan? = nil
     @State private var navigateToProfile = false
@@ -30,6 +31,8 @@ struct VehicleSearchResultsView: View {
                             .foregroundColor(Color.white.opacity(0.7))
                     }
                     Spacer()
+                    UlipDisclaimerFooter(isOnDarkBackground: true)
+                        .padding(.bottom, tabBarState.height)
                 }
 
             // ── Error state ────────────────────────────────────────────────
@@ -59,6 +62,8 @@ struct VehicleSearchResultsView: View {
                             .padding(.horizontal, 32)
                     }
                     Spacer()
+                    UlipDisclaimerFooter(isOnDarkBackground: true)
+                        .padding(.bottom, tabBarState.height)
                 }
 
             // ── Results state ──────────────────────────────────────────────
@@ -101,6 +106,22 @@ struct VehicleSearchResultsView: View {
                                 }
 
                                 FinanceStatusView(detail: result.financeDetail)
+
+                                if result.pendingChallans.isEmpty, let challanInfoMessage = viewModel.challanInfoMessage {
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 28))
+                                            .foregroundColor(.green)
+                                        Text(challanInfoMessage)
+                                            .font(.system(size: 13))
+                                            .foregroundColor(.gray)
+                                            .multilineTextAlignment(.center)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 20)
+                                    .background(Color(white: 0.94))
+                                    .cornerRadius(16)
+                                }
 
                                 if !result.pendingChallans.isEmpty {
                                     VStack(alignment: .leading, spacing: 16) {
@@ -180,10 +201,12 @@ struct VehicleSearchResultsView: View {
                                 }
                             }
                             .padding(.horizontal)
+
+                            UlipDisclaimerFooter(isOnDarkBackground: false)
                         }
                         .padding(.top, 24)
                     }
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 20 + tabBarState.height)
                     .frame(maxWidth: .infinity)
                     .background(Color(white: 0.97))
                 }
@@ -206,9 +229,13 @@ struct VehicleSearchResultsView: View {
                             .cornerRadius(20, corners: [.bottomLeft, .bottomRight])
                     )
 
-                    Color.white
-                        .frame(maxHeight: .infinity)
-                        .edgesIgnoringSafeArea(.bottom)
+                    ZStack(alignment: .bottom) {
+                        Color.white
+                        UlipDisclaimerFooter(isOnDarkBackground: false)
+                            .padding(.bottom, tabBarState.height)
+                    }
+                    .frame(maxHeight: .infinity)
+                    .edgesIgnoringSafeArea(.bottom)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
@@ -304,5 +331,6 @@ struct RoundedCorner: Shape {
 struct VehicleSearchResultsView_Previews: PreviewProvider {
     static var previews: some View {
         VehicleSearchResultsView()
+            .environmentObject(TabBarState())
     }
 }

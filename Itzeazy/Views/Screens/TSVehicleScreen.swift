@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TSVehicleScreen: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var tabBarState: TabBarState
     @StateObject private var viewModel = ULIPTGVehicleViewModel()
     @State private var navigateToProfile = false
 
@@ -29,6 +30,8 @@ struct TSVehicleScreen: View {
                             .foregroundColor(Color.white.opacity(0.7))
                     }
                     Spacer()
+                    UlipDisclaimerFooter(isOnDarkBackground: true)
+                        .padding(.bottom, tabBarState.height)
                 }
 
             // ── Error ──────────────────────────────────────────────────────────
@@ -49,6 +52,8 @@ struct TSVehicleScreen: View {
                             .padding(.horizontal, 32)
                     }
                     Spacer()
+                    UlipDisclaimerFooter(isOnDarkBackground: true)
+                        .padding(.bottom, tabBarState.height)
                 }
 
             // ── Results ────────────────────────────────────────────────────────
@@ -78,9 +83,11 @@ struct TSVehicleScreen: View {
                             }
 
                             //TSOtherDetailsCard(data: data)
+
+                            UlipDisclaimerFooter(isOnDarkBackground: false)
                         }
                         .padding(.top, 24)
-                        .padding(.bottom, 85)
+                        .padding(.bottom, 20 + tabBarState.height)
                     }
                     .frame(maxWidth: .infinity)
                     .background(Color(white: 0.97))
@@ -95,7 +102,12 @@ struct TSVehicleScreen: View {
                     }
                     .background(dark.cornerRadius(20, corners: [.bottomLeft, .bottomRight]))
 
-                    Color.white.edgesIgnoringSafeArea(.bottom)
+                    ZStack(alignment: .bottom) {
+                        Color.white
+                        UlipDisclaimerFooter(isOnDarkBackground: false)
+                            .padding(.bottom, tabBarState.height)
+                    }
+                    .edgesIgnoringSafeArea(.bottom)
                 }
             }
         }
@@ -684,4 +696,5 @@ private struct TSKeyValue: View {
 
 #Preview {
     TSVehicleScreen()
+        .environmentObject(TabBarState())
 }

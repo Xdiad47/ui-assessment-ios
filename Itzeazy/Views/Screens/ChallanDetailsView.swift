@@ -3,6 +3,7 @@ import UIKit
 
 struct ChallanDetailsView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var tabBarState: TabBarState
     @StateObject private var viewModel = ULIPChallanViewModel()
     @State private var selectedChallan: Challan? = nil
     @State private var navigateToProfile = false
@@ -29,6 +30,8 @@ struct ChallanDetailsView: View {
                             .foregroundColor(Color.white.opacity(0.7))
                     }
                     Spacer()
+                    UlipDisclaimerFooter(isOnDarkBackground: true)
+                        .padding(.bottom, tabBarState.height)
                 }
 
             // ── Error ─────────────────────────────────────────────────────
@@ -47,6 +50,8 @@ struct ChallanDetailsView: View {
                             .padding(.horizontal, 32)
                     }
                     Spacer()
+                    UlipDisclaimerFooter(isOnDarkBackground: true)
+                        .padding(.bottom, tabBarState.height)
                 }
 
             // ── Results ───────────────────────────────────────────────────
@@ -132,13 +137,13 @@ struct ChallanDetailsView: View {
                                         .font(.system(size: 18))
                                 }
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Official Government Data")
+                                    Text("Secure & ULIP-Verified")
                                         .font(Font.custom("Inter", size: 14).weight(.semibold))
                                         .foregroundColor(.white)
-                                    Text("Data sourced from ULIP / Parivahan and regional RTO databases.")
+                                    Text("Challan data sourced via ULIP (Government of India). Payments processed through a secure gateway.")
                                         .font(Font.custom("Inter", size: 11))
                                         .foregroundColor(Color.gray)
-                                        .lineLimit(2)
+                                        .lineLimit(3)
                                 }
                             }
                             .padding(16)
@@ -171,10 +176,12 @@ struct ChallanDetailsView: View {
                                 .background(Color(red: 0.10, green: 0.11, blue: 0.11))
                                 .cornerRadius(24)
                             }
+
+                            UlipDisclaimerFooter(isOnDarkBackground: false)
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
-                        .padding(.bottom, 80)
+                        .padding(.bottom, 20 + tabBarState.height)
                     }
                     .background(Color(white: 0.97))
                 }
@@ -183,7 +190,12 @@ struct ChallanDetailsView: View {
             } else {
                 VStack(spacing: 0) {
                     challanInputHeader
-                    Color.white.edgesIgnoringSafeArea(.bottom)
+                    ZStack(alignment: .bottom) {
+                        Color.white
+                        UlipDisclaimerFooter(isOnDarkBackground: false)
+                            .padding(.bottom, tabBarState.height)
+                    }
+                    .edgesIgnoringSafeArea(.bottom)
                 }
             }
 
@@ -486,4 +498,5 @@ private struct ChallanRowCard: View {
 
 #Preview {
     ChallanDetailsView()
+        .environmentObject(TabBarState())
 }

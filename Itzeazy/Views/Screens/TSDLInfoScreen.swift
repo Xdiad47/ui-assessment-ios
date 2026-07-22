@@ -3,6 +3,7 @@ import SwiftUI
 struct TSDLInfoScreen: View {
     @StateObject private var viewModel = ULIPTGDLViewModel()
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject private var tabBarState: TabBarState
     @State private var navigateToProfile = false
 
     var body: some View {
@@ -145,6 +146,8 @@ struct TSDLInfoScreen: View {
                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 .scaleEffect(1.4)
             Spacer()
+            UlipDisclaimerFooter(isOnDarkBackground: true)
+                .padding(.bottom, tabBarState.height)
         }
     }
 
@@ -164,6 +167,8 @@ struct TSDLInfoScreen: View {
                     .padding(.horizontal, 32)
             }
             Spacer()
+            UlipDisclaimerFooter(isOnDarkBackground: true)
+                .padding(.bottom, tabBarState.height)
         }
     }
 
@@ -172,13 +177,16 @@ struct TSDLInfoScreen: View {
             navHeader
             searchCard
 
-            ZStack {
+            ZStack(alignment: .bottom) {
                 Color.white
                 Text("Enter a Telangana DL number, then tap Check Status")
                     .font(.system(size: 15))
                     .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.55))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
+                    .frame(maxHeight: .infinity)
+                UlipDisclaimerFooter(isOnDarkBackground: false)
+                    .padding(.bottom, tabBarState.height)
             }
             .edgesIgnoringSafeArea(.bottom)
         }
@@ -196,10 +204,11 @@ struct TSDLInfoScreen: View {
                     TSDLAddressCard(data: data)
                     TSDLLicenceCard(data: data)
                     TSDLCOVCard(data: data)
+                    UlipDisclaimerFooter(isOnDarkBackground: false)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
-                .padding(.bottom, 95)
+                .padding(.bottom, 20 + tabBarState.height)
             }
             .background(Color.white)
             .edgesIgnoringSafeArea(.bottom)
@@ -479,6 +488,7 @@ struct TSDLInfoScreen_Previews: PreviewProvider {
         NavigationView {
             TSDLInfoScreen()
         }
+        .environmentObject(TabBarState())
     }
 }
 

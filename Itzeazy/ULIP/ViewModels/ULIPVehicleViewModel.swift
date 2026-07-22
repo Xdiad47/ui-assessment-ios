@@ -19,6 +19,9 @@ class ULIPVehicleViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     @Published var selectedChallanIDs: Set<String> = []
+    // Non-blocking note from the challan lookup (e.g. "No Records Found!") — the
+    // vehicle lookup itself still succeeds, this is just shown alongside it.
+    @Published var challanInfoMessage: String? = nil
 
     // pendingChallans stores ALL challans (pending + disposed); filter for counts/sums
     var pendingChallanCount: Int {
@@ -51,9 +54,10 @@ class ULIPVehicleViewModel: ObservableObject {
         guard !number.isEmpty else { return }
 
         Task { @MainActor in
-            isLoading    = true
-            errorMessage = nil
-            searchResult = nil
+            isLoading          = true
+            errorMessage       = nil
+            searchResult       = nil
+            challanInfoMessage = nil
 
             do {
                 let envelope = try await fetchBySearchType(number: number)
@@ -104,6 +108,7 @@ class ULIPVehicleViewModel: ObservableObject {
         searchResult       = nil
         errorMessage       = nil
         selectedChallanIDs = []
+        challanInfoMessage = nil
     }
 
     // MARK: - Challan fetch + mapping
@@ -113,8 +118,15 @@ class ULIPVehicleViewModel: ObservableObject {
         guard let item = envelope.response?.first,
               item.responseStatus == "SUCCESS",
               let innerData = item.response?.data else {
+            // Same doubly-nested message shape as the standalone Challan screen —
+            // e.g. "No Records Found!" lives on the inner response, not the outer
+            // item or envelope. Non-blocking: the vehicle lookup itself still
+            // succeeded, so surface this as an informational note, not an error.
+            challanInfoMessage = envelope.response?.first?.response?.message
+                ?? envelope.response?.first?.message
             return []
         }
+        challanInfoMessage = nil
         var challans: [Challan] = []
         challans += (innerData.pendingData  ?? []).compactMap { mapChallan($0) }
         challans += (innerData.disposedData ?? []).compactMap { mapChallan($0) }

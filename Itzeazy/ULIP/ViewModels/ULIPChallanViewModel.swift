@@ -57,7 +57,12 @@ class ULIPChallanViewModel: ObservableObject {
                 guard let item = envelope.response?.first,
                       item.responseStatus == "SUCCESS",
                       let innerData = item.response?.data else {
-                    let msg = envelope.response?.first?.message ?? envelope.message
+                    // The most specific message (e.g. "No Records Found!") lives on the
+                    // doubly-nested inner response, not the outer item or top-level
+                    // envelope — those often just say "Success" even when there's no data.
+                    let msg = envelope.response?.first?.response?.message
+                        ?? envelope.response?.first?.message
+                        ?? envelope.message
                     errorMessage = msg.isEmpty ? "No challan data found." : msg
                     isLoading = false
                     return

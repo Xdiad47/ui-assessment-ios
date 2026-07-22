@@ -3,6 +3,7 @@ import UIKit
 
 struct EVChargeView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var tabBarState: TabBarState
     @StateObject private var viewModel = EVChargeViewModel()
     @FocusState private var isSearchFocused: Bool
 
@@ -28,7 +29,10 @@ struct EVChargeView: View {
                             stationSection
                                 .padding(.horizontal, 16)
 
-                            Color.clear.frame(height: proxy.safeAreaInsets.bottom + 90)
+                            UlipDisclaimerFooter(isOnDarkBackground: true)
+                                .padding(.top, 14)
+
+                            Color.clear.frame(height: proxy.safeAreaInsets.bottom + tabBarState.height + 8)
                         }
                     }
                 }
@@ -287,4 +291,5 @@ private struct StationCard: View {
     NavigationView {
         EVChargeView()
     }
+    .environmentObject(TabBarState())
 }

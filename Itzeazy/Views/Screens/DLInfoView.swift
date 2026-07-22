@@ -3,6 +3,7 @@ import UIKit
 
 struct DLInfoView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var tabBarState: TabBarState
     @StateObject private var viewModel = DLInfoViewModel()
     @FocusState private var focusedField: Field?
     @State private var navigateToProfile = false
@@ -171,10 +172,12 @@ struct DLInfoView: View {
                             Text("FETCHING DL DETAILS…")
                                 .font(Font.custom("Inter", size: 14))
                                 .foregroundColor(Color(white: 0.5))
+                            Spacer()
+                            UlipDisclaimerFooter(isOnDarkBackground: false)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         .padding(.top, 60)
-                        .padding(.bottom, 85)
+                        .padding(.bottom, 20 + tabBarState.height)
 
                     } else if let err = viewModel.errorMessage {
                         VStack(spacing: 12) {
@@ -186,10 +189,12 @@ struct DLInfoView: View {
                                 .foregroundColor(Color(white: 0.4))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 32)
+                            Spacer()
+                            UlipDisclaimerFooter(isOnDarkBackground: false)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         .padding(.top, 60)
-                        .padding(.bottom, 85)
+                        .padding(.bottom, 20 + tabBarState.height)
 
                     } else if viewModel.hasSearched, let info = viewModel.dlInfo {
                         ScrollView(.vertical, showsIndicators: false) {
@@ -198,10 +203,11 @@ struct DLInfoView: View {
                                 DLInitialDetailsSection(info: info)
                                 DLValiditySection(info: info)
                                 DLCOVSection(info: info)
+                                UlipDisclaimerFooter(isOnDarkBackground: false)
                             }
                             .padding(.horizontal, 16)
                             .padding(.top, 24)
-                            .padding(.bottom, 85)
+                            .padding(.bottom, 20 + tabBarState.height)
                         }
 
                     } else {
@@ -213,10 +219,12 @@ struct DLInfoView: View {
                                 .font(Font.custom("Inter", size: 14))
                                 .foregroundColor(Color(white: 0.55))
                                 .multilineTextAlignment(.center)
+                            Spacer()
+                            UlipDisclaimerFooter(isOnDarkBackground: false)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         .padding(.top, 60)
-                        .padding(.bottom, 85)
+                        .padding(.bottom, 20 + tabBarState.height)
                     }
                 }
                 .background(Color(white: 0.98).edgesIgnoringSafeArea(.bottom))
@@ -638,4 +646,5 @@ private struct DOBTextField: UIViewRepresentable {
 
 #Preview {
     DLInfoView()
+        .environmentObject(TabBarState())
 }
