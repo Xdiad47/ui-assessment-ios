@@ -34,7 +34,7 @@ struct ProfileView: View {
 
                         VStack(spacing: 14) {
                             ForEach(Array(viewModel.primarySections.enumerated()), id: \.offset) { _, section in
-                                ProfileMenuCardView(items: section, strokeColor: strokeColor)
+                                ProfileMenuCardView(items: section, strokeColor: strokeColor, onBackToHome: onBackToHome)
                             }
 
                             ProfileSocialCardView(items: viewModel.socialItems, strokeColor: strokeColor)
@@ -220,12 +220,13 @@ private struct ProfileHeaderView: View {
 private struct ProfileMenuCardView: View {
     let items: [ProfileMenuItem]
     let strokeColor: Color
+    let onBackToHome: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 if item.title == "Overview" {
-                    NavigationLink(destination: OverviewView()) {
+                    NavigationLink(destination: OverviewView(onBackToHome: onBackToHome)) {
                         ProfileMenuRowView(item: item)
                     }
                     .buttonStyle(PlainButtonStyle())

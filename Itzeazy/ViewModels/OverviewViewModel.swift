@@ -9,8 +9,6 @@ struct OverviewCardItem: Identifiable {
 }
 
 class OverviewViewModel: ObservableObject {
-    @Published var welcomeName: String = "amar patil"
-
     let cards: [OverviewCardItem] = [
         OverviewCardItem(
             title: "My Order",

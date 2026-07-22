@@ -4,7 +4,9 @@ struct OverviewView: View {
     @Environment(\.presentationMode) private var presentationMode
     @StateObject private var viewModel = OverviewViewModel()
     @StateObject private var webLoginVM = WebLoginViewModel()
+    @EnvironmentObject private var userSession: UserSessionViewModel
     @State private var naturalHeight: CGFloat = 0
+    let onBackToHome: (() -> Void)?
 
     private let backgroundColor = Color(red: 0.96, green: 0.96, blue: 0.96)
     private let strokeColor = Color(red: 0.72, green: 0.72, blue: 0.72)
@@ -100,14 +102,14 @@ struct OverviewView: View {
 
     private var welcomeCard: some View {
         HStack {
-            Text("Welcome, \(viewModel.welcomeName)")
+            Text("Welcome, \(userSession.displayFullName)")
                 .font(Font.custom("PlusJakartaSans-SemiBold", size: 16))
                 .foregroundColor(.white)
 
             Spacer()
 
             Button(action: {
-                // Book Service action
+                onBackToHome?()
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
@@ -213,6 +215,6 @@ private struct OverviewFeatureCard: View {
 
 #Preview {
     NavigationView {
-        OverviewView()
+        OverviewView(onBackToHome: nil)
     }
 }
