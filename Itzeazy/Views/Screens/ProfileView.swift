@@ -246,7 +246,7 @@ private struct ProfileMenuCardView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                 } else if item.title == "My Address" {
-                    NavigationLink(destination: MyAddressView()) {
+                    NavigationLink(destination: MyAddressView(onBackToHome: onBackToHome)) {
                         ProfileMenuRowView(item: item)
                     }
                     .buttonStyle(PlainButtonStyle())

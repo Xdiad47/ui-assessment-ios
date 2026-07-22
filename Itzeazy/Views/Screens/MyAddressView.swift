@@ -9,6 +9,7 @@ struct MyAddressView: View {
     @State private var addressToDelete: UserAddress? = nil
     @State private var showDeleteConfirm = false
     @State private var navigateToAdd = false
+    let onBackToHome: (() -> Void)?
 
     private let bgColor     = Color(red: 0.96, green: 0.96, blue: 0.96)
     private let strokeColor = Color(red: 0.72, green: 0.72, blue: 0.72)
@@ -154,7 +155,7 @@ struct MyAddressView: View {
 
             Spacer()
 
-            NavigationLink(destination: EditAddressView(mode: .create)) {
+            Button(action: { onBackToHome?() }) {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
                         .font(.system(size: 11, weight: .bold))
@@ -388,7 +389,7 @@ private struct AddressDetailRow: View {
 
 #Preview {
     NavigationView {
-        MyAddressView()
+        MyAddressView(onBackToHome: nil)
     }
     .environmentObject(UserSessionViewModel())
     .environmentObject(TabBarState())
