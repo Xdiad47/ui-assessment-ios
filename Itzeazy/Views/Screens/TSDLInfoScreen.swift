@@ -50,7 +50,7 @@ struct TSDLInfoScreen: View {
                 Button(action: { presentationMode.wrappedValue.dismiss() }) {
                     Image(systemName: "arrow.left")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.red)
+                        .foregroundColor(.white)
                 }
 
                 Spacer().frame(width: 12)

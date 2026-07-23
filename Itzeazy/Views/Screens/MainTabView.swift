@@ -13,6 +13,11 @@ struct MainTabView: View {
     @EnvironmentObject private var tabBarState: TabBarState
     @StateObject private var authGate = AuthGateController()
     @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+    // Home's hamburger drawer lives at this top level (not nested inside HomeView) so it
+    // paints above the custom tab bar — same reasoning as the Android fix: a drawer nested
+    // inside the switch-selected content can never out-rank the tab bar's own ZStack layer.
+    @State private var showHomeDrawer = false
+    @State private var homeDrawerDestination: HomeDrawerDestination? = nil
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -21,7 +26,7 @@ struct MainTabView: View {
                 switch selectedTab {
                 case .home:
                     NavigationView {
-                        HomeView()
+                        HomeView(onMenuTap: { withAnimation(.easeInOut(duration: 0.2)) { showHomeDrawer = true } })
                             .id(homeNavID)
                             .navigationBarTitleDisplayMode(.inline)
                             .navigationBarHidden(true)
@@ -103,6 +108,33 @@ struct MainTabView: View {
                 .transition(.opacity)
                 .zIndex(10)
             }
+
+            // Home hamburger drawer — topmost layer so it covers the custom tab bar too.
+            if showHomeDrawer {
+                ZStack(alignment: .leading) {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showHomeDrawer = false } }
+                        .transition(.opacity)
+
+                    HamburgerDrawerView(
+                        appVersion: "\(Bundle.main.shortVersion).\(Bundle.main.buildNumber)",
+                        isLoggedIn: isLoggedIn,
+                        onItemTap: { destination in
+                            showHomeDrawer = false
+                            homeDrawerDestination = destination
+                        },
+                        onLogoutTap: {
+                            showHomeDrawer = false
+                            isLoggedIn = false
+                        },
+                        onCloseTap: { withAnimation(.easeInOut(duration: 0.2)) { showHomeDrawer = false } }
+                    )
+                    .frame(width: UIScreen.main.bounds.width * 0.8)
+                    .transition(.move(edge: .leading))
+                }
+                .zIndex(20)
+            }
         }
         .environmentObject(authGate)
         .animation(.easeInOut(duration: 0.2), value: authGate.isPopupPresented)
@@ -112,6 +144,32 @@ struct MainTabView: View {
                 LoginView()
             case .createAccount:
                 LoginView(startAtCreateAccount: true)
+            }
+        }
+        .fullScreenCover(item: $homeDrawerDestination) { destination in
+            switch destination {
+            case .myOrders:
+                MyOrdersView(onBackToHome: { homeDrawerDestination = nil })
+            case .overview:
+                OverviewView(onBackToHome: { homeDrawerDestination = nil })
+            case .videoTutorials:
+                VideoTutorialsView()
+            case .faqs:
+                FAQsView()
+            case .helpSupport:
+                HelpSupportView()
+            case .privacyPolicy:
+                CitizenServicesWebView(
+                    url: "https://itzeazy.in/privacy-policy",
+                    title: "Privacy Policy",
+                    onBack: { homeDrawerDestination = nil }
+                )
+            case .terms:
+                CitizenServicesWebView(
+                    url: "https://itzeazy.in/terms",
+                    title: "Terms and Conditions",
+                    onBack: { homeDrawerDestination = nil }
+                )
             }
         }
         .onChange(of: isLoggedIn) { _, loggedIn in

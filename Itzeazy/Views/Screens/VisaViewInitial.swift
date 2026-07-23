@@ -136,7 +136,7 @@ struct VisaViewInitial: View {
                 }) {
                     Image(systemName: "arrow.left")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(activeButtonColor)
+                        .foregroundColor(.white)
                         .frame(width: 32, height: 32)
                 }
 

@@ -5,6 +5,7 @@ import SwiftUI
 // MARK: - HomeView
 
 struct HomeView: View {
+    var onMenuTap: () -> Void = {}
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -16,7 +17,7 @@ struct HomeView: View {
 
                     // Dark Section (Header & Hero)
                     VStack(spacing: 24) {
-                        HomeHeaderView()
+                        HomeHeaderView(onMenuTap: onMenuTap)
                             .padding(.horizontal, 0)
                         HomeHeroCardView()
                         .padding(.horizontal, 10)
@@ -51,6 +52,7 @@ struct HomeHeaderView: View {
     @EnvironmentObject private var userSession: UserSessionViewModel
     @EnvironmentObject private var authGate: AuthGateController
     @State private var navigateToProfile = false
+    var onMenuTap: () -> Void = {}
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -73,12 +75,10 @@ struct HomeHeaderView: View {
 
             // Content on top
             HStack(spacing: 0) {
-                Button(action: {
-                    // Menu action
-                }) {
+                Button(action: onMenuTap) {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.red)
+                        .foregroundColor(.white)
                 }
 
                 Spacer().frame(width: 12)

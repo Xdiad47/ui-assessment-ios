@@ -82,7 +82,7 @@ struct CitizenServicesWebView: View {
                 Button(action: { onBack?() ?? presentationMode.wrappedValue.dismiss() }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.red)
+                        .foregroundColor(.white)
                 }
 
                 Spacer().frame(width: 12)

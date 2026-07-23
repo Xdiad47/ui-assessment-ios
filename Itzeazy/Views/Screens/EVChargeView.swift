@@ -66,7 +66,7 @@ struct EVChargeView: View {
                 Button(action: { presentationMode.wrappedValue.dismiss() }) {
                     Image(systemName: "arrow.left")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(red)
+                        .foregroundColor(.white)
                         .frame(width: 32, height: 32)
                 }
 
