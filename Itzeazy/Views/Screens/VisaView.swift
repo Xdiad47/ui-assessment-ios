@@ -125,10 +125,10 @@ struct VisaView: View {
                             )
                             
                             MetricCardView(
-                                icon: "creditcard", 
-                                title: "VISA FEE", 
+                                icon: "creditcard",
+                                title: "VISA FEE",
                                 value: viewModel.visaFee,
-                                subtitle: viewModel.visaFeeUSD
+                                subtitle: ""
                             )
                             
                             MetricCardView(

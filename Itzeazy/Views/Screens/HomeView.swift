@@ -7,39 +7,84 @@ import SwiftUI
 struct HomeView: View {
     var onMenuTap: () -> Void = {}
 
+    // Coach mark proving Vehicle Info works without signing in — shown once,
+    // ever, before a guest might otherwise hit a login wall elsewhere first
+    // (e.g. the hero "Get Started" button) and assume the whole app is gated.
+    @AppStorage("hasSeenVehicleInfoSpotlight") private var hasSeenSpotlight: Bool = false
+    @State private var showSpotlight = false
+    @State private var spotlightCardRect: CGRect = .zero
+
     var body: some View {
-        ZStack(alignment: .top) {
-            // Base background: completely dark for status bar and bounce area. Prevents white gaps.
-            Color(red: 0.11, green: 0.11, blue: 0.11).ignoresSafeArea()
+        GeometryReader { outerGeo in
+            ZStack(alignment: .top) {
+                // Base background: completely dark for status bar and bounce area. Prevents white gaps.
+                Color(red: 0.11, green: 0.11, blue: 0.11).ignoresSafeArea()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
+                ScrollViewReader { scrollProxy in
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 0) {
 
-                    // Dark Section (Header & Hero)
-                    VStack(spacing: 24) {
-                        HomeHeaderView(onMenuTap: onMenuTap)
-                            .padding(.horizontal, 0)
-                        HomeHeroCardView()
-                        .padding(.horizontal, 10)
-                        .padding(.bottom, 25)
+                            // Dark Section (Header & Hero)
+                            VStack(spacing: 24) {
+                                HomeHeaderView(onMenuTap: onMenuTap)
+                                    .padding(.horizontal, 0)
+                                HomeHeroCardView()
+                                .padding(.horizontal, 10)
+                                .padding(.bottom, 25)
+                            }
+                            .background(Color(red: 0.11, green: 0.11, blue: 0.11))
+                            .clipShape(RoundedCorner(radius: 20, corners: [.bottomRight, .bottomLeft]))
+
+                            // White Section (Services & Utilities)
+                            VStack(spacing: 32) {
+                                HomeServicesGridView()
+                                    .padding(.top, 32)
+
+                                HomeUtilitiesGridView()
+                                    .id("homeSpotlightUtilitiesSection")
+
+                                HomeWorkflowView()
+
+                                HomeValuePropositionView()
+                            }
+                        }
+                        .background(Color.white)
                     }
-                    .background(Color(red: 0.11, green: 0.11, blue: 0.11))
-                    .clipShape(RoundedCorner(radius: 20, corners: [.bottomRight, .bottomLeft]))
+                    .onAppear {
+                        guard !hasSeenSpotlight else { return }
+                        // Mark as seen immediately — this coach mark shows exactly once,
+                        // regardless of how this particular showing ends (tapped "Got it",
+                        // tapped the dimmed backdrop, tapped straight through into Vehicle
+                        // Info, or just navigated away without interacting at all).
+                        hasSeenSpotlight = true
 
-                    // White Section (Services & Utilities)
-                    VStack(spacing: 32) {
-                        HomeServicesGridView()
-                            .padding(.top, 32)
-
-                        HomeUtilitiesGridView()
-
-                        HomeWorkflowView()
-
-                        HomeValuePropositionView()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                scrollProxy.scrollTo("homeSpotlightUtilitiesSection", anchor: .center)
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showSpotlight = true
+                                }
+                            }
+                        }
                     }
                 }
-                .background(Color.white)
+
+                if showSpotlight && spotlightCardRect != .zero {
+                    SpotlightTooltipView(
+                        cardRect: spotlightCardRect,
+                        screenSize: outerGeo.size,
+                        onDismiss: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showSpotlight = false
+                            }
+                        }
+                    )
+                }
             }
+            .coordinateSpace(name: "homeSpotlightSpace")
+            .onPreferenceChange(SpotlightRectKey.self) { spotlightCardRect = $0 }
         }
         .navigationTitle("")
         .navigationBarHidden(true)
@@ -533,6 +578,7 @@ struct HomeUtilitiesGridView: View {
     @StateObject private var webLoginVM = WebLoginViewModel()
     @EnvironmentObject private var authGate: AuthGateController
     @State private var showComingSoonToast = false
+    @State private var navigateToEVCharge = false
 
     private let allUtilities: [(String, String)] = [
         ("Vehicle\nInfo", "vehicle_info"),
@@ -562,6 +608,12 @@ struct HomeUtilitiesGridView: View {
                         get: { webLoginVM.generatedURL != nil },
                         set: { if !$0 { webLoginVM.reset() } }
                     )
+                ) { EmptyView() }
+                .hidden()
+
+                NavigationLink(
+                    destination: EVChargeRouter(),
+                    isActive: $navigateToEVCharge
                 ) { EmptyView() }
                 .hidden()
 
@@ -595,6 +647,18 @@ struct HomeUtilitiesGridView: View {
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
+                        )
+                        // Reports this card's own frame for the Home spotlight
+                        // coach mark (see SpotlightTooltipView) — a single,
+                        // stable measurement of the whole card rather than of
+                        // an individual grid cell.
+                        .background(
+                            GeometryReader { cardGeo in
+                                Color.clear.preference(
+                                    key: SpotlightRectKey.self,
+                                    value: cardGeo.frame(in: .named("homeSpotlightSpace"))
+                                )
+                            }
                         )
                 )
             }
@@ -651,10 +715,13 @@ struct HomeUtilitiesGridView: View {
             .buttonStyle(PlainButtonStyle())
 
         case "EV Charge":
-            NavigationLink(destination: EVChargeRouter()) {
+            Button {
+                guard authGate.requireAuth() else { return }
+                navigateToEVCharge = true
+            } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(NoHighlightButtonStyle())
 
         case "Petrol\nPump":
             Button {

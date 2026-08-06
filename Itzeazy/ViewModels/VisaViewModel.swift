@@ -48,14 +48,12 @@ private struct RequiredDocumentItem: Decodable {
 
 private struct RequiredDocumentsExtraFields: Decodable {
     let processing: String?
-    let visaFeeINR: String?
-    let visaFeeUSD: String?
+    let visaFee: String?
     let visitRequired: String?
 
     enum CodingKeys: String, CodingKey {
         case processing = "PROCESSING"
-        case visaFeeINR = "VISA FEE INR"
-        case visaFeeUSD = "VISA FEE USD"
+        case visaFee = "VISA FEE"
         case visitRequired = "VISIT REQUIRED"
     }
 }
@@ -78,7 +76,6 @@ final class VisaViewModel: ObservableObject {
 
     @Published var processingTime: String = "-"
     @Published var visaFee: String = "-"
-    @Published var visaFeeUSD: String = ""
     @Published var visitRequired: String = "-"
 
     private let api = ItzeazyAPIService.shared
@@ -175,8 +172,7 @@ final class VisaViewModel: ObservableObject {
 
                 let extraFields = response.data?.extraFields
                 processingTime = extraFields?.processing ?? "-"
-                visaFee = extraFields?.visaFeeINR.map { "₹\($0)" } ?? "-"
-                visaFeeUSD = extraFields?.visaFeeUSD ?? ""
+                visaFee = extraFields?.visaFee ?? "-"
                 visitRequired = extraFields?.visitRequired ?? "-"
             } catch let error as ItzeazyAPIError {
                 guard token == activeFetchToken else { return }
