@@ -1,8 +1,45 @@
 import SwiftUI
+import AuthenticationServices
 
 
 //Coonect the app with dev server that is dev.itzeazy.in
 //Login dev API
+
+/// Temporary: dumps everything Apple hands back so the exact payload shape
+/// (and which fields go missing on repeat sign-ins) can be checked in the
+/// Xcode console before wiring this into the backend call. Replace the body
+/// of this function with the real API call once the backend endpoint/field
+/// names are confirmed.
+private func handleAppleSignInResult(_ result: Result<ASAuthorization, Error>) {
+    switch result {
+    case .success(let authorization):
+        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+            print("🍎 Apple Sign-In: unexpected credential type — \(authorization.credential)")
+            return
+        }
+        let identityToken = credential.identityToken.flatMap { String(data: $0, encoding: .utf8) } ?? "nil"
+        let authorizationCode = credential.authorizationCode.flatMap { String(data: $0, encoding: .utf8) } ?? "nil"
+
+        // user: stable Apple ID for this app — always present, this is what
+        // the backend should key the account on.
+        // email / fullName: Apple only sends these on the FIRST authorization
+        // for this Apple ID + app. On every sign-in after that (including
+        // after a delete + reinstall), both come back nil — only `user` is
+        // guaranteed. If the backend needs email/name again later, it has to
+        // have stored them from that first response.
+        print("""
+        🍎 Apple Sign-In succeeded — raw credential:
+          user (stable id, always present):     \(credential.user)
+          email (first sign-in only):            \(credential.email ?? "nil")
+          fullName (first sign-in only):          \(credential.fullName.map { $0.formatted() } ?? "nil")
+          realUserStatus:                        \(credential.realUserStatus.rawValue)
+          identityToken (JWT — send to backend):  \(identityToken)
+          authorizationCode:                      \(authorizationCode)
+        """)
+    case .failure(let error):
+        print("🍎 Apple Sign-In failed: \(error.localizedDescription)")
+    }
+}
 
 struct LoginView: View {
     /// When true, immediately pushes to CreateAccountView on appear — used when the
@@ -342,7 +379,7 @@ struct LoginView: View {
             .buttonStyle(.plain)
 
             AppleSignInButton(label: .signIn) { result in
-                // TODO: hook up Apple credential to backend auth once the Apple Developer account (currently in review) and Sign In with Apple capability are available.
+                handleAppleSignInResult(result)
             }
         }
     }
