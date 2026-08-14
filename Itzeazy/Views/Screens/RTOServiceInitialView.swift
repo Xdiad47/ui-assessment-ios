@@ -3,6 +3,7 @@ import SwiftUI
 struct RTOServiceInitialView: View {
     @Environment(\.presentationMode) private var presentationMode
     @StateObject private var viewModel = RTOServiceInitialViewModel()
+    @StateObject private var disclaimerGate = GovDisclaimerGate(serviceKey: "rto")
     @State private var navigateToServices = false
     @State private var isLocationDropdownExpanded = false
 
@@ -32,10 +33,19 @@ struct RTOServiceInitialView: View {
                     EmptyView()
                 }
                 .hidden()
+
+                if disclaimerGate.isPresented {
+                    GovDisclaimerPopupView(
+                        onAcknowledge: disclaimerGate.acknowledge,
+                        onDismiss: { presentationMode.wrappedValue.dismiss() }
+                    )
+                    .zIndex(30)
+                }
             }
             .ignoresSafeArea()
         }
         .navigationBarHidden(true)
+        .onAppear { disclaimerGate.checkOnAppear() }
     }
 
     private var backgroundLayer: some View {

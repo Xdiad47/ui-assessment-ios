@@ -4,6 +4,7 @@ import UIKit
 struct ChallanDetailsView: View {
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject private var tabBarState: TabBarState
+    @EnvironmentObject private var authGate: AuthGateController
     @StateObject private var viewModel = ULIPChallanViewModel()
     @State private var selectedChallan: Challan? = nil
     @State private var navigateToProfile = false
@@ -240,7 +241,10 @@ struct ChallanDetailsView: View {
                 Spacer()
                 HStack(spacing: 16) {
                     Image(systemName: "bell").font(.system(size: 18)).foregroundColor(.white)
-                    Button(action: { navigateToProfile = true }) {
+                    Button(action: {
+                        guard authGate.requireAuth() else { return }
+                        navigateToProfile = true
+                    }) {
                         ZStack {
                             Circle().fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50)).frame(width: 30, height: 30)
                             Image(systemName: "person.fill").font(.system(size: 14)).foregroundColor(.white)

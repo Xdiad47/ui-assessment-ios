@@ -1,47 +1,53 @@
 import SwiftUI
 import CoreLocation
 
+// Presented as a fullScreenCover (not pushed) — the caller checks authorization
+// status *before* presenting this, so it never sits in the navigation stack
+// underneath EVChargeView. That was the root cause of the old bug: this used
+// to be pushed via NavigationLink and then push EVChargeView on top of itself,
+// leaving itself in the back stack so tapping back from the station list
+// landed back on this permission screen instead of Home.
 struct EVChargeLocationPermissionView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = EVChargeLocationPermissionViewModel()
-    @State private var navigateToCharge = false
 
-    let onManualLocation: (() -> Void)?
-
-    init(onManualLocation: (() -> Void)? = nil) {
-        self.onManualLocation = onManualLocation
-    }
-
-    // Kept for binary compatibility with cached build artifacts
-    init(onPermissionGranted: (() -> Void)?, onManualLocation: (() -> Void)?) {
-        self.onManualLocation = onManualLocation
-    }
+    let onLocationGranted: () -> Void
+    let onManualLocation: () -> Void
 
     var body: some View {
         GeometryReader { proxy in
-            ZStack(alignment: .bottom) {
-                // Hidden NavigationLink fires as soon as permission is granted
-                NavigationLink(destination: EVChargeView(), isActive: $navigateToCharge) {
-                    EmptyView()
-                }
-                .hidden()
-
+            ZStack(alignment: .top) {
                 mapBackground
                     .ignoresSafeArea()
 
-                permissionSheet(bottomInset: proxy.safeAreaInsets.bottom)
-            }
-            .navigationBarHidden(true)
-            // Auto-skip if already authorized when this view appears
-            .onAppear {
-                if viewModel.isAuthorized {
-                    navigateToCharge = true
+                closeButton(safeAreaTop: proxy.safeAreaInsets.top)
+
+                VStack {
+                    Spacer()
+                    permissionSheet(bottomInset: proxy.safeAreaInsets.bottom)
                 }
             }
-            // Navigate when permission is freshly granted
+            .navigationBarHidden(true)
+            // Navigate when permission is freshly granted (e.g. user grants it
+            // from the system prompt rather than already having it beforehand)
             .onChange(of: viewModel.isAuthorized) { _, isAuthorized in
-                if isAuthorized { navigateToCharge = true }
+                if isAuthorized { onLocationGranted() }
             }
         }
+    }
+
+    private func closeButton(safeAreaTop: CGFloat) -> some View {
+        Button(action: { dismiss() }) {
+            Image(systemName: "xmark")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 34, height: 34)
+                .background(Color.black.opacity(0.28))
+                .clipShape(Circle())
+        }
+        .padding(.top, safeAreaTop + 12)
+        .padding(.leading, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Map background
@@ -115,7 +121,7 @@ struct EVChargeLocationPermissionView: View {
                 }
                 .buttonStyle(.plain)
 
-                Button(action: { onManualLocation?() }) {
+                Button(action: onManualLocation) {
                     Text("Enter Location Manually")
                         .font(Font.custom("PlusJakartaSans-Bold", size: 18))
                         .foregroundColor(Color(hex: "#191C1D"))
@@ -138,7 +144,7 @@ struct EVChargeLocationPermissionView: View {
 
     private func handleAllowLocationTap() {
         if viewModel.isAuthorized {
-            navigateToCharge = true
+            onLocationGranted()
         } else {
             viewModel.requestLocationAccess()
         }
@@ -292,24 +298,6 @@ private struct EVMapPin: View {
     }
 }
 
-// Routes directly to EVChargeView if location is already authorized — no permission flash.
-struct EVChargeRouter: View {
-    @State private var skipPermission: Bool = {
-        let s = CLLocationManager().authorizationStatus
-        return s == .authorizedWhenInUse || s == .authorizedAlways
-    }()
-
-    var body: some View {
-        if skipPermission {
-            EVChargeView()
-        } else {
-            EVChargeLocationPermissionView()
-        }
-    }
-}
-
 #Preview {
-    NavigationView {
-        EVChargeRouter()
-    }
+    EVChargeLocationPermissionView(onLocationGranted: {}, onManualLocation: {})
 }

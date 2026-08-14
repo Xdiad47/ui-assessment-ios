@@ -7,6 +7,7 @@ enum AppEnvironment {
 
     // Change this single line to switch environments
     static var current: AppEnvironment = .dev
+    //static var current: AppEnvironment = .prod
 
     var baseURL: String {
         switch self {
@@ -19,3 +20,6 @@ enum AppEnvironment {
         }
     }
 }
+/*
+ 
+ */

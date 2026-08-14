@@ -4,6 +4,7 @@ struct TSDLInfoScreen: View {
     @StateObject private var viewModel = ULIPTGDLViewModel()
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject private var tabBarState: TabBarState
+    @EnvironmentObject private var authGate: AuthGateController
     @State private var navigateToProfile = false
 
     var body: some View {
@@ -66,7 +67,10 @@ struct TSDLInfoScreen: View {
                         .font(.system(size: 18))
                         .foregroundColor(.white)
 
-                    Button(action: { navigateToProfile = true }) {
+                    Button(action: {
+                        guard authGate.requireAuth() else { return }
+                        navigateToProfile = true
+                    }) {
                         ZStack {
                             Circle()
                                 .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))

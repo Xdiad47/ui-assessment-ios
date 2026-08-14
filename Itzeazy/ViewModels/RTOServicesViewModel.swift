@@ -11,17 +11,20 @@ class RTOServicesViewModel: ObservableObject {
     // Legacy: kept for backward compat if needed elsewhere
     var selectedType: String { selectedSubService?.display ?? "" }
 
-    // RTO sub-services — slugs match itzeazy.in URL structure
+    // Display values must match RTOServiceDetailViewModel.redirectPath's exact switch
+    // cases (and rtoServices below) — "Get Started" navigates straight into
+    // RTOServiceDetailView(serviceTitle: subService.display), which uses that string
+    // verbatim as both the documents-API `work` param and the redirect-URL lookup key.
     let rtoSubServices: [SubServiceOption] = [
-        SubServiceOption(display: "New Driving License",           slug: "driving-license-agents-consultants"),
-        SubServiceOption(display: "Driving License Renewal",       slug: "driving-license-renewal"),
-        SubServiceOption(display: "NOC",                           slug: "noc-for-car-bike"),
-        SubServiceOption(display: "Duplicate RC",                  slug: "duplicate-rc-of-vehicle-car-bike"),
-        SubServiceOption(display: "Duplicate Driving License",     slug: "duplicate-driving-license"),
-        SubServiceOption(display: "HP Deletion",                   slug: "hypothecation-deletion-termination-removal-hpt-of-vehicle-car-bike"),
-        SubServiceOption(display: "Ownership Transfer",            slug: "ownership-transfer-change-of-vehicle-car-bike"),
-        SubServiceOption(display: "International Driving License", slug: "international-driving-license"),
-        SubServiceOption(display: "Re Registration",               slug: "re-registration-of-vehicle-car-bike")
+        SubServiceOption(display: "New DL",          slug: "driving-license-agents-consultants"),
+        SubServiceOption(display: "DL Renewal",      slug: "driving-license-renewal"),
+        SubServiceOption(display: "Vehicle NOC",     slug: "noc-for-car-bike"),
+        SubServiceOption(display: "Duplicate RC",    slug: "duplicate-rc-of-vehicle-car-bike"),
+        SubServiceOption(display: "Duplicate DL",    slug: "duplicate-driving-license"),
+        SubServiceOption(display: "HP Termination",  slug: "hypothecation-deletion-termination-removal-hpt-of-vehicle-car-bike"),
+        SubServiceOption(display: "RC Transfer",     slug: "ownership-transfer-change-of-vehicle-car-bike"),
+        SubServiceOption(display: "Intl. DL",        slug: "international-driving-license"),
+        SubServiceOption(display: "Re-registration", slug: "re-registration-of-vehicle-car-bike")
     ]
 
     @Published var rtoServices: [ServiceItem] = [
@@ -52,15 +55,5 @@ class RTOServicesViewModel: ObservableObject {
 
     var isGetStartedEnabled: Bool {
         !selectedLocation.isEmpty && selectedSubService != nil
-    }
-
-    // MARK: - URL Builder
-    // Pattern: https://itzeazy.in/{city-slug}/rto/{subService-slug}-in-{city-slug}
-
-    func buildUrl() -> String? {
-        guard let subService = selectedSubService, !selectedLocation.isEmpty else { return nil }
-        let citySlug = selectedLocation.lowercased()
-            .replacingOccurrences(of: " ", with: "-")
-        return "https://itzeazy.in/\(citySlug)/rto/\(subService.slug)-in-\(citySlug)"
     }
 }

@@ -2,7 +2,9 @@ import SwiftUI
 
 struct VisaViewInitial: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var authGate: AuthGateController
     @StateObject private var viewModel = VisaViewInitialViewModel()
+    @StateObject private var disclaimerGate = GovDisclaimerGate(serviceKey: "visa")
     @FocusState private var isSearchFocused: Bool
     @State private var navigateToVisa = false
     @State private var navigateToProfile = false
@@ -66,6 +68,14 @@ struct VisaViewInitial: View {
                 }
                 .hidden()
                 .zIndex(21)
+
+                if disclaimerGate.isPresented {
+                    GovDisclaimerPopupView(
+                        onAcknowledge: disclaimerGate.acknowledge,
+                        onDismiss: { presentationMode.wrappedValue.dismiss() }
+                    )
+                    .zIndex(30)
+                }
             }
             .ignoresSafeArea()
             .onReceive(
@@ -86,6 +96,7 @@ struct VisaViewInitial: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear { disclaimerGate.checkOnAppear() }
     }
 
     // MARK: - Background
@@ -153,7 +164,10 @@ struct VisaViewInitial: View {
                         .frame(width: 32, height: 32)
                 }
 
-                Button(action: { navigateToProfile = true }) {
+                Button(action: {
+                    guard authGate.requireAuth() else { return }
+                    navigateToProfile = true
+                }) {
                     ZStack {
                         Circle()
                             .fill(Color(red: 0.22, green: 0.22, blue: 0.22))
@@ -182,7 +196,7 @@ struct VisaViewInitial: View {
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
 
-                    Text("Apply For Visa Like You Have Done It 1000 Times Before, 100% success rate")
+                    Text("Get step-by-step assistance from application to appointment")
                         .font(Font.custom("Inter", size: 16))
                         .foregroundColor(Color.white.opacity(0.72))
                         .multilineTextAlignment(.center)

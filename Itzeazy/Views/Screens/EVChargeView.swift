@@ -1,11 +1,16 @@
 import SwiftUI
 import UIKit
+import CoreLocation
 
 struct EVChargeView: View {
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject private var tabBarState: TabBarState
-    @StateObject private var viewModel = EVChargeViewModel()
+    @StateObject private var viewModel: EVChargeViewModel
     @FocusState private var isSearchFocused: Bool
+
+    init(initialCoordinate: CLLocationCoordinate2D? = nil) {
+        _viewModel = StateObject(wrappedValue: EVChargeViewModel(initialCoordinate: initialCoordinate))
+    }
 
     private let red   = Color(hex: "#E61A20")
     private let dark  = Color(hex: "#0E0F11")

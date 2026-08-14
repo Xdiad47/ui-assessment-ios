@@ -40,6 +40,18 @@ final class WebLoginViewModel: ObservableObject {
         }
     }
 
+    /// Guest path for browse-only citizen-service pages: opens the plain public
+    /// itzeazy.in URL directly, with no backend call and no session token —
+    /// bypasses the generate-web-login-token API (and the login it requires)
+    /// entirely. Only wire this up at call sites whose URL is genuinely a
+    /// public page (see AuthGateController's doc comment for which ones).
+    /// Logged-in users should keep going through generateToken() instead, for
+    /// the personalized SSO experience.
+    func openDirectly(urlString: String, title: String) {
+        generatedTitle = title
+        generatedURL = urlString
+    }
+
     func reset() {
         generatedURL = nil
         generatedTitle = ""

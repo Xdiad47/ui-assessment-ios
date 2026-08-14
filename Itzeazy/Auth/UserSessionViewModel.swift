@@ -6,6 +6,12 @@ final class UserSessionViewModel: ObservableObject {
     @Published var user: UserProfile? = nil
     @Published var isDeletingAccount = false
     @Published var deleteError: String? = nil
+    // Fires once right after a successful delete. ProfileView is reachable
+    // from many screens (Home header, Vehicle/Challan/DL Info, etc.), not
+    // just the Profile tab, so navigating back to Home on success can't rely
+    // on any single screen's own dismiss/back action — MainTabView observes
+    // this instead and resets to Home from wherever the delete happened.
+    @Published var didDeleteAccount = false
 
     private let api = ItzeazyAPIService.shared
     private let storage = AuthSessionStorage.shared
@@ -60,9 +66,10 @@ final class UserSessionViewModel: ObservableObject {
         Task {
             defer { isDeletingAccount = false }
             do {
-                let _: AuthResponse = try await api.delete(endpoint: "user", token: token)
+                let _: DeleteAccountResponse = try await api.delete(endpoint: "user", token: token)
                 clearUser()
                 UserDefaults.standard.set(false, forKey: "isLoggedIn")
+                didDeleteAccount = true
             } catch {
                 deleteError = (error as? ItzeazyAPIError)?.errorDescription ?? error.localizedDescription
             }

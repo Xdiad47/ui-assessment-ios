@@ -1,22 +1,28 @@
 import SwiftUI
 
-struct RTOServiceDetailView: View {
+// The live site's Marriage Registration page for Bangalore is spelled "banglore" (verified
+// against the actual URL) — every other city uses normal spelling. Mirrors Android's
+// marriageRegRedirectPath() in MainScreen.kt exactly.
+private func marriageRegRedirectPath(city: String) -> String {
+    let slug = city.caseInsensitiveCompare("Bangalore") == .orderedSame ? "banglore" : city.lowercased()
+    return "https://itzeazy.in/order/marriage-registration-\(slug)"
+}
+
+struct MarriageRegDetailView: View {
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject private var authGate: AuthGateController
-    @StateObject private var viewModel: RTOServiceDetailViewModel
+    @StateObject private var viewModel = MarriageRegDetailViewModel()
     @StateObject private var webLoginVM = WebLoginViewModel()
-    @StateObject private var disclaimerGate = GovDisclaimerGate(serviceKey: "rto")
+    @StateObject private var disclaimerGate = GovDisclaimerGate(serviceKey: "marriage_reg")
+    @State private var selectedService: String
     @State private var showWebView = false
 
-    // True only when this screen is entered directly (e.g. the Home hero card's "Get
-    // Started"), bypassing RTOServiceInitialView's own disclaimer — the gate above uses the
-    // same "rto" key so both entry paths share one daily counter.
+    let location: String
     let showEntryDisclaimer: Bool
 
-    init(serviceTitle: String, city: String = "Bengaluru", showEntryDisclaimer: Bool = false) {
-        _viewModel = StateObject(
-            wrappedValue: RTOServiceDetailViewModel(serviceTitle: serviceTitle, city: city)
-        )
+    init(location: String, service: String, showEntryDisclaimer: Bool = false) {
+        self.location = location
+        self._selectedService = State(initialValue: service)
         self.showEntryDisclaimer = showEntryDisclaimer
     }
 
@@ -29,7 +35,7 @@ struct RTOServiceDetailView: View {
                             url: url,
                             title: webLoginVM.generatedTitle,
                             onBack: { showWebView = false },
-                            showGovDisclaimer: true
+                            showGovBanner: true
                         )
                     }
                 },
@@ -49,8 +55,6 @@ struct RTOServiceDetailView: View {
             }
 
             VStack(spacing: 0) {
-
-                // ── Dark top nav bar ───────────────────────────────
                 VStack(spacing: 0) {
                     HStack(spacing: 12) {
                         Button(action: { presentationMode.wrappedValue.dismiss() }) {
@@ -60,7 +64,7 @@ struct RTOServiceDetailView: View {
                                 .frame(width: 24, height: 24)
                         }
 
-                        Text(viewModel.navigationTitle)
+                        Text("Marriage Reg. / \(location)")
                             .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
                             .foregroundColor(.white)
                             .lineLimit(1)
@@ -71,6 +75,17 @@ struct RTOServiceDetailView: View {
                     .padding(.horizontal, 20)
                     .frame(maxWidth: .infinity)
                     .frame(height: 60)
+
+                    HStack(spacing: 12) {
+                        ServiceToggleChip(label: "Marriage Registration", isSelected: selectedService == "Marriage Registration") {
+                            selectedService = "Marriage Registration"
+                        }
+                        ServiceToggleChip(label: "Court Marriage", isSelected: selectedService == "Court Marriage") {
+                            selectedService = "Court Marriage"
+                        }
+                    }
+                    .padding(.top, 18)
+                    .padding(.bottom, 18)
                 }
                 .background(
                     Color(red: 0.10, green: 0.11, blue: 0.11)
@@ -79,43 +94,22 @@ struct RTOServiceDetailView: View {
                 )
                 .zIndex(1)
 
-                // ── Scrollable content ────────────────────────────
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
 
-                        // Metric cards row
                         HStack(spacing: 16) {
-                            RTOMetricCard(
-                                icon: "processing_rto",
-                                label: "PROCESSING",
-                                value: viewModel.processingTime
-                            )
-                            RTOMetricCard(
-                                icon: "document_rto",
-                                label: "DOCUMENT\nCOLLECTION",
-                                value: viewModel.documentCollection
-                            )
-                            RTOMetricCard(
-                                icon: "visit_rto",
-                                label: "VISIT\nREQUIRED",
-                                value: viewModel.visitRequired
-                            )
+                            GovFeeMetricCard(icon: "ic_card_processing", label: "PROCESSING", value: viewModel.processing)
+                            GovFeeMetricCard(icon: "ic_card_govt_fee", label: "GOVT. FEE", value: viewModel.govtFee)
+                            GovFeeMetricCard(icon: "ic_card_service_fee", label: "ITZEAZY FEE", value: viewModel.itzeazyFee)
                         }
                         .padding(.horizontal, 24)
                         .padding(.top, 32)
                         .padding(.bottom, 28)
 
-                        // Apply Now button
                         Button(action: {
                             guard authGate.requireAuth() else { return }
-                            if let path = viewModel.redirectPath {
-                                webLoginVM.generateToken(
-                                    urlString: "https://itzeazy.in\(path)",
-                                    title: viewModel.serviceTitle
-                                )
-                            } else {
-                                viewModel.showUnavailableAlert = true
-                            }
+                            let url = marriageRegRedirectPath(city: location)
+                            webLoginVM.generateToken(urlString: url, title: "Marriage Registration")
                         }) {
                             ZStack {
                                 if webLoginVM.isLoading {
@@ -148,14 +142,12 @@ struct RTOServiceDetailView: View {
 
                         GovDisclaimerJustificationCard(
                             text: "Itzeazy fee covers document verification, form filling guidance, " +
-                                "appointment booking assistance, and doorstep support."
+                                "registration appointment booking, and doorstep support."
                         )
                         .padding(.horizontal, 24)
                         .padding(.bottom, 32)
 
-                        // Required Documents section
                         VStack(alignment: .leading, spacing: 16) {
-                            // Section heading
                             HStack(spacing: 10) {
                                 Image(systemName: "doc.text.fill")
                                     .foregroundColor(.red)
@@ -167,31 +159,18 @@ struct RTOServiceDetailView: View {
                             }
                             .padding(.bottom, 4)
 
-                            // Document list
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .red))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                            } else if let documentsMessage = viewModel.documentsMessage {
-                                Text(documentsMessage)
-                                    .font(Font.custom("Inter", size: 14))
-                                    .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            } else {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    ForEach(viewModel.requiredDocuments, id: \.self) { doc in
-                                        HStack(alignment: .top, spacing: 12) {
-                                            Circle()
-                                                .fill(Color.red)
-                                                .frame(width: 6, height: 6)
-                                                .padding(.top, 8)
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(viewModel.documents, id: \.self) { doc in
+                                    HStack(alignment: .top, spacing: 12) {
+                                        Circle()
+                                            .fill(Color.red)
+                                            .frame(width: 6, height: 6)
+                                            .padding(.top, 8)
 
-                                            Text(doc)
-                                                .font(Font.custom("Inter", size: 14))
-                                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                                                .fixedSize(horizontal: false, vertical: true)
-                                        }
+                                        Text(doc)
+                                            .font(Font.custom("Inter", size: 14))
+                                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                            .fixedSize(horizontal: false, vertical: true)
                                     }
                                 }
                             }
@@ -215,11 +194,6 @@ struct RTOServiceDetailView: View {
         .onChange(of: showWebView) { _, isActive in
             if !isActive { webLoginVM.reset() }
         }
-        .alert("Service Unavailable", isPresented: $viewModel.showUnavailableAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("This service is currently unavailable")
-        }
         .alert("Something went wrong", isPresented: Binding(
             get: { webLoginVM.errorMessage != nil },
             set: { if !$0 { webLoginVM.errorMessage = nil } }
@@ -228,65 +202,9 @@ struct RTOServiceDetailView: View {
         } message: {
             Text(webLoginVM.errorMessage ?? "")
         }
-        .alert("Something went wrong", isPresented: Binding(
-            get: { viewModel.errorMessage != nil },
-            set: { if !$0 { viewModel.errorMessage = nil } }
-        )) {
-            Button("Retry") { viewModel.fetchRequiredDocuments() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
-    }
-}
-
-// MARK: - Metric Card Component
-
-private struct RTOMetricCard: View {
-    let icon: String
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Image(icon)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 28, height: 28)
-
-            Text(label)
-                .font(Font.custom("Inter", size: 9).weight(.semibold))
-                .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
-                .multilineTextAlignment(.center)
-                .tracking(0.5)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(value)
-                .font(Font.custom("PlusJakartaSans-Bold", size: 11))
-                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 100)
-        .background(
-            LinearGradient(
-                stops: [
-                    .init(color: Color.white, location: 0.0),
-                    .init(color: Color(white: 0.60), location: 1.28)
-                ],
-                startPoint: .init(x: 0.5, y: 0.0),
-                endPoint: .init(x: 0.5, y: 1.0)
-            )
-        )
-        .cornerRadius(32)
-        .overlay(
-            RoundedRectangle(cornerRadius: 32)
-                .stroke(Color(red: 0.72, green: 0.72, blue: 0.72), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.04), radius: 15, x: 0, y: 8)
     }
 }
 
 #Preview {
-    RTOServiceDetailView(serviceTitle: "Duplicate RC")
+    MarriageRegDetailView(location: "Bangalore", service: "Marriage Registration")
 }

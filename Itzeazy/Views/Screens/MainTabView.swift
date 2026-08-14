@@ -11,6 +11,7 @@ struct MainTabView: View {
     @State private var selectedTab: Tab = .home
     @State private var homeNavID = UUID()
     @EnvironmentObject private var tabBarState: TabBarState
+    @EnvironmentObject private var userSession: UserSessionViewModel
     @StateObject private var authGate = AuthGateController()
     @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
     // Home's hamburger drawer lives at this top level (not nested inside HomeView) so it
@@ -122,7 +123,15 @@ struct MainTabView: View {
                         isLoggedIn: isLoggedIn,
                         onItemTap: { destination in
                             showHomeDrawer = false
-                            homeDrawerDestination = destination
+                            switch destination {
+                            case .myOrders, .overview, .helpSupport:
+                                // These hold personal account data / trigger a generate-token
+                                // web login — require auth before opening, same as the tab bar.
+                                guard authGate.requireAuth() else { return }
+                                homeDrawerDestination = destination
+                            case .videoTutorials, .faqs, .privacyPolicy, .terms:
+                                homeDrawerDestination = destination
+                            }
                         },
                         onLogoutTap: {
                             showHomeDrawer = false
@@ -176,6 +185,12 @@ struct MainTabView: View {
             if loggedIn {
                 authGate.authFlow = nil
             }
+        }
+        .onChange(of: userSession.didDeleteAccount) { _, deleted in
+            guard deleted else { return }
+            selectedTab = .home
+            homeNavID = UUID()
+            userSession.didDeleteAccount = false
         }
         .edgesIgnoringSafeArea(.bottom)
     }

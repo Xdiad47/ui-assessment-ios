@@ -126,3 +126,33 @@ struct SubServiceOption: Identifiable, Equatable {
     let display: String
     let slug: String
 }
+
+/// Wraps a plain String so simple string lists (city names, service labels) can be used
+/// with Identifiable-constrained views like PickerSheetView without a dedicated model.
+struct IdentifiableString: Identifiable, Hashable {
+    let id = UUID()
+    let value: String
+}
+
+/// Where the Home hero card's "Get Started" should navigate once location + service + type
+/// are all picked — the hero card already collected everything a service's own Initial
+/// screen would, so this skips straight to that service's native detail screen.
+enum HeroDestination: Identifiable {
+    case passport(location: String, service: String)
+    case marriageReg(location: String, service: String)
+    case birthCert(location: String, service: String)
+    case panCard(location: String, service: String)
+    case rto(serviceTitle: String, city: String)
+    case visa(country: String)
+
+    var id: String {
+        switch self {
+        case .passport: return "passport"
+        case .marriageReg: return "marriageReg"
+        case .birthCert: return "birthCert"
+        case .panCard: return "panCard"
+        case .rto: return "rto"
+        case .visa: return "visa"
+        }
+    }
+}

@@ -29,17 +29,36 @@ struct CitizenServicesWebView: View {
     // and rely on presentationMode.dismiss(). Screens hosting this as tab-root content
     // (e.g. MyOrdersView) have nothing to dismiss, so they pass their own back action.
     var onBack: (() -> Void)? = nil
+    // Blocking "Important Notice" popup before the page loads. Screens whose own native
+    // flow already showed this (Passport/Marriage/Birth/PAN's "Get Assistance") pass false
+    // here to avoid asking twice in a row; everything else defaults to showing it.
+    var showGovDisclaimer: Bool = false
+    // Independent of the popup above — shows the slim translucent banner for the whole time
+    // the page is up. Defaults to mirroring showGovDisclaimer, but can be forced true even
+    // when the popup itself is skipped (still a private portal, even if already acknowledged).
+    var showGovBanner: Bool
 
     @StateObject private var vm: WebViewModel
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject private var tabBarState: TabBarState
+    @EnvironmentObject private var authGate: AuthGateController
     @State private var navigateToProfile = false
+    @State private var disclaimerAcknowledged: Bool
 
-    init(url: String, title: String = "Citizen Services", onBack: (() -> Void)? = nil) {
+    init(
+        url: String,
+        title: String = "Citizen Services",
+        onBack: (() -> Void)? = nil,
+        showGovDisclaimer: Bool = false,
+        showGovBanner: Bool? = nil
+    ) {
         self.url     = url
         self.title   = title
         self.onBack  = onBack
+        self.showGovDisclaimer = showGovDisclaimer
+        self.showGovBanner = showGovBanner ?? showGovDisclaimer
         _vm = StateObject(wrappedValue: WebViewModel(title: title, urlString: url))
+        _disclaimerAcknowledged = State(initialValue: !showGovDisclaimer)
     }
 
     var body: some View {
@@ -52,7 +71,18 @@ struct CitizenServicesWebView: View {
 
             VStack(spacing: 0) {
                 navHeader
-                webContent
+                if disclaimerAcknowledged {
+                    if showGovBanner { GovDisclaimerBanner() }
+                    webContent
+                }
+            }
+
+            if showGovDisclaimer && !disclaimerAcknowledged {
+                GovDisclaimerPopupView(
+                    onAcknowledge: { disclaimerAcknowledged = true },
+                    onDismiss: { onBack?() ?? presentationMode.wrappedValue.dismiss() }
+                )
+                .zIndex(30)
             }
         }
         .navigationTitle("")
@@ -98,7 +128,10 @@ struct CitizenServicesWebView: View {
                         .font(.system(size: 18))
                         .foregroundColor(.white)
 
-                    Button(action: { navigateToProfile = true }) {
+                    Button(action: {
+                        guard authGate.requireAuth() else { return }
+                        navigateToProfile = true
+                    }) {
                         ZStack {
                             Circle()
                                 .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))

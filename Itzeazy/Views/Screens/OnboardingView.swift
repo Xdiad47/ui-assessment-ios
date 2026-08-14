@@ -94,20 +94,27 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 16) {
                 // Title: Plus Jakarta Sans Bold — size/line-height vary per page
                 let page = viewModel.pages[viewModel.currentPage]
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(page.titleLine1)
-                        .font(Font.custom("PlusJakartaSans-Bold", size: page.titleFontSize))
-                        .foregroundColor(Color(hex: "#191c1d"))
-                        .tracking(-0.8)
-                        .lineSpacing(page.titleLineSpacing)
-                    if !page.titleLine2.isEmpty {
-                        Text(page.titleLine2)
-                            .font(Font.custom("PlusJakartaSans-Bold", size: page.titleFontSize))
-                            .foregroundColor(page.titleLine2Color)
-                            .tracking(-0.8)
-                            .lineSpacing(page.titleLineSpacing)
+                Group {
+                    if page.titleInline {
+                        (
+                            Text(page.titleLine1).foregroundColor(Color(hex: "#191c1d"))
+                            + Text(page.titleLine2).foregroundColor(page.titleLine2Color)
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(page.titleLine1)
+                                .foregroundColor(Color(hex: "#191c1d"))
+                            if !page.titleLine2.isEmpty {
+                                Text(page.titleLine2)
+                                    .foregroundColor(page.titleLine2Color)
+                            }
+                        }
                     }
                 }
+                .font(Font.custom("PlusJakartaSans-Bold", size: page.titleFontSize))
+                .tracking(-0.8)
+                .lineSpacing(page.titleLineSpacing)
                 // Subtitle: Inter Regular — size/line-height vary per page
                 Text(page.subtitle)
                     .font(Font.custom("Inter", size: page.subtitleFontSize))

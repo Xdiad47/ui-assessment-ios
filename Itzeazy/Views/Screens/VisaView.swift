@@ -2,11 +2,19 @@ import SwiftUI
 
 struct VisaView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var authGate: AuthGateController
     @StateObject private var viewModel: VisaViewModel
     @StateObject private var webLoginVM = WebLoginViewModel()
+    @StateObject private var disclaimerGate = GovDisclaimerGate(serviceKey: "visa")
 
-    init(selectedCountry: String = "Singapore") {
+    // True only when this screen is entered directly (e.g. the Home hero card's "Get
+    // Started"), bypassing VisaViewInitial's own disclaimer — the gate above uses the same
+    // "visa" key so both entry paths share one daily counter.
+    let showEntryDisclaimer: Bool
+
+    init(selectedCountry: String = "Singapore", showEntryDisclaimer: Bool = false) {
         _viewModel = StateObject(wrappedValue: VisaViewModel(selectedCountry: selectedCountry))
+        self.showEntryDisclaimer = showEntryDisclaimer
     }
 
     var body: some View {
@@ -16,7 +24,8 @@ struct VisaView: View {
             NavigationLink(
                 destination: CitizenServicesWebView(
                     url: webLoginVM.generatedURL ?? "",
-                    title: viewModel.selectedCountry
+                    title: viewModel.selectedCountry,
+                    showGovDisclaimer: true
                 ),
                 isActive: Binding(
                     get: { webLoginVM.generatedURL != nil },
@@ -24,6 +33,14 @@ struct VisaView: View {
                 )
             ) { EmptyView() }
             .hidden()
+
+            if disclaimerGate.isPresented {
+                GovDisclaimerPopupView(
+                    onAcknowledge: disclaimerGate.acknowledge,
+                    onDismiss: { presentationMode.wrappedValue.dismiss() }
+                )
+                .zIndex(30)
+            }
 
             VStack(spacing: 0) {
                 // ── Dark Header Section ───────────
@@ -143,6 +160,7 @@ struct VisaView: View {
                         
                         // Apply Now Button
                         Button(action: {
+                            guard authGate.requireAuth() else { return }
                             guard let encodedCountry = viewModel.selectedCountry.addingPercentEncoding(
                                 withAllowedCharacters: .urlPathAllowed
                             ) else { return }
@@ -154,7 +172,7 @@ struct VisaView: View {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 } else {
-                                    Text("APPLY NOW")
+                                    Text("GET ASSISTANCE")
                                         .font(Font.custom("PlusJakartaSans-Bold", size: 16))
                                         .foregroundColor(.white)
 
@@ -175,7 +193,14 @@ struct VisaView: View {
                         .disabled(webLoginVM.isLoading)
                         .padding(.horizontal, 20)
                         .padding(.top, 24)
-                        
+
+                        GovDisclaimerJustificationCard(
+                            text: "Itzeazy fee covers document verification, form filling guidance, " +
+                                "appointment booking assistance, and doorstep support."
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+
                         // Required Documents List
                         VStack(alignment: .leading, spacing: 16) {
                             HStack(spacing: 8) {
@@ -224,6 +249,9 @@ struct VisaView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            if showEntryDisclaimer { disclaimerGate.checkOnAppear() }
+        }
         .alert("Something went wrong", isPresented: Binding(
             get: { webLoginVM.errorMessage != nil },
             set: { if !$0 { webLoginVM.errorMessage = nil } }

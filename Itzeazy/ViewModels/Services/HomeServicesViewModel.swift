@@ -17,22 +17,9 @@ struct ServiceWebItem: Identifiable {
 
 final class HomeServicesViewModel: ObservableObject {
 
+    // Passport, Marriage Reg., Birth Cert., and Pan Card moved to native intro + detail
+    // screens (see HomeServicesGridView.serviceCell) — no longer routed through this list.
     let webItems: [ServiceWebItem] = [
-        ServiceWebItem(
-            label: "Passport",
-            icon:  "passport",
-            url:   "https://itzeazy.in/location/passport"
-        ),
-        ServiceWebItem(
-            label: "Marriage\nReg.",
-            icon:  "marriage_reg",
-            url:   "https://itzeazy.in/location/marriage-registration"
-        ),
-        ServiceWebItem(
-            label: "Birth Cert.",
-            icon:  "birth_certi",
-            url:   "https://itzeazy.in/location/birth-certificate"
-        ),
         ServiceWebItem(
             label: "IT Returns",
             icon:  "it_returns",
@@ -47,11 +34,6 @@ final class HomeServicesViewModel: ObservableObject {
             label: "POI/FRRO",
             icon:  "poi_frro",
             url:   "https://itzeazy.in/poi-ffro"     // intentional typo — matches Android source
-        ),
-        ServiceWebItem(
-            label: "Pan Card",
-            icon:  "pan_card",
-            url:   "https://itzeazy.in/location/pan-card"
         ),
     ]
 }

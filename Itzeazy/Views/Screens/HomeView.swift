@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 //Enable navigation logic on tap on the profile icons in all top bar
 
@@ -7,10 +8,17 @@ import SwiftUI
 struct HomeView: View {
     var onMenuTap: () -> Void = {}
 
-    // Coach mark proving Vehicle Info works without signing in — shown once,
-    // ever, before a guest might otherwise hit a login wall elsewhere first
-    // (e.g. the hero "Get Started" button) and assume the whole app is gated.
-    @AppStorage("hasSeenVehicleInfoSpotlight") private var hasSeenSpotlight: Bool = false
+    // Coach mark proving RTO Services and Visa are browsable without signing
+    // in — shown once, ever, before a guest might otherwise hit a login wall
+    // elsewhere first (e.g. the hero "Get Started" button) and assume the
+    // whole app is gated. Originally targeted Vehicle/Challan/DL Info, but
+    // those ended up requiring login too (ULIP needs a session token, no
+    // guest token exists) — RTO Services / Visa are the ones that are
+    // actually true guest-accessible browsing (login only kicks in at
+    // "Apply Now"), so the spotlight was retargeted to them. New AppStorage
+    // key so it fires fresh even for users who saw the old version.
+    private let isSpotlightEnabled = true
+    @AppStorage("hasSeenServicesSpotlight") private var hasSeenSpotlight: Bool = false
     @State private var showSpotlight = false
     @State private var spotlightCardRect: CGRect = .zero
 
@@ -36,12 +44,12 @@ struct HomeView: View {
                             .clipShape(RoundedCorner(radius: 20, corners: [.bottomRight, .bottomLeft]))
 
                             // White Section (Services & Utilities)
-                            VStack(spacing: 32) {
+                            VStack(spacing: 8) {
                                 HomeServicesGridView()
                                     .padding(.top, 32)
+                                    .id("homeSpotlightServicesSection")
 
                                 HomeUtilitiesGridView()
-                                    .id("homeSpotlightUtilitiesSection")
 
                                 HomeWorkflowView()
 
@@ -51,7 +59,7 @@ struct HomeView: View {
                         .background(Color.white)
                     }
                     .onAppear {
-                        guard !hasSeenSpotlight else { return }
+                        guard isSpotlightEnabled, !hasSeenSpotlight else { return }
                         // Mark as seen immediately — this coach mark shows exactly once,
                         // regardless of how this particular showing ends (tapped "Got it",
                         // tapped the dimmed backdrop, tapped straight through into Vehicle
@@ -60,7 +68,7 @@ struct HomeView: View {
 
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                             withAnimation(.easeInOut(duration: 0.5)) {
-                                scrollProxy.scrollTo("homeSpotlightUtilitiesSection", anchor: .center)
+                                scrollProxy.scrollTo("homeSpotlightServicesSection", anchor: .center)
                             }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -169,6 +177,7 @@ struct HomeHeroCardView: View {
     @State private var showCityPicker    = false
     @State private var showServicePicker = false
     @State private var showTypePicker    = false
+    @State private var heroDestination: HeroDestination?
     @StateObject private var webLoginVM  = WebLoginViewModel()
 
     private let accentRed = Color(red: 0.85, green: 0.2, blue: 0.2)
@@ -270,9 +279,55 @@ struct HomeHeroCardView: View {
                 ) { EmptyView() }
                 .hidden()
 
+                // Location + service + type are already picked here — this is exactly what
+                // each service's own Initial screen collects, so skip straight to that
+                // service's native detail screen instead of the old generic WebView landing
+                // page. showEntryDisclaimer: true because the Initial screen that would
+                // normally show the "Important Notice" popup was bypassed.
+                NavigationLink(
+                    destination: Group {
+                        switch heroDestination {
+                        case .passport(let location, let service):
+                            PassportDetailView(location: location, service: service, showEntryDisclaimer: true)
+                        case .marriageReg(let location, let service):
+                            MarriageRegDetailView(location: location, service: service, showEntryDisclaimer: true)
+                        case .birthCert(let location, let service):
+                            BirthCertDetailView(location: location, service: service, showEntryDisclaimer: true)
+                        case .panCard(let location, let service):
+                            PanCardDetailView(location: location, service: service, showEntryDisclaimer: true)
+                        case .rto(let serviceTitle, let city):
+                            RTOServiceDetailView(serviceTitle: serviceTitle, city: city, showEntryDisclaimer: true)
+                        case .visa(let country):
+                            VisaView(selectedCountry: country, showEntryDisclaimer: true)
+                        case nil:
+                            EmptyView()
+                        }
+                    },
+                    isActive: Binding(
+                        get: { heroDestination != nil },
+                        set: { if !$0 { heroDestination = nil } }
+                    )
+                ) { EmptyView() }
+                .hidden()
+
                 Button(action: {
-                    guard authGate.requireAuth() else { return }
-                    if let url = vm.buildUrl() {
+                    guard let service = vm.selectedService, let subService = vm.selectedSubService else { return }
+                    switch service.slug {
+                    case "passport":
+                        heroDestination = .passport(location: vm.selectedCity?.display ?? "", service: subService.display)
+                    case "marriage-registration":
+                        heroDestination = .marriageReg(location: vm.selectedCity?.display ?? "", service: subService.display)
+                    case "birth-certificate":
+                        heroDestination = .birthCert(location: vm.selectedCity?.display ?? "", service: subService.display)
+                    case "pan-card":
+                        heroDestination = .panCard(location: vm.selectedCity?.display ?? "", service: subService.display)
+                    case "rto":
+                        heroDestination = .rto(serviceTitle: subService.display, city: vm.selectedCity?.display ?? "Bengaluru")
+                    case "visa":
+                        heroDestination = .visa(country: subService.display)
+                    default:
+                        guard authGate.requireAuth() else { return }
+                        guard let url = vm.buildUrl() else { return }
                         webLoginVM.generateToken(urlString: url, title: "Citizen Services")
                     }
                 }) {
@@ -463,7 +518,8 @@ struct HomeServicesGridView: View {
                 NavigationLink(
                     destination: CitizenServicesWebView(
                         url: webLoginVM.generatedURL ?? "",
-                        title: webLoginVM.generatedTitle
+                        title: webLoginVM.generatedTitle,
+                        showGovDisclaimer: true
                     ),
                     isActive: Binding(
                         get: { webLoginVM.generatedURL != nil },
@@ -486,151 +542,6 @@ struct HomeServicesGridView: View {
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(allServices, id: \.0) { service in
                         serviceCell(label: service.0, icon: service.1)
-                    }
-                }
-                .padding(12)
-                .padding(.bottom, 14)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white,
-                                    Color(red: 0.894, green: 0.894, blue: 0.894),
-                                    Color(red: 0.729, green: 0.729, blue: 0.729)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                )
-            }
-            .alert("Something went wrong", isPresented: Binding(
-                get: { webLoginVM.errorMessage != nil },
-                set: { if !$0 { webLoginVM.errorMessage = nil } }
-            )) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(webLoginVM.errorMessage ?? "")
-            }
-
-            if showComingSoonToast {
-                ToastView(icon: "hourglass", message: "Coming soon! We're working hard to bring this to you.")
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .padding(.bottom, 12)
-            }
-        }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showComingSoonToast)
-    }
-
-    // MARK: - Cell builder
-    @ViewBuilder
-    private func serviceCell(label: String, icon: String) -> some View {
-        // RTO — existing native screen
-        if label.contains("RTO") {
-            NavigationLink(destination: RTOServiceInitialView()) {
-                ServiceBoxView(title: label, iconName: icon)
-            }
-            .buttonStyle(PlainButtonStyle())
-
-        // Visa — existing native screen
-        } else if label == "Visa" {
-            NavigationLink(destination: VisaViewInitial()) {
-                ServiceBoxView(title: label, iconName: icon)
-            }
-            .buttonStyle(PlainButtonStyle())
-
-        // IT Returns, Affidavit, POI/FRRO, Attestation — not functional yet
-        } else if comingSoonLabels.contains(label) {
-            Button {
-                showComingSoonToast = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                    showComingSoonToast = false
-                }
-            } label: {
-                ServiceBoxView(title: label, iconName: icon)
-            }
-            .buttonStyle(NoHighlightButtonStyle())
-
-        // All other service items — call token API then open WebView
-        } else if let item = vm.webItems.first(where: { $0.label == label }) {
-            Button {
-                guard authGate.requireAuth() else { return }
-                webLoginVM.generateToken(urlString: item.url, title: item.label)
-            } label: {
-                ServiceBoxView(title: label, iconName: icon)
-            }
-            .buttonStyle(NoHighlightButtonStyle())
-            .disabled(webLoginVM.isLoading)
-
-        } else {
-            ServiceBoxView(title: label, iconName: icon)
-        }
-    }
-}
-
-// MARK: - HomeUtilitiesGridView
-// "Utilities" section — some buttons open native screens, others open a WebView
-
-struct HomeUtilitiesGridView: View {
-
-    @StateObject private var vm = HomeUtilitiesViewModel()
-    @StateObject private var webLoginVM = WebLoginViewModel()
-    @EnvironmentObject private var authGate: AuthGateController
-    @State private var showComingSoonToast = false
-    @State private var navigateToEVCharge = false
-
-    private let allUtilities: [(String, String)] = [
-        ("Vehicle\nInfo", "vehicle_info"),
-        ("Challan\nInfo", "challan_info"),
-        ("DL Info",       "dl_info"),
-        ("TS Vehicle",    "ts_vehicle"),
-        ("TS DL\nInfo",   "dl_info"),
-        ("Road Tax",      "road_tax"),
-        ("EV Charge",     "ev_charge"),
-        ("Petrol\nPump",  "petrol_pump"),
-        ("LL QB",         "ll_qb"),
-        ("LL Mock",       "llmock")
-    ]
-
-    // 5 Columns as per Figma
-    let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 10) {
-                NavigationLink(
-                    destination: CitizenServicesWebView(
-                        url: webLoginVM.generatedURL ?? "",
-                        title: webLoginVM.generatedTitle
-                    ),
-                    isActive: Binding(
-                        get: { webLoginVM.generatedURL != nil },
-                        set: { if !$0 { webLoginVM.reset() } }
-                    )
-                ) { EmptyView() }
-                .hidden()
-
-                NavigationLink(
-                    destination: EVChargeRouter(),
-                    isActive: $navigateToEVCharge
-                ) { EmptyView() }
-                .hidden()
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Utilities")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.black)
-                    Rectangle()
-                        .fill(Color(red: 0.85, green: 0.2, blue: 0.2))
-                        .frame(width: 80, height: 3)
-                }
-                .padding(.horizontal, 16)
-
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(allUtilities, id: \.0) { utility in
-                        utilityCell(label: utility.0, icon: utility.1)
                     }
                 }
                 .padding(12)
@@ -682,42 +593,300 @@ struct HomeUtilitiesGridView: View {
 
     // MARK: - Cell builder
     @ViewBuilder
+    private func serviceCell(label: String, icon: String) -> some View {
+        // RTO — existing native screen
+        if label.contains("RTO") {
+            NavigationLink(destination: RTOServiceInitialView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        // Visa — existing native screen
+        } else if label == "Visa" {
+            NavigationLink(destination: VisaViewInitial()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        // Passport, Marriage Reg., Birth Cert., Pan Card — native intro + detail screens
+        // (fee breakdown, required documents, disclaimer) instead of the old marketing
+        // WebView landing pages.
+        } else if label == "Passport" {
+            NavigationLink(destination: PassportInitialView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        } else if label == "Marriage\nReg." {
+            NavigationLink(destination: MarriageRegInitialView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        } else if label == "Birth Cert." {
+            NavigationLink(destination: BirthCertInitialView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        } else if label == "Pan Card" {
+            NavigationLink(destination: PanCardInitialView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        // IT Returns, Affidavit, POI/FRRO, Attestation — not functional yet
+        } else if comingSoonLabels.contains(label) {
+            Button {
+                showComingSoonToast = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                    showComingSoonToast = false
+                }
+            } label: {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(NoHighlightButtonStyle())
+
+        // All other service items — no WebView opens for a guest; login is
+        // required before any order/service page loads.
+        } else if let item = vm.webItems.first(where: { $0.label == label }) {
+            Button {
+                guard authGate.requireAuth() else { return }
+                webLoginVM.generateToken(urlString: item.url, title: item.label)
+            } label: {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(NoHighlightButtonStyle())
+            .disabled(webLoginVM.isLoading)
+
+        } else {
+            ServiceBoxView(title: label, iconName: icon)
+        }
+    }
+}
+
+// MARK: - HomeUtilitiesGridView
+// "Utilities" section — some buttons open native screens, others open a WebView
+
+struct HomeUtilitiesGridView: View {
+
+    @StateObject private var vm = HomeUtilitiesViewModel()
+    @StateObject private var webLoginVM = WebLoginViewModel()
+    @EnvironmentObject private var authGate: AuthGateController
+    @State private var showComingSoonToast = false
+    @State private var navigateToEVCharge = false
+    @State private var evManualCoordinate: CLLocationCoordinate2D?
+    @State private var showEVLocationGate = false
+    @State private var showManualLocationSearch = false
+    @State private var pendingManualSearchAfterGateDismiss = false
+    // ULIP lookups require a valid session token (no guest/anonymous token
+    // exists yet), so these are login-gated like everything else here now.
+    @State private var navigateToVehicleInfo = false
+    @State private var navigateToChallanInfo = false
+    @State private var navigateToDLInfo = false
+    @State private var navigateToTSVehicle = false
+    @State private var navigateToTSDLInfo = false
+
+    private var isLocationAuthorized: Bool {
+        let status = CLLocationManager().authorizationStatus
+        return status == .authorizedWhenInUse || status == .authorizedAlways
+    }
+
+    private let allUtilities: [(String, String)] = [
+        ("Vehicle\nInfo", "vehicle_info"),
+        ("Challan\nInfo", "challan_info"),
+        ("DL Info",       "dl_info"),
+        ("TS Vehicle",    "ts_vehicle"),
+        ("TS DL\nInfo",   "dl_info"),
+        ("Road Tax",      "road_tax"),
+        ("EV Charge",     "ev_charge"),
+        ("Petrol\nPump",  "petrol_pump"),
+        ("LL QB",         "ll_qb"),
+        ("LL Mock",       "llmock")
+    ]
+
+    // 5 Columns as per Figma
+    let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 4) {
+                // Grouped into one VStack child on purpose: each of these is
+                // .hidden() (zero visual size) but still counts as its own
+                // child of the outer spacing VStack — seven separate hidden
+                // links were adding 7x that spacing as pure invisible space
+                // above "Utilities". Grouping charges that spacing only once.
+                Group {
+                    NavigationLink(
+                        destination: CitizenServicesWebView(
+                            url: webLoginVM.generatedURL ?? "",
+                            title: webLoginVM.generatedTitle,
+                            showGovDisclaimer: true
+                        ),
+                        isActive: Binding(
+                            get: { webLoginVM.generatedURL != nil },
+                            set: { if !$0 { webLoginVM.reset() } }
+                        )
+                    ) { EmptyView() }
+
+                    // Single-level push straight to the station list — back
+                    // always goes to Home. The permission gate / manual
+                    // search below are presented as covers *before* this
+                    // fires, never pushed onto the stack themselves.
+                    NavigationLink(
+                        destination: EVChargeView(initialCoordinate: evManualCoordinate),
+                        isActive: $navigateToEVCharge
+                    ) { EmptyView() }
+
+                    NavigationLink(destination: VehicleSearchResultsView(), isActive: $navigateToVehicleInfo) { EmptyView() }
+                    NavigationLink(destination: ChallanDetailsView(), isActive: $navigateToChallanInfo) { EmptyView() }
+                    NavigationLink(destination: DLInfoView(), isActive: $navigateToDLInfo) { EmptyView() }
+                    NavigationLink(destination: TSVehicleScreen(), isActive: $navigateToTSVehicle) { EmptyView() }
+                    NavigationLink(destination: TSDLInfoScreen(), isActive: $navigateToTSDLInfo) { EmptyView() }
+                }
+                .hidden()
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Utilities")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                    Rectangle()
+                        .fill(Color(red: 0.85, green: 0.2, blue: 0.2))
+                        .frame(width: 80, height: 3)
+                }
+                .padding(.horizontal, 16)
+
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(allUtilities, id: \.0) { utility in
+                        utilityCell(label: utility.0, icon: utility.1)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 4)
+                .padding(.bottom, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white,
+                                    Color(red: 0.894, green: 0.894, blue: 0.894),
+                                    Color(red: 0.729, green: 0.729, blue: 0.729)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                )
+            }
+            .alert("Something went wrong", isPresented: Binding(
+                get: { webLoginVM.errorMessage != nil },
+                set: { if !$0 { webLoginVM.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(webLoginVM.errorMessage ?? "")
+            }
+            .fullScreenCover(isPresented: $showEVLocationGate, onDismiss: {
+                // Chained rather than presented directly from the "Enter
+                // Manually" tap: SwiftUI needs this cover to fully dismiss
+                // before the next one can present reliably.
+                if pendingManualSearchAfterGateDismiss {
+                    pendingManualSearchAfterGateDismiss = false
+                    showManualLocationSearch = true
+                }
+            }) {
+                EVChargeLocationPermissionView(
+                    onLocationGranted: {
+                        showEVLocationGate = false
+                        evManualCoordinate = nil
+                        navigateToEVCharge = true
+                    },
+                    onManualLocation: {
+                        pendingManualSearchAfterGateDismiss = true
+                        showEVLocationGate = false
+                    }
+                )
+            }
+            .fullScreenCover(isPresented: $showManualLocationSearch) {
+                NavigationView {
+                    ManualLocationSearchView { coordinate in
+                        showManualLocationSearch = false
+                        evManualCoordinate = coordinate
+                        navigateToEVCharge = true
+                    }
+                }
+                .navigationViewStyle(.stack)
+            }
+
+            if showComingSoonToast {
+                ToastView(icon: "hourglass", message: "Coming soon! We're working hard to bring this to you.")
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 12)
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showComingSoonToast)
+    }
+
+    // MARK: - Cell builder
+    @ViewBuilder
     private func utilityCell(label: String, icon: String) -> some View {
         switch label {
         case "Vehicle\nInfo":
-            NavigationLink(destination: VehicleSearchResultsView()) {
+            Button {
+                guard authGate.requireAuth() else { return }
+                navigateToVehicleInfo = true
+            } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(NoHighlightButtonStyle())
 
         case "Challan\nInfo":
-            NavigationLink(destination: ChallanDetailsView()) {
+            Button {
+                guard authGate.requireAuth() else { return }
+                navigateToChallanInfo = true
+            } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(NoHighlightButtonStyle())
 
         case "DL Info":
-            NavigationLink(destination: DLInfoView()) {
+            Button {
+                guard authGate.requireAuth() else { return }
+                navigateToDLInfo = true
+            } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(NoHighlightButtonStyle())
 
         case "TS Vehicle":
-            NavigationLink(destination: TSVehicleScreen()) {
+            Button {
+                guard authGate.requireAuth() else { return }
+                navigateToTSVehicle = true
+            } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(NoHighlightButtonStyle())
 
         case "TS DL\nInfo":
-            NavigationLink(destination: TSDLInfoScreen()) {
+            Button {
+                guard authGate.requireAuth() else { return }
+                navigateToTSDLInfo = true
+            } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(NoHighlightButtonStyle())
 
         case "EV Charge":
             Button {
                 guard authGate.requireAuth() else { return }
-                navigateToEVCharge = true
+                if isLocationAuthorized {
+                    evManualCoordinate = nil
+                    navigateToEVCharge = true
+                } else {
+                    showEVLocationGate = true
+                }
             } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }
@@ -735,11 +904,15 @@ struct HomeUtilitiesGridView: View {
             .buttonStyle(NoHighlightButtonStyle())
 
         default:
-            // Road Tax, LL QB, LL Mock — call token API then open WebView
+            // Road Tax, LL QB, LL Mock — browsing needs no account; only the
+            // personalized SSO redirect (generateToken) does.
             if let item = vm.webItems.first(where: { $0.label == label }) {
                 Button {
-                    guard authGate.requireAuth() else { return }
-                    webLoginVM.generateToken(urlString: item.url, title: item.label)
+                    if authGate.isLoggedIn {
+                        webLoginVM.generateToken(urlString: item.url, title: item.label)
+                    } else {
+                        webLoginVM.openDirectly(urlString: item.url, title: item.label)
+                    }
                 } label: {
                     ServiceBoxView(title: label, iconName: icon)
                 }

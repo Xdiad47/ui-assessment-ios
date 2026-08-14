@@ -3,10 +3,10 @@ import SwiftUI
 struct RTOServicesView: View {
     @StateObject private var viewModel: RTOServicesViewModel
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject private var authGate: AuthGateController
 
     @State private var showTypePicker  = false
-    @State private var webViewUrl: IdentifiableURL? = nil
-    @State private var navigateToWebView = false
+    @State private var navigateToDetail = false
     @State private var navigateToProfile = false
 
     init(selectedLocation: String = "", selectedType: String = "") {
@@ -27,11 +27,14 @@ struct RTOServicesView: View {
 
             NavigationLink(
                 destination: Group {
-                    if let webViewUrl {
-                        CitizenServicesWebView(url: webViewUrl.url)
+                    if let subService = viewModel.selectedSubService {
+                        RTOServiceDetailView(
+                            serviceTitle: subService.display,
+                            city: viewModel.selectedLocation.isEmpty ? "Bengaluru" : viewModel.selectedLocation
+                        )
                     }
                 },
-                isActive: $navigateToWebView
+                isActive: $navigateToDetail
             ) {
                 EmptyView()
             }.hidden()
@@ -81,7 +84,10 @@ struct RTOServicesView: View {
                                     .font(.system(size: 18))
                                     .foregroundColor(.white)
 
-                                Button(action: { navigateToProfile = true }) {
+                                Button(action: {
+                                    guard authGate.requireAuth() else { return }
+                                    navigateToProfile = true
+                                }) {
                                     ZStack {
                                         Circle()
                                             .fill(Color(red: 0.50, green: 0.23, blue: 0.27).opacity(0.50))
@@ -177,10 +183,8 @@ struct RTOServicesView: View {
                     // Get Started — full-width, inside dark section
                     ZStack {
                         Button(action: {
-                            if let url = viewModel.buildUrl() {
-                                webViewUrl = IdentifiableURL(url: url)
-                                navigateToWebView = true
-                            }
+                            guard viewModel.isGetStartedEnabled else { return }
+                            navigateToDetail = true
                         }) {
                             Text("Get Started")
                                 .font(Font.custom("Inter", size: 16).weight(.semibold))

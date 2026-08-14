@@ -7,6 +7,30 @@ struct LoginRequest: Encodable {
     let password: String
 }
 
+// Apple Sign-In — same endpoints as normal login (POST user/login) and
+// create-account (POST user), just with this body shape instead of
+// username/password or name/email/phone/pass. Identical shape for both
+// login and create-account, confirmed by backend — no name/email needed.
+// `loginType` is always the literal string "ios" (lowercase, confirmed by
+// backend team — case-sensitive, do not capitalize). `token` is the
+// identityToken JWT from ASAuthorizationAppleIDCredential, never the
+// authorizationCode.
+struct AppleAuthRequest: Encodable {
+    let loginType: String = "ios"
+    let token: String
+
+    // No memberwise init for loginType — it's hardcoded, not a caller-supplied
+    // value, so a future call site can't accidentally send "iOS"/"IOS" again.
+    init(token: String) {
+        self.token = token
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case loginType = "login_type"
+        case token
+    }
+}
+
 // Login OTP send (mobile only)
 struct SendOTPRequest: Encodable {
     let mobile: String
@@ -95,6 +119,19 @@ struct WebLoginTokenResponse: Decodable {
     enum CodingKeys: String, CodingKey {
         case statusCode = "status_code"
         case message, data
+    }
+}
+
+// Delete-account response — its `data` is just `{ "id": ... }`, not a full
+// UserProfile (no `name`, which UserProfile requires), so it needs its own
+// lean type rather than reusing AuthResponse/UserProfile.
+struct DeleteAccountResponse: Decodable {
+    let statusCode: Int?
+    let message: String?
+
+    enum CodingKeys: String, CodingKey {
+        case statusCode = "status_code"
+        case message
     }
 }
 

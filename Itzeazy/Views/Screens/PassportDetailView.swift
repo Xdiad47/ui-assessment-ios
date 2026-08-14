@@ -1,22 +1,24 @@
 import SwiftUI
 
-struct RTOServiceDetailView: View {
+struct PassportDetailView: View {
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject private var authGate: AuthGateController
-    @StateObject private var viewModel: RTOServiceDetailViewModel
+    @StateObject private var viewModel = PassportDetailViewModel()
     @StateObject private var webLoginVM = WebLoginViewModel()
-    @StateObject private var disclaimerGate = GovDisclaimerGate(serviceKey: "rto")
+    @StateObject private var disclaimerGate = GovDisclaimerGate(serviceKey: "passport")
+    @State private var selectedService: String
     @State private var showWebView = false
 
+    let location: String
+
     // True only when this screen is entered directly (e.g. the Home hero card's "Get
-    // Started"), bypassing RTOServiceInitialView's own disclaimer — the gate above uses the
-    // same "rto" key so both entry paths share one daily counter.
+    // Started"), bypassing PassportInitialView's own disclaimer — the gate above uses the
+    // same "passport" key so both entry paths share one daily counter.
     let showEntryDisclaimer: Bool
 
-    init(serviceTitle: String, city: String = "Bengaluru", showEntryDisclaimer: Bool = false) {
-        _viewModel = StateObject(
-            wrappedValue: RTOServiceDetailViewModel(serviceTitle: serviceTitle, city: city)
-        )
+    init(location: String, service: String, showEntryDisclaimer: Bool = false) {
+        self.location = location
+        self._selectedService = State(initialValue: service)
         self.showEntryDisclaimer = showEntryDisclaimer
     }
 
@@ -29,7 +31,7 @@ struct RTOServiceDetailView: View {
                             url: url,
                             title: webLoginVM.generatedTitle,
                             onBack: { showWebView = false },
-                            showGovDisclaimer: true
+                            showGovBanner: true
                         )
                     }
                 },
@@ -49,8 +51,7 @@ struct RTOServiceDetailView: View {
             }
 
             VStack(spacing: 0) {
-
-                // ── Dark top nav bar ───────────────────────────────
+                // ── Dark header + New/Renewal toggle ──────────────
                 VStack(spacing: 0) {
                     HStack(spacing: 12) {
                         Button(action: { presentationMode.wrappedValue.dismiss() }) {
@@ -60,7 +61,7 @@ struct RTOServiceDetailView: View {
                                 .frame(width: 24, height: 24)
                         }
 
-                        Text(viewModel.navigationTitle)
+                        Text("Passport / \(location)")
                             .font(Font.custom("PlusJakartaSans-ExtraBold", size: 18))
                             .foregroundColor(.white)
                             .lineLimit(1)
@@ -71,6 +72,17 @@ struct RTOServiceDetailView: View {
                     .padding(.horizontal, 20)
                     .frame(maxWidth: .infinity)
                     .frame(height: 60)
+
+                    HStack(spacing: 12) {
+                        ServiceToggleChip(label: "New", isSelected: selectedService == "New Passport") {
+                            selectedService = "New Passport"
+                        }
+                        ServiceToggleChip(label: "Renewal", isSelected: selectedService == "Passport Renewal") {
+                            selectedService = "Passport Renewal"
+                        }
+                    }
+                    .padding(.top, 18)
+                    .padding(.bottom, 18)
                 }
                 .background(
                     Color(red: 0.10, green: 0.11, blue: 0.11)
@@ -83,39 +95,19 @@ struct RTOServiceDetailView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
 
-                        // Metric cards row
                         HStack(spacing: 16) {
-                            RTOMetricCard(
-                                icon: "processing_rto",
-                                label: "PROCESSING",
-                                value: viewModel.processingTime
-                            )
-                            RTOMetricCard(
-                                icon: "document_rto",
-                                label: "DOCUMENT\nCOLLECTION",
-                                value: viewModel.documentCollection
-                            )
-                            RTOMetricCard(
-                                icon: "visit_rto",
-                                label: "VISIT\nREQUIRED",
-                                value: viewModel.visitRequired
-                            )
+                            GovFeeMetricCard(icon: "ic_card_processing", label: "PROCESSING", value: viewModel.processing)
+                            GovFeeMetricCard(icon: "ic_card_govt_fee", label: "GOVT. FEE", value: viewModel.govtFee)
+                            GovFeeMetricCard(icon: "ic_card_service_fee", label: "ITZEAZY FEE", value: viewModel.itzeazyFee)
                         }
                         .padding(.horizontal, 24)
                         .padding(.top, 32)
                         .padding(.bottom, 28)
 
-                        // Apply Now button
                         Button(action: {
                             guard authGate.requireAuth() else { return }
-                            if let path = viewModel.redirectPath {
-                                webLoginVM.generateToken(
-                                    urlString: "https://itzeazy.in\(path)",
-                                    title: viewModel.serviceTitle
-                                )
-                            } else {
-                                viewModel.showUnavailableAlert = true
-                            }
+                            let url = "https://itzeazy.in/order/apply-pp"
+                            webLoginVM.generateToken(urlString: url, title: "Passport")
                         }) {
                             ZStack {
                                 if webLoginVM.isLoading {
@@ -153,9 +145,7 @@ struct RTOServiceDetailView: View {
                         .padding(.horizontal, 24)
                         .padding(.bottom, 32)
 
-                        // Required Documents section
                         VStack(alignment: .leading, spacing: 16) {
-                            // Section heading
                             HStack(spacing: 10) {
                                 Image(systemName: "doc.text.fill")
                                     .foregroundColor(.red)
@@ -167,31 +157,18 @@ struct RTOServiceDetailView: View {
                             }
                             .padding(.bottom, 4)
 
-                            // Document list
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .red))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                            } else if let documentsMessage = viewModel.documentsMessage {
-                                Text(documentsMessage)
-                                    .font(Font.custom("Inter", size: 14))
-                                    .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            } else {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    ForEach(viewModel.requiredDocuments, id: \.self) { doc in
-                                        HStack(alignment: .top, spacing: 12) {
-                                            Circle()
-                                                .fill(Color.red)
-                                                .frame(width: 6, height: 6)
-                                                .padding(.top, 8)
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(viewModel.documents, id: \.self) { doc in
+                                    HStack(alignment: .top, spacing: 12) {
+                                        Circle()
+                                            .fill(Color.red)
+                                            .frame(width: 6, height: 6)
+                                            .padding(.top, 8)
 
-                                            Text(doc)
-                                                .font(Font.custom("Inter", size: 14))
-                                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                                                .fixedSize(horizontal: false, vertical: true)
-                                        }
+                                        Text(doc)
+                                            .font(Font.custom("Inter", size: 14))
+                                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                            .fixedSize(horizontal: false, vertical: true)
                                     }
                                 }
                             }
@@ -215,11 +192,6 @@ struct RTOServiceDetailView: View {
         .onChange(of: showWebView) { _, isActive in
             if !isActive { webLoginVM.reset() }
         }
-        .alert("Service Unavailable", isPresented: $viewModel.showUnavailableAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("This service is currently unavailable")
-        }
         .alert("Something went wrong", isPresented: Binding(
             get: { webLoginVM.errorMessage != nil },
             set: { if !$0 { webLoginVM.errorMessage = nil } }
@@ -228,21 +200,32 @@ struct RTOServiceDetailView: View {
         } message: {
             Text(webLoginVM.errorMessage ?? "")
         }
-        .alert("Something went wrong", isPresented: Binding(
-            get: { viewModel.errorMessage != nil },
-            set: { if !$0 { viewModel.errorMessage = nil } }
-        )) {
-            Button("Retry") { viewModel.fetchRequiredDocuments() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
     }
 }
 
-// MARK: - Metric Card Component
+// MARK: - Shared subviews (also used by Marriage/Birth/PAN detail screens)
 
-private struct RTOMetricCard: View {
+struct ServiceToggleChip: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(Font.custom(isSelected ? "PlusJakartaSans-Bold" : "PlusJakartaSans-SemiBold", size: 14))
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 11)
+                .background(isSelected ? Color.red : Color.clear)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Color.white, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct GovFeeMetricCard: View {
     let icon: String
     let label: String
     let value: String
@@ -288,5 +271,5 @@ private struct RTOMetricCard: View {
 }
 
 #Preview {
-    RTOServiceDetailView(serviceTitle: "Duplicate RC")
+    PassportDetailView(location: "Bangalore", service: "New Passport")
 }

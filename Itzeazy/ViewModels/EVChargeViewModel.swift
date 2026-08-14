@@ -20,8 +20,13 @@ final class EVChargeViewModel: NSObject, ObservableObject {
     @Published var errorMessage: String? = nil
 
     private let locationManager = CLLocationManager()
+    /// Set when the user picked a place via "Enter Location Manually" instead
+    /// of granting device location — skips the location manager entirely and
+    /// fetches stations around this point instead.
+    private let manualCoordinate: CLLocationCoordinate2D?
 
-    override init() {
+    init(initialCoordinate: CLLocationCoordinate2D? = nil) {
+        manualCoordinate = initialCoordinate
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -31,7 +36,11 @@ final class EVChargeViewModel: NSObject, ObservableObject {
         guard !isLoading && stations.isEmpty else { return }
         isLoading = true
         errorMessage = nil
-        locationManager.requestLocation()
+        if let manualCoordinate {
+            fetchStations(lat: manualCoordinate.latitude, lng: manualCoordinate.longitude)
+        } else {
+            locationManager.requestLocation()
+        }
     }
 
     var filteredStations: [EVChargingStation] {

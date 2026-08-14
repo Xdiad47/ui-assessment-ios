@@ -8,6 +8,9 @@ struct OnboardingPage {
     let titleLine2Color: Color
     let titleFontSize: CGFloat
     let titleLineSpacing: CGFloat
+    /// When true, titleLine1 + titleLine2 render inline as one flowing line
+    /// (e.g. "All in " + "one App") instead of stacked on separate lines.
+    let titleInline: Bool
     let subtitle: String
     let subtitleFontSize: CGFloat
     let subtitleLineSpacing: CGFloat
@@ -20,6 +23,7 @@ struct OnboardingPage {
         titleLine2Color: Color,
         titleFontSize: CGFloat = 32,
         titleLineSpacing: CGFloat = 8,
+        titleInline: Bool = false,
         subtitle: String,
         subtitleFontSize: CGFloat = 18,
         subtitleLineSpacing: CGFloat = 5.25,
@@ -31,6 +35,7 @@ struct OnboardingPage {
         self.titleLine2Color = titleLine2Color
         self.titleFontSize = titleFontSize
         self.titleLineSpacing = titleLineSpacing
+        self.titleInline = titleInline
         self.subtitle = subtitle
         self.subtitleFontSize = subtitleFontSize
         self.subtitleLineSpacing = subtitleLineSpacing
@@ -44,10 +49,11 @@ class OnboardingViewModel: ObservableObject {
     let pages: [OnboardingPage] = [
         OnboardingPage(
             image: "track_application",
-            titleLine1: "Track Applications",
-            titleLine2: "Easily",
-            titleLine2Color: Color(hex: "#191c1d"),
-            subtitle: "Monitor status, upload documents,\nand manage requests seamlessly."
+            titleLine1: "All in ",
+            titleLine2: "one App",
+            titleLine2Color: .red,
+            titleInline: true,
+            subtitle: "RTO services, DL, Traffic Challan, visa,\npassport, Marriage certificate, Birth\ncertificate, Driving classes"
         ),
         OnboardingPage(
             image: "citizen_services",

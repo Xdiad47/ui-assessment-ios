@@ -1,16 +1,19 @@
 import SwiftUI
 
-// One-time coach mark shown on Home to prove real features (Vehicle Info,
-// Challan Info, DL Info) work without signing in — before a guest might
-// otherwise hit a login wall elsewhere (e.g. the hero "Get Started" button)
-// and assume the whole app is gated.
-// Dimmed backdrop with a punched-out hole around the first row of the
-// Utilities card, a themed callout, and a single "Got it" dismissal. Shown
-// once — the caller tracks that via UserDefaults (HomeView's
-// `hasSeenVehicleInfoSpotlight`).
+// One-time coach mark shown on Home to prove RTO Services and Visa are
+// browsable without signing in — before a guest might otherwise hit a login
+// wall elsewhere (e.g. the hero "Get Started" button) and assume the whole
+// app is gated. (Originally targeted Vehicle/Challan/DL Info, but those
+// require a login-gated ULIP session token even to browse — RTO Services /
+// Visa only need login at "Apply Now", so they're the ones that are
+// genuinely guest-accessible.)
+// Dimmed backdrop with a punched-out hole around RTO Services + Visa (first
+// column, rows 1 and 2) in the Services card, a themed callout, and a single
+// "Got it" dismissal. Shown once — the caller tracks that via UserDefaults
+// (HomeView's `hasSeenServicesSpotlight`).
 
-// Reports the exact rendered frame of the whole Utilities card (the rounded
-// gradient box containing all utility cells), resolved in the
+// Reports the exact rendered frame of the whole Services card (the rounded
+// gradient box containing all service cells), resolved in the
 // "homeSpotlightSpace" named coordinate space defined on HomeView's own
 // root. Measuring the *card* instead of an individual cell keeps this to a
 // single, stable GeometryReader (no per-cell / lazy-grid timing issues).
@@ -23,29 +26,36 @@ struct SpotlightRectKey: PreferenceKey {
 }
 
 struct SpotlightTooltipView: View {
-    /// The whole Utilities card's measured frame, in "homeSpotlightSpace".
+    /// The whole Services card's measured frame, in "homeSpotlightSpace".
     let cardRect: CGRect
     let screenSize: CGSize
     let onDismiss: () -> Void
 
     // MARK: - Tunable highlight box
     // Edit these directly to reposition/resize the highlighted area. All
-    // values are offsets from `cardRect` (the Utilities card), not the
+    // values are offsets from `cardRect` (the Services card), not the
     // screen, so the box still lands correctly on different device sizes.
+    // RTO Services (row 1) and Visa (row 2) sit in the grid's first column,
+    // not side by side — so this is a tall single-column box spanning two
+    // stacked rows, not a wide single-row one.
 
     /// Distance from the card's left edge to the left edge of the highlight.
     private let highlightLeadingInset: CGFloat = 12
     /// Distance from the card's top edge to the top edge of the highlight
-    /// (the card's own top padding is 12, then the "Utilities" title block
-    /// sits above the grid — increase this to push the box further down).
-    private let highlightTopInset: CGFloat = 4 //-> Red box
-    /// How many of the 5 grid columns to cover — 3 spans Vehicle Info,
-    /// Challan Info, and DL Info.
-    private let highlightColumnCount: CGFloat = 3
-    /// Height of the highlighted row. Increase if labels wrap to a 3rd line
-    /// on narrow devices and get clipped.
-    private let highlightHeight: CGFloat = 96
-    /// Grid's own column spacing/padding — must match HomeUtilitiesGridView
+    /// (the card's own top padding is 12, then the "Services We Provide"
+    /// title block sits above the grid — increase this to push the box
+    /// further down).
+    private let highlightTopInset: CGFloat = 4
+    /// Height of one grid row. Increase if labels wrap to a 3rd line on
+    /// narrow devices and get clipped — re-tune against the real rendered
+    /// cell height, same as before.
+    private let rowHeight: CGFloat = 96
+    /// Vertical gap between grid rows — must match the LazyVGrid's own row
+    /// spacing (8) or the box will drift from the real cell edges.
+    private let rowSpacing: CGFloat = 8
+    /// How many stacked rows to cover — 2 spans RTO Services + Visa.
+    private let highlightRowCount: CGFloat = 2
+    /// Grid's own column spacing/padding — must match HomeServicesGridView
     /// (`columns` spacing: 8, LazyVGrid `.padding(12)`) or the box will
     /// drift from the real cell edges.
     private let gridColumnCount: CGFloat = 5
@@ -64,10 +74,10 @@ struct SpotlightTooltipView: View {
     /// actual highlighted rectangle (before the extra `holePadding` ring gap).
     private var targetRect: CGRect {
         let cellWidth = (cardRect.width - 2 * gridHorizontalPadding - (gridColumnCount - 1) * gridColumnSpacing) / gridColumnCount
-        let width = highlightColumnCount * cellWidth + (highlightColumnCount - 1) * gridColumnSpacing
+        let height = highlightRowCount * rowHeight + (highlightRowCount - 1) * rowSpacing
         let x = cardRect.minX + highlightLeadingInset
         let y = cardRect.minY + highlightTopInset
-        return CGRect(x: x, y: y, width: width, height: highlightHeight)
+        return CGRect(x: x, y: y, width: cellWidth, height: height)
     }
 
     private var holeRect: CGRect {
@@ -126,7 +136,7 @@ struct SpotlightTooltipView: View {
                     .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
             }
 
-            Text("Look up your vehicle, DL, or challan details right here — free, no account required.")
+            Text("Browse RTO services and Visa info right here — free, no account needed until you apply.")
                 .font(Font.custom("Inter", size: 12.5))
                 .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
                 .fixedSize(horizontal: false, vertical: true)
