@@ -50,6 +50,7 @@ struct HomeView: View {
                                     .id("homeSpotlightServicesSection")
 
                                 HomeUtilitiesGridView()
+                                    .padding(.bottom, 20)
 
                                 HomeWorkflowView()
 
@@ -958,3 +959,4 @@ struct HomeView_Previews: PreviewProvider {
         HomeView()
     }
 }
+
