@@ -687,6 +687,10 @@ struct HomeUtilitiesGridView: View {
     @State private var navigateToDLInfo = false
     @State private var navigateToTSVehicle = false
     @State private var navigateToTSDLInfo = false
+    // Which frequency-cap bucket (see GovDisclaimerFrequencyStore) the shared utility
+    // WebView's disclaimer counts against — set right before generateToken/openDirectly in
+    // the default: case below, since Road Tax/LL QB/LL Mock all share one destination.
+    @State private var utilityDisclaimerKey: String? = nil
 
     private var isLocationAuthorized: Bool {
         let status = CLLocationManager().authorizationStatus
@@ -722,7 +726,8 @@ struct HomeUtilitiesGridView: View {
                         destination: CitizenServicesWebView(
                             url: webLoginVM.generatedURL ?? "",
                             title: webLoginVM.generatedTitle,
-                            showGovDisclaimer: true
+                            showGovDisclaimer: true,
+                            disclaimerServiceKey: utilityDisclaimerKey
                         ),
                         isActive: Binding(
                             get: { webLoginVM.generatedURL != nil },
@@ -909,6 +914,14 @@ struct HomeUtilitiesGridView: View {
             // personalized SSO redirect (generateToken) does.
             if let item = vm.webItems.first(where: { $0.label == label }) {
                 Button {
+                    utilityDisclaimerKey = {
+                        switch label {
+                        case "Road Tax": return "road_tax"
+                        case "LL QB": return "ll_qb"
+                        case "LL Mock": return "ll_mock"
+                        default: return nil
+                        }
+                    }()
                     if authGate.isLoggedIn {
                         webLoginVM.generateToken(urlString: item.url, title: item.label)
                     } else {

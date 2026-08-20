@@ -1,42 +1,44 @@
 import Foundation
 
-/// Caps the "Important Notice" gov-disclaimer popup at 3 shows/day, per service — mirrors
-/// PreferenceManager.shouldShowGovDisclaimer/recordGovDisclaimerShown on Android so both
-/// platforms enforce the exact same Google Play compliance policy. The counter resets the
-/// next calendar day; each service (passport, visa, rto, ...) is tracked independently.
+/// Caps the "Important Notice" gov-disclaimer popup at 3 shows TOTAL per service, within 7
+/// days of the first time it was ever shown for that service — then it stops permanently
+/// (not a recurring reset) until the app is reinstalled, since a fresh install starts with
+/// empty UserDefaults. Mirrors PreferenceManager.shouldShowGovDisclaimer/
+/// recordGovDisclaimerShown on Android so both platforms enforce the exact same policy. Each
+/// service (passport, visa, rto, my_orders, ...) is tracked independently.
+///
+/// Uses new key names rather than the old daily-count keys this replaced, so a device that
+/// already had "shown 3 times today" stored under the old scheme can't be misread as "shown
+/// 3 times ever" under the new one.
 final class GovDisclaimerFrequencyStore {
     static let shared = GovDisclaimerFrequencyStore()
     private init() {}
 
-    private let maxShowsPerDay = 3
+    private let maxShowsTotal = 3
+    private let windowDays = 7
+    private let dayMillis: TimeInterval = 24 * 60 * 60
     private let defaults = UserDefaults.standard
 
-    private func dateKey(_ serviceKey: String) -> String { "com.itzeazy.disclaimer.\(serviceKey).date" }
-    private func countKey(_ serviceKey: String) -> String { "com.itzeazy.disclaimer.\(serviceKey).count" }
+    private func firstShownKey(_ serviceKey: String) -> String { "com.itzeazy.disclaimer.\(serviceKey).firstShownAt" }
+    private func countKey(_ serviceKey: String) -> String { "com.itzeazy.disclaimer.\(serviceKey).totalCount" }
 
-    private func todayString() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        return formatter.string(from: Date())
-    }
-
-    /// True while today's shown-count for this service is still under the cap
-    /// (or no count has been recorded yet today).
+    /// True while this service's lifetime show-count is still under the cap AND still within
+    /// the 7-day window from the first time it was shown (or it's never been shown yet).
     func shouldShow(_ serviceKey: String) -> Bool {
-        let today = todayString()
-        let storedDate = defaults.string(forKey: dateKey(serviceKey))
-        let storedCount = defaults.integer(forKey: countKey(serviceKey))
-        return storedDate != today || storedCount < maxShowsPerDay
+        guard defaults.integer(forKey: countKey(serviceKey)) < maxShowsTotal else { return false }
+        let firstShownAt = defaults.double(forKey: firstShownKey(serviceKey))
+        guard firstShownAt > 0 else { return true } // never shown yet for this service
+        let daysSinceFirstShown = (Date().timeIntervalSince1970 - firstShownAt) / dayMillis
+        return daysSinceFirstShown < Double(windowDays)
     }
 
     /// Call exactly once per screen entry where the popup is actually presented.
     func recordShown(_ serviceKey: String) {
-        let today = todayString()
-        let storedDate = defaults.string(forKey: dateKey(serviceKey))
-        let previousCount = storedDate == today ? defaults.integer(forKey: countKey(serviceKey)) : 0
-        defaults.set(today, forKey: dateKey(serviceKey))
-        defaults.set(previousCount + 1, forKey: countKey(serviceKey))
+        let key = firstShownKey(serviceKey)
+        if defaults.double(forKey: key) == 0 {
+            defaults.set(Date().timeIntervalSince1970, forKey: key)
+        }
+        let countK = countKey(serviceKey)
+        defaults.set(defaults.integer(forKey: countK) + 1, forKey: countK)
     }
 }

@@ -19,7 +19,13 @@ struct PaymentsView: View {
             Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
 
             if let url = webLoginVM.generatedURL {
-                CitizenServicesWebView(url: url, title: "Payments", onBack: goBack)
+                CitizenServicesWebView(
+                    url: url,
+                    title: "Payments",
+                    onBack: goBack,
+                    showGovDisclaimer: true,
+                    disclaimerServiceKey: "payments"
+                )
             } else {
                 VStack(spacing: 16) {
                     ProgressView()

@@ -48,14 +48,21 @@ private struct RequiredDocumentItem: Decodable {
 
 private struct RequiredDocumentsExtraFields: Decodable {
     let processing: String?
-    let visaFee: String?
-    let visitRequired: String?
+    let govtFee: String?
+    let itzeazyFee: String?
 
     enum CodingKeys: String, CodingKey {
         case processing = "PROCESSING"
-        case visaFee = "VISA FEE"
-        case visitRequired = "VISIT REQUIRED"
+        case govtFee = "GOVT FEE"
+        case itzeazyFee = "ITZEAZY FEE"
     }
+}
+
+/// The backend sends the literal string "null" for an unset extra_fields value (not JSON
+/// null) — treat that, and blank strings, as "no value" so callers fall back to empty.
+private func cleanExtraField(_ raw: String?) -> String {
+    guard let raw, !raw.isEmpty, raw.lowercased() != "null" else { return "" }
+    return raw
 }
 
 @MainActor
@@ -74,9 +81,9 @@ final class VisaViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
 
-    @Published var processingTime: String = "-"
-    @Published var visaFee: String = "-"
-    @Published var visitRequired: String = "-"
+    @Published var processingTime: String = ""
+    @Published var govtFee: String = ""
+    @Published var itzeazyFee: String = ""
 
     private let api = ItzeazyAPIService.shared
     private var activeFetchToken = UUID()
@@ -171,9 +178,11 @@ final class VisaViewModel: ObservableObject {
                 documentsMessage = docs.isEmpty ? "No documents required for this visa type." : nil
 
                 let extraFields = response.data?.extraFields
-                processingTime = extraFields?.processing ?? "-"
-                visaFee = extraFields?.visaFee ?? "-"
-                visitRequired = extraFields?.visitRequired ?? "-"
+                processingTime = cleanExtraField(extraFields?.processing)
+                // Govt fee arrives with its own currency symbol already ("€90") — shown as-is.
+                govtFee = cleanExtraField(extraFields?.govtFee)
+                let rawItzeazyFee = cleanExtraField(extraFields?.itzeazyFee)
+                itzeazyFee = rawItzeazyFee.isEmpty ? "" : "₹\(rawItzeazyFee)"
             } catch let error as ItzeazyAPIError {
                 guard token == activeFetchToken else { return }
                 errorMessage = error.errorDescription

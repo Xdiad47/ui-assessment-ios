@@ -19,7 +19,13 @@ struct MyOrdersView: View {
             Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
 
             if let url = webLoginVM.generatedURL {
-                CitizenServicesWebView(url: url, title: "My Orders", onBack: goBack)
+                CitizenServicesWebView(
+                    url: url,
+                    title: "My Orders",
+                    onBack: goBack,
+                    showGovDisclaimer: true,
+                    disclaimerServiceKey: "my_orders"
+                )
             } else {
                 VStack(spacing: 16) {
                     ProgressView()

@@ -29,7 +29,8 @@ struct RTOServiceDetailView: View {
                             url: url,
                             title: webLoginVM.generatedTitle,
                             onBack: { showWebView = false },
-                            showGovDisclaimer: true
+                            showGovDisclaimer: true,
+                            disclaimerServiceKey: "rto_apply"
                         )
                     }
                 },
@@ -83,23 +84,37 @@ struct RTOServiceDetailView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
 
-                        // Metric cards row
+                        // Metric cards row — a pill only renders when the backend actually
+                        // has a value for it; nothing is shown in its place otherwise.
                         HStack(spacing: 16) {
-                            RTOMetricCard(
-                                icon: "processing_rto",
-                                label: "PROCESSING",
-                                value: viewModel.processingTime
-                            )
-                            RTOMetricCard(
-                                icon: "document_rto",
-                                label: "DOCUMENT\nCOLLECTION",
-                                value: viewModel.documentCollection
-                            )
-                            RTOMetricCard(
-                                icon: "visit_rto",
-                                label: "VISIT\nREQUIRED",
-                                value: viewModel.visitRequired
-                            )
+                            if !viewModel.processingTime.isEmpty {
+                                RTOMetricCard(
+                                    icon: "processing_rto",
+                                    label: "PROCESSING",
+                                    value: viewModel.processingTime
+                                )
+                            }
+                            if !viewModel.documentCollection.isEmpty {
+                                RTOMetricCard(
+                                    icon: "document_rto",
+                                    label: "DOCUMENT\nCOLLECTION",
+                                    value: viewModel.documentCollection
+                                )
+                            }
+                            if !viewModel.visitRequired.isEmpty {
+                                RTOMetricCard(
+                                    icon: "visit_rto",
+                                    label: "VISIT\nREQUIRED",
+                                    value: viewModel.visitRequired
+                                )
+                            }
+                            if !viewModel.itzeazyFee.isEmpty {
+                                RTOMetricCard(
+                                    icon: "dl_extract",
+                                    label: "ITZEAZY FEE",
+                                    value: viewModel.itzeazyFee
+                                )
+                            }
                         }
                         .padding(.horizontal, 24)
                         .padding(.top, 32)

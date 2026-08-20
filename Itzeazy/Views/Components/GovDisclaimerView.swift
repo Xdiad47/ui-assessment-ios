@@ -64,12 +64,13 @@ struct GovDisclaimerBanner: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 5)
-        .background(Color(hex: "#FFC107").opacity(0.14))
+        .background(Color(hex: "#FFF3CD"))
     }
 }
 
-/// Wires up the frequency-capped entry disclaimer (max 3 shows/day for `serviceKey`, reset
-/// the next calendar day) for a screen. Own one of these as a `@StateObject` in the screen
+/// Wires up the frequency-capped entry disclaimer (max 3 shows total for `serviceKey`, within
+/// 7 days of the first time it's shown — then never again until reinstall) for a screen. Own
+/// one of these as a `@StateObject` in the screen
 /// that should show the popup on entry, call `checkOnAppear()` from `.onAppear`, and render
 /// `GovDisclaimerPopupView` when `isPresented` is true.
 @MainActor

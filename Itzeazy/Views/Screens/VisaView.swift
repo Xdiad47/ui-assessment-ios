@@ -25,7 +25,8 @@ struct VisaView: View {
                 destination: CitizenServicesWebView(
                     url: webLoginVM.generatedURL ?? "",
                     title: viewModel.selectedCountry,
-                    showGovDisclaimer: true
+                    showGovDisclaimer: true,
+                    disclaimerServiceKey: "visa_apply"
                 ),
                 isActive: Binding(
                     get: { webLoginVM.generatedURL != nil },
@@ -132,28 +133,35 @@ struct VisaView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
                         
-                        // 3 Metrics cards
+                        // Metrics cards — a pill only renders when the backend actually has
+                        // a value for it; nothing is shown in its place otherwise.
                         HStack(spacing: 12) {
-                            MetricCardView(
-                                icon: "clock", 
-                                title: "PROCESSING", 
-                                value: viewModel.processingTime,
-                                subtitle: ""
-                            )
-                            
-                            MetricCardView(
-                                icon: "creditcard",
-                                title: "VISA FEE",
-                                value: viewModel.visaFee,
-                                subtitle: ""
-                            )
-                            
-                            MetricCardView(
-                                icon: "person.crop.circle.badge.checkmark",
-                                title: "VISIT REQUIRED",
-                                value: viewModel.visitRequired,
-                                subtitle: ""
-                            )
+                            if !viewModel.processingTime.isEmpty {
+                                MetricCardView(
+                                    icon: "clock",
+                                    title: "PROCESSING",
+                                    value: viewModel.processingTime,
+                                    subtitle: ""
+                                )
+                            }
+
+                            if !viewModel.govtFee.isEmpty {
+                                MetricCardView(
+                                    icon: "creditcard",
+                                    title: "GOVT. FEE",
+                                    value: viewModel.govtFee,
+                                    subtitle: ""
+                                )
+                            }
+
+                            if !viewModel.itzeazyFee.isEmpty {
+                                MetricCardView(
+                                    icon: "banknote",
+                                    title: "ITZEAZY FEE",
+                                    value: viewModel.itzeazyFee,
+                                    subtitle: ""
+                                )
+                            }
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 24)

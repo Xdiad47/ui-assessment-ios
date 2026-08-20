@@ -18,7 +18,13 @@ struct ItzEazyWalletView: View {
             Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
 
             if let url = webLoginVM.generatedURL {
-                CitizenServicesWebView(url: url, title: "ItzEazy Wallet", onBack: goBack)
+                CitizenServicesWebView(
+                    url: url,
+                    title: "ItzEazy Wallet",
+                    onBack: goBack,
+                    showGovDisclaimer: true,
+                    disclaimerServiceKey: "wallet"
+                )
             } else {
                 VStack(spacing: 16) {
                     ProgressView()

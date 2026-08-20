@@ -37,6 +37,9 @@ struct CitizenServicesWebView: View {
     // the page is up. Defaults to mirroring showGovDisclaimer, but can be forced true even
     // when the popup itself is skipped (still a private portal, even if already acknowledged).
     var showGovBanner: Bool
+    // When set, showGovDisclaimer is additionally gated by the 3-shows/7-days cap for this
+    // key (see GovDisclaimerFrequencyStore) instead of showing unconditionally every visit.
+    let disclaimerServiceKey: String?
 
     @StateObject private var vm: WebViewModel
     @Environment(\.presentationMode) private var presentationMode
@@ -44,21 +47,31 @@ struct CitizenServicesWebView: View {
     @EnvironmentObject private var authGate: AuthGateController
     @State private var navigateToProfile = false
     @State private var disclaimerAcknowledged: Bool
+    // Guards the .onAppear cap check below from re-running — belt and suspenders alongside
+    // @State's own once-per-identity semantics.
+    @State private var didCheckDisclaimerCap = false
 
     init(
         url: String,
         title: String = "Citizen Services",
         onBack: (() -> Void)? = nil,
         showGovDisclaimer: Bool = false,
-        showGovBanner: Bool? = nil
+        showGovBanner: Bool? = nil,
+        disclaimerServiceKey: String? = nil
     ) {
         self.url     = url
         self.title   = title
         self.onBack  = onBack
         self.showGovDisclaimer = showGovDisclaimer
         self.showGovBanner = showGovBanner ?? showGovDisclaimer
+        self.disclaimerServiceKey = disclaimerServiceKey
         _vm = StateObject(wrappedValue: WebViewModel(title: title, urlString: url))
-        _disclaimerAcknowledged = State(initialValue: !showGovDisclaimer)
+        // When capped, the actual show/no-show decision is a UserDefaults side effect (see
+        // GovDisclaimerFrequencyStore) — deferred to .onAppear below (fires once per genuine
+        // appearance) rather than done here. NavigationLink's legacy destination: closure can
+        // construct this struct's init multiple times per render pass, including when the
+        // screen never actually appears, so a side effect here would corrupt the counter.
+        _disclaimerAcknowledged = State(initialValue: disclaimerServiceKey != nil ? true : !showGovDisclaimer)
     }
 
     var body: some View {
@@ -87,6 +100,15 @@ struct CitizenServicesWebView: View {
         }
         .navigationTitle("")
         .navigationBarHidden(true)
+        .onAppear {
+            guard !didCheckDisclaimerCap, showGovDisclaimer, let key = disclaimerServiceKey else { return }
+            didCheckDisclaimerCap = true
+            let store = GovDisclaimerFrequencyStore.shared
+            if store.shouldShow(key) {
+                store.recordShown(key)
+                disclaimerAcknowledged = false
+            }
+        }
     }
 
     // MARK: - Custom Nav Header

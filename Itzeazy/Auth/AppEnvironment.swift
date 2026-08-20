@@ -6,8 +6,8 @@ enum AppEnvironment {
     case prod
 
     // Change this single line to switch environments
-    static var current: AppEnvironment = .dev
-    //static var current: AppEnvironment = .prod
+    //static var current: AppEnvironment = .dev
+    static var current: AppEnvironment = .prod
 
     var baseURL: String {
         switch self {

@@ -76,14 +76,29 @@ struct PanCardDetailView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
 
-                        HStack(spacing: 16) {
-                            GovFeeMetricCard(icon: "ic_card_processing", label: "PROCESSING", value: viewModel.processing)
-                            GovFeeMetricCard(icon: "ic_card_govt_fee", label: "GOVT. FEE", value: viewModel.govtFee)
-                            GovFeeMetricCard(icon: "ic_card_service_fee", label: "ITZEAZY FEE", value: viewModel.itzeazyFee)
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                                .frame(maxWidth: .infinity, minHeight: 100)
+                                .padding(.top, 32)
+                                .padding(.bottom, 28)
+                        } else {
+                            // A pill only renders when the backend actually has a value for it.
+                            HStack(spacing: 16) {
+                                if !viewModel.processing.isEmpty {
+                                    GovFeeMetricCard(icon: "ic_card_processing", label: "PROCESSING", value: viewModel.processing)
+                                }
+                                if !viewModel.govtFee.isEmpty {
+                                    GovFeeMetricCard(icon: "ic_card_govt_fee", label: "GOVT. FEE", value: viewModel.govtFee)
+                                }
+                                if !viewModel.itzeazyFee.isEmpty {
+                                    GovFeeMetricCard(icon: "ic_card_service_fee", label: "ITZEAZY FEE", value: viewModel.itzeazyFee)
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 32)
+                            .padding(.bottom, 28)
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 32)
-                        .padding(.bottom, 28)
 
                         Button(action: {
                             guard authGate.requireAuth() else { return }
@@ -138,18 +153,26 @@ struct PanCardDetailView: View {
                             }
                             .padding(.bottom, 4)
 
-                            VStack(alignment: .leading, spacing: 12) {
-                                ForEach(viewModel.documents, id: \.self) { doc in
-                                    HStack(alignment: .top, spacing: 12) {
-                                        Circle()
-                                            .fill(Color.red)
-                                            .frame(width: 6, height: 6)
-                                            .padding(.top, 8)
+                            if viewModel.documents.isEmpty && !viewModel.isLoading {
+                                Text("No documents available for this service at the moment.")
+                                    .font(Font.custom("Inter", size: 14))
+                                    .foregroundColor(Color(red: 0.37, green: 0.37, blue: 0.37))
+                                    .multilineTextAlignment(.center)
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    ForEach(viewModel.documents, id: \.self) { doc in
+                                        HStack(alignment: .top, spacing: 12) {
+                                            Circle()
+                                                .fill(Color.red)
+                                                .frame(width: 6, height: 6)
+                                                .padding(.top, 8)
 
-                                        Text(doc)
-                                            .font(Font.custom("Inter", size: 14))
-                                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
-                                            .fixedSize(horizontal: false, vertical: true)
+                                            Text(doc)
+                                                .font(Font.custom("Inter", size: 14))
+                                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
                                     }
                                 }
                             }
@@ -166,6 +189,9 @@ struct PanCardDetailView: View {
         .navigationBarHidden(true)
         .onAppear {
             if showEntryDisclaimer { disclaimerGate.checkOnAppear() }
+        }
+        .task {
+            viewModel.loadDocuments(city: location)
         }
         .onChange(of: webLoginVM.generatedURL) { _, url in
             if url != nil { showWebView = true }

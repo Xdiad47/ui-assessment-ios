@@ -1,21 +1,38 @@
 import Foundation
 import Combine
 
-// TEMPORARY: static content until the backend exposes a real documents/fee endpoint for
-// Marriage Registration. Mirrors Android's MarriageRegDetailViewModel exactly. Both govtFee
-// and itzeazyFee are unconfirmed placeholders — the government registration fee varies by
-// state, and the real Itzeazy service fee still needs confirming.
+// Marriage Registration has no government fee — it shows Visit Required instead (per Itzeazy).
 @MainActor
 final class MarriageRegDetailViewModel: ObservableObject {
-    @Published var processing: String = "3-5 days"
-    @Published var govtFee: String = "Varies by state"
-    @Published var itzeazyFee: String = "₹2,500"
-    @Published var documents: [String] = [
-        "Aadhaar Card of both bride and groom",
-        "Age proof (Birth Certificate, 10th Marksheet, or Passport)",
-        "Address proof of both parties",
-        "Passport-size photographs of bride and groom",
-        "Two witnesses with valid ID proof",
-        "Marriage invitation card (if available)"
-    ]
+    @Published var isLoading: Bool = false
+    @Published var processing: String = ""
+    @Published var visitRequired: String = ""
+    @Published var itzeazyFee: String = ""
+    @Published var documents: [String] = []
+    @Published var errorMessage: String? = nil
+
+    private let api = ItzeazyAPIService.shared
+
+    func loadDocuments(type: String, city: String) {
+        guard let endpoint = DocumentsRequiredService.endpoint(work: "Marriage Registration", type: type, city: city) else { return }
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            defer { isLoading = false }
+            do {
+                let response: DocumentsRequiredResponse = try await api.get(endpoint: endpoint)
+                let extra = response.data?.extraFields
+                processing = DocumentsRequiredService.cleanField(extra, "PROCESSING")
+                visitRequired = DocumentsRequiredService.cleanField(extra, "VISIT REQUIRED")
+                let rawItzeazyFee = DocumentsRequiredService.cleanField(extra, "ITZEAZY FEE")
+                itzeazyFee = rawItzeazyFee.isEmpty ? "" : "₹\(rawItzeazyFee)"
+                documents = DocumentsRequiredService.dedupedDocuments(response.data?.documents).map { $0.documentName }
+            } catch let error as ItzeazyAPIError {
+                errorMessage = error.errorDescription
+            } catch {
+                errorMessage = "Failed to load service details. Please try again."
+            }
+        }
+    }
 }

@@ -38,12 +38,21 @@ private struct RTORequiredDocumentsExtraFields: Decodable {
     let documentCollection: String?
     let processing: String?
     let visitRequired: String?
+    let itzeazyFee: String?
 
     enum CodingKeys: String, CodingKey {
         case documentCollection = "DOCUMENT COLLECTION"
         case processing = "PROCESSING"
         case visitRequired = "VISIT REQUIRED"
+        case itzeazyFee = "Itzeazy Fees"
     }
+}
+
+/// The backend sends the literal string "null" for an unset extra_fields value (not JSON
+/// null) — treat that, and blank strings, as "no value" so callers fall back to empty.
+private func cleanExtraField(_ raw: String?) -> String {
+    guard let raw, !raw.isEmpty, raw.lowercased() != "null" else { return "" }
+    return raw
 }
 
 @MainActor
@@ -51,9 +60,10 @@ final class RTOServiceDetailViewModel: ObservableObject {
     let serviceTitle: String // e.g. "Duplicate RC" — passed verbatim as the `work` query param
     let city: String         // e.g. "Delhi"
 
-    @Published var processingTime: String = "-"
-    @Published var documentCollection: String = "-"
-    @Published var visitRequired: String = "-"
+    @Published var processingTime: String = ""
+    @Published var documentCollection: String = ""
+    @Published var visitRequired: String = ""
+    @Published var itzeazyFee: String = ""
     @Published var requiredDocuments: [String] = []
     @Published var documentsMessage: String? = nil
     @Published var isLoading: Bool = false
@@ -119,9 +129,11 @@ final class RTOServiceDetailViewModel: ObservableObject {
                 documentsMessage = docs.isEmpty ? "No documents available yet for this service." : nil
 
                 let extraFields = response.data?.extraFields
-                processingTime = extraFields?.processing ?? "-"
-                documentCollection = extraFields?.documentCollection ?? "-"
-                visitRequired = extraFields?.visitRequired ?? "-"
+                processingTime = cleanExtraField(extraFields?.processing)
+                documentCollection = cleanExtraField(extraFields?.documentCollection)
+                visitRequired = cleanExtraField(extraFields?.visitRequired)
+                let rawItzeazyFee = cleanExtraField(extraFields?.itzeazyFee)
+                itzeazyFee = rawItzeazyFee.isEmpty ? "" : "₹\(rawItzeazyFee)"
             } catch let error as ItzeazyAPIError {
                 guard token == activeFetchToken else { return }
                 errorMessage = error.errorDescription
