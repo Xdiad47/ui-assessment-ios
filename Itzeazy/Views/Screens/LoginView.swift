@@ -11,7 +11,7 @@ import AuthenticationServices
 /// tries login first and falls back to create-account if no account exists
 /// yet for this Apple ID. Surfaces failures through the same
 /// authViewModel.errorMessage the password/OTP flows already use.
-private func handleAppleSignInResult(_ result: Result<ASAuthorization, Error>, authViewModel: AuthViewModel) {
+func handleAppleSignInResult(_ result: Result<ASAuthorization, Error>, authViewModel: AuthViewModel) {
     switch result {
     case .success(let authorization):
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
@@ -134,7 +134,29 @@ struct LoginView: View {
                         .zIndex(5)
                     }
 
+                    if authViewModel.isLoading {
+                        Color.black.opacity(0.45)
+                            .ignoresSafeArea()
+                            .transition(.opacity)
+
+                        VStack(spacing: 14) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                                .scaleEffect(1.3)
+
+                            Text("Loading...")
+                                .font(Font.custom("PlusJakartaSans-SemiBold", size: 15))
+                                .foregroundColor(Color(hex: "#191c1d"))
+                        }
+                        .frame(width: 130, height: 110)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: Color.black.opacity(0.25), radius: 20, x: 0, y: 10)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .transition(.opacity)
+                    }
                 }
+                .animation(.easeInOut(duration: 0.15), value: authViewModel.isLoading)
                 .coordinateSpace(name: "loginRoot")
             }
             .toolbar(.hidden, for: .navigationBar)
