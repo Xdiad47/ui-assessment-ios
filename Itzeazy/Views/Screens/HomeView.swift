@@ -52,6 +52,9 @@ struct HomeView: View {
                                 HomeUtilitiesGridView()
                                     .padding(.bottom, 20)
 
+                                VideoTutorialsGridView()
+                                    .padding(.bottom, 20)
+
                                 HomeWorkflowView()
 
                                 HomeValuePropositionView()
@@ -687,6 +690,10 @@ struct HomeUtilitiesGridView: View {
     @State private var navigateToDLInfo = false
     @State private var navigateToTSVehicle = false
     @State private var navigateToTSDLInfo = false
+    // Photo Maker / Scanner are pure on-device tools with no backend login requirement,
+    // matching Android (neither gates on auth) — same reasoning as Road Tax/LL QB/LL Mock below.
+    @State private var navigateToPhotoMaker = false
+    @State private var navigateToDocumentScanner = false
     // Which frequency-cap bucket (see GovDisclaimerFrequencyStore) the shared utility
     // WebView's disclaimer counts against — set right before generateToken/openDirectly in
     // the default: case below, since Road Tax/LL QB/LL Mock all share one destination.
@@ -707,7 +714,9 @@ struct HomeUtilitiesGridView: View {
         ("EV Charge",     "ev_charge"),
         ("Petrol\nPump",  "petrol_pump"),
         ("LL QB",         "ll_qb"),
-        ("LL Mock",       "llmock")
+        ("LL Mock",       "llmock"),
+        ("Photo\nMaker",  "photo_maker"),
+        ("Scanner",       "scanner")
     ]
 
     // 5 Columns as per Figma
@@ -749,6 +758,8 @@ struct HomeUtilitiesGridView: View {
                     NavigationLink(destination: DLInfoView(), isActive: $navigateToDLInfo) { EmptyView() }
                     NavigationLink(destination: TSVehicleScreen(), isActive: $navigateToTSVehicle) { EmptyView() }
                     NavigationLink(destination: TSDLInfoScreen(), isActive: $navigateToTSDLInfo) { EmptyView() }
+                    NavigationLink(destination: PhotoMakerView(), isActive: $navigateToPhotoMaker) { EmptyView() }
+                    NavigationLink(destination: DocumentScannerView(), isActive: $navigateToDocumentScanner) { EmptyView() }
                 }
                 .hidden()
 
@@ -904,6 +915,24 @@ struct HomeUtilitiesGridView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                     showComingSoonToast = false
                 }
+            } label: {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(NoHighlightButtonStyle())
+
+        case "Photo\nMaker":
+            // No auth gate — a local on-device tool, not an account feature (matches Android).
+            Button {
+                navigateToPhotoMaker = true
+            } label: {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(NoHighlightButtonStyle())
+
+        case "Scanner":
+            // No auth gate — a local on-device tool, not an account feature (matches Android).
+            Button {
+                navigateToDocumentScanner = true
             } label: {
                 ServiceBoxView(title: label, iconName: icon)
             }

@@ -55,3 +55,37 @@ struct YoutubePageInfo: Decodable {
     let resultsPerPage: Int
     let totalResults: Int
 }
+
+// MARK: - youtube/search/videos — a separate, simpler endpoint from the playlist one above.
+// Category tiles on Home's Video Tutorials section (RTO, Passport, Visa, etc.) each pass their
+// own `q` to this search endpoint rather than a fixed curated playlist.
+
+struct VideoSearchResponse: Decodable {
+    let items: [VideoSearchItem]
+}
+
+struct VideoSearchItem: Decodable {
+    let id: VideoSearchId
+    let snippet: VideoSearchSnippet
+}
+
+struct VideoSearchId: Decodable {
+    let videoId: String
+    let videoUrl: String
+}
+
+struct VideoSearchSnippet: Decodable {
+    let title: String
+    let description: String
+    let channelId: String
+    let publishedAt: String
+    let thumbnails: VideoSearchThumbnails
+}
+
+struct VideoSearchThumbnails: Decodable {
+    let `default`: VideoSearchThumbnail?
+}
+
+struct VideoSearchThumbnail: Decodable {
+    let url: String
+}

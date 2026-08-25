@@ -163,7 +163,8 @@ private let hideOverlaysJS = """
     }
 }
 
-private func extractYouTubeVideoId(from url: String) -> String? {
+// Internal (not private) — also reused by CuratedVideos.swift to derive thumbnail URLs.
+func extractYouTubeVideoId(from url: String) -> String? {
     let patterns = [
         #"youtu\.be/([a-zA-Z0-9_\-]{11})"#,
         #"youtube\.com/watch\?.*v=([a-zA-Z0-9_\-]{11})"#,

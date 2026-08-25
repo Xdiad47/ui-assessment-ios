@@ -1,5 +1,24 @@
 import SwiftUI
 
+private struct HomeTitleSizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
+    }
+}
+
+private struct HomeTitleSizeReader: View {
+    var onChange: (CGSize) -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .preference(key: HomeTitleSizePreferenceKey.self, value: proxy.size)
+        }
+        .onPreferenceChange(HomeTitleSizePreferenceKey.self, perform: onChange)
+    }
+}
+
 struct HomeWorkflowView: View {
     let steps = [
         ("1", "Choose Location"),
@@ -8,18 +27,28 @@ struct HomeWorkflowView: View {
         ("4", "Sit back & Relax")
     ]
 
+    @State private var titleSize: CGSize = .zero
+
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
 
-            // Title with full-width red underline
+            // Title with text-width red underline
             VStack(alignment: .leading, spacing: 6) {
                 Text("How Itzeazy Works")
                     .font(Font.custom("PlusJakartaSans-Bold", size: 24))
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                    .background(
+                        HomeTitleSizeReader { size in
+                            if size != titleSize {
+                                titleSize = size
+                            }
+                        }
+                    )
+
                 Rectangle()
                     .fill(Color.red)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 2)
+                    .frame(width: titleSize.width, height: 2)
+                    .cornerRadius(1)
             }
 
             // Steps with vertical timeline connector
@@ -46,7 +75,7 @@ struct HomeWorkflowView: View {
 
                         Text(step.1)
                             .font(Font.custom("PlusJakartaSans-Bold", size: 16))
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
                             .padding(.top, 4)
 
                         Spacer()
@@ -57,7 +86,7 @@ struct HomeWorkflowView: View {
             // Illustration image with bezel frame
             ZStack {
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(Color(red: 0.20, green: 0.20, blue: 0.20))
+                    .fill(Color(red: 0.95, green: 0.95, blue: 0.95))
 
                 Image("how_itzeazy_works")
                     .resizable()
@@ -69,14 +98,12 @@ struct HomeWorkflowView: View {
             .frame(height: 224)
         }
         .padding(24)
-        //.frame(maxWidth: .infinity)
-        .background(Color(red: 0.05, green: 0.05, blue: 0.05))
+        .background(Color.white)
         .cornerRadius(30)
-//        .overlay(
-//            RoundedRectangle(cornerRadius: 40)
-//                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-//        )
-        //.padding(.horizontal)
+        .overlay(
+            RoundedRectangle(cornerRadius: 30)
+                .stroke(Color(red: 0.72, green: 0.72, blue: 0.72), lineWidth: 3)
+        )
     }
 }
 

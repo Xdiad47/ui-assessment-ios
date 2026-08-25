@@ -270,7 +270,10 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Itzeazy/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to scan documents and take photos for Photo Maker.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Allow location access to find EV charging stations near you.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Allow access to save your edited photos and scanned documents to your photo library.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow access to your photo library to pick photos and documents to edit or scan.";
 				INFOPLIST_KEY_UIAppFonts = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -322,7 +325,10 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Itzeazy/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to scan documents and take photos for Photo Maker.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Allow location access to find EV charging stations near you.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Allow access to save your edited photos and scanned documents to your photo library.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow access to your photo library to pick photos and documents to edit or scan.";
 				INFOPLIST_KEY_UIAppFonts = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
