@@ -19,21 +19,8 @@ final class HomeServicesViewModel: ObservableObject {
 
     // Passport, Marriage Reg., Birth Cert., and Pan Card moved to native intro + detail
     // screens (see HomeServicesGridView.serviceCell) — no longer routed through this list.
-    let webItems: [ServiceWebItem] = [
-        ServiceWebItem(
-            label: "IT Returns",
-            icon:  "it_returns",
-            url:   "https://itzeazy.in/income-tax"
-        ),
-        ServiceWebItem(
-            label: "Affidavit",
-            icon:  "affidavit",
-            url:   "https://itzeazy.in/affadivate"   // intentional typo — matches Android source
-        ),
-        ServiceWebItem(
-            label: "POI/FRRO",
-            icon:  "poi_frro",
-            url:   "https://itzeazy.in/poi-ffro"     // intentional typo — matches Android source
-        ),
-    ]
+    // IT Returns/Affidavit/POI-FRRO were removed from the Services grid entirely (matching
+    // Android's HomeRepository.getServices(), which no longer lists them) — no items currently
+    // route through this fallback, but it stays in place for any future WebView-backed service.
+    let webItems: [ServiceWebItem] = []
 }

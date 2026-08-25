@@ -496,25 +496,30 @@ struct HomeServicesGridView: View {
     @EnvironmentObject private var authGate: AuthGateController
     @State private var showComingSoonToast = false
 
-    // Non-web service items kept inline (RTO, Visa, Attestation)
+    // Non-web service items kept inline (RTO, Visa, Attestation) — matches Android's
+    // HomeRepository.getServices() list exactly, including its "Tanscript" typo (not fixed here
+    // to stay in parity with the live Android label rather than introduce a platform mismatch).
     private let allServices: [(String, String)] = [
         ("RTO\nServices", "rto_service"),
         ("Passport",      "passport"),
         ("Marriage\nReg.", "marriage_reg"),
         ("Birth Cert.",   "birth_certi"),
-        ("IT Returns",    "it_returns"),
         ("Visa",          "visa"),
-        ("Affidavit",     "affidavit"),
-        ("POI/FRRO",      "poi_frro"),
         ("Attestation",   "attestation"),
-        ("Pan Card",      "pan_card")
+        ("Pan Card",      "pan_card"),
+        ("Traffic\nChallan", "challan_info"),
+        ("Driving\nClasses", "steering_wheel"),
+        ("Degree cert./\nTanscript", "degree_certi_icon"),
+        ("Dummy\nTickets", "dummy_tickets"),
+        ("Insurance",     "insurance_icon")
     ]
 
     // Not functional yet — tapping these shows a "coming soon" toast instead of navigating.
-    private let comingSoonLabels: Set<String> = ["IT Returns", "Affidavit", "POI/FRRO", "Attestation"]
-
-    // 5 Columns as per Figma
-    let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
+    // Matches Android's MainScreen.kt onServiceClick, which routes this exact set to a toast.
+    private let comingSoonLabels: Set<String> = [
+        "Attestation", "Traffic\nChallan", "Driving\nClasses",
+        "Degree cert./\nTanscript", "Dummy\nTickets", "Insurance"
+    ]
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -543,9 +548,18 @@ struct HomeServicesGridView: View {
                 }
                 .padding(.horizontal, 16)
 
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(allServices, id: \.0) { service in
-                        serviceCell(label: service.0, icon: service.1)
+                // Explicit chunked rows instead of LazyVGrid — same fix as VideoSearchView's
+                // CuratedVideoGrid: guarantees every column is exactly 1/4 of the available
+                // width via .frame(maxWidth: .infinity) rather than leaving column sizing to
+                // LazyVGrid's flexible-column computation.
+                VStack(spacing: 8) {
+                    ForEach(Array(allServices.chunked(into: 4).enumerated()), id: \.offset) { _, row in
+                        HStack(spacing: 8) {
+                            ForEach(row, id: \.0) { service in
+                                serviceCell(label: service.0, icon: service.1)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
                     }
                 }
                 .padding(12)
@@ -719,9 +733,6 @@ struct HomeUtilitiesGridView: View {
         ("Scanner",       "scanner")
     ]
 
-    // 5 Columns as per Figma
-    let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
-
     var body: some View {
         ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 4) {
@@ -774,9 +785,16 @@ struct HomeUtilitiesGridView: View {
                 }
                 .padding(.horizontal, 16)
 
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(allUtilities, id: \.0) { utility in
-                        utilityCell(label: utility.0, icon: utility.1)
+                // Explicit chunked rows instead of LazyVGrid — see HomeServicesGridView's
+                // matching comment for why.
+                VStack(spacing: 8) {
+                    ForEach(Array(allUtilities.chunked(into: 4).enumerated()), id: \.offset) { _, row in
+                        HStack(spacing: 8) {
+                            ForEach(row, id: \.0) { utility in
+                                utilityCell(label: utility.0, icon: utility.1)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, 12)
@@ -999,6 +1017,8 @@ struct ServiceBoxView: View {
 struct HomeView_Previews: PreviewProvider {
     static var previews: some View {
         HomeView()
+            .environmentObject(UserSessionViewModel())
+            .environmentObject(AuthGateController())
     }
 }
 
