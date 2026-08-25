@@ -38,6 +38,9 @@ final class UserSessionViewModel: ObservableObject {
         Task {
             do {
                 let response: AuthResponse = try await api.get(endpoint: "user", token: token)
+                // Logout can happen while this request is still in flight — discard a
+                // stale response instead of resurrecting the user we just cleared.
+                guard UserDefaults.standard.bool(forKey: "isLoggedIn") else { return }
                 if let userData = response.data {
                     user = userData
                     storage.saveUser(userData)

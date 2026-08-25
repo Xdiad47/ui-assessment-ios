@@ -11,6 +11,7 @@ struct CreateAccountView: View {
     @FocusState private var focusedField: Field?
     
     @StateObject private var registerViewModel = RegisterViewModel()
+    @StateObject private var authViewModel = AuthViewModel()
 
     @State private var navigateToOTP: Bool = false
     @State private var selectedContactInfo: String = ""
@@ -335,7 +336,15 @@ struct CreateAccountView: View {
                                 }
 
                                 AppleSignInButton(label: .signUp) { result in
-                                    // TODO: hook up Apple credential to backend auth once the Apple Developer account (currently in review) and Sign In with Apple capability are available.
+                                    handleAppleSignInResult(result, authViewModel: authViewModel)
+                                }
+
+                                if let error = authViewModel.errorMessage {
+                                    Text(error)
+                                        .font(Font.custom("Inter", size: 13).weight(.medium))
+                                        .foregroundColor(.red)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 4)
                                 }
                             }
 
@@ -390,7 +399,30 @@ struct CreateAccountView: View {
                     .transition(.scale(scale: 0.96, anchor: .topLeading).combined(with: .opacity))
                     .zIndex(5)
                 }
+
+                if authViewModel.isLoading {
+                    Color.black.opacity(0.45)
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+
+                    VStack(spacing: 14) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                            .scaleEffect(1.3)
+
+                        Text("Loading...")
+                            .font(Font.custom("PlusJakartaSans-SemiBold", size: 15))
+                            .foregroundColor(Color(hex: "#191c1d"))
+                    }
+                    .frame(width: 130, height: 110)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: Color.black.opacity(0.25), radius: 20, x: 0, y: 10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity)
+                }
             }
+            .animation(.easeInOut(duration: 0.15), value: authViewModel.isLoading)
             .coordinateSpace(name: "createAccountRoot")
             .edgesIgnoringSafeArea(.top)
         }
