@@ -60,6 +60,13 @@ struct ItzeazyApp: App {
                 }
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showSessionToast)
+            // The app's screens are designed against one fixed light palette — without this,
+            // SwiftUI otherwise lets system-provided chrome (sheets, alerts, the share sheet,
+            // the keyboard) and any semantic/system colors follow the device's Dark Mode
+            // setting, so a phone switched to Dark Mode would silently flip parts of the app to
+            // a black background / white text that was never designed for. Locking to `.light`
+            // keeps the whole app looking identical regardless of the device's appearance setting.
+            .preferredColorScheme(.light)
             .onChange(of: isLoggedIn) { _, loggedIn in
                 if loggedIn {
                     userSession.fetchUserProfile()
