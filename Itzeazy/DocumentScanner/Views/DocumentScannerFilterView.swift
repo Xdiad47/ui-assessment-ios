@@ -31,6 +31,7 @@ struct DocumentScannerFilterView: View {
         .background(Color(hex: "#030302"))
         .navigationBarHidden(true)
         .onAppear { viewModel.initSession(pageURLs) }
+        .overlay(loadingOverlay)
         .overlay(alignment: .bottom) { toastOverlay }
     }
 
@@ -156,6 +157,36 @@ struct DocumentScannerFilterView: View {
         }
         .buttonStyle(.plain)
         .disabled(disabled)
+    }
+
+    // MARK: - Loading overlay
+
+    // Matches EditPhotoMakerView's loadingOverlay exactly — same dimmed scrim, white rounded
+    // card, red-tinted spinner, and label font/size/color — so a "processing" moment reads the
+    // same way across the app instead of introducing a one-off design just for this screen.
+    private var loadingOverlay: some View {
+        Group {
+            if viewModel.isApplyingFilter || viewModel.isProcessing {
+                ZStack {
+                    Color.black.opacity(0.35).ignoresSafeArea()
+                    VStack(spacing: 14) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                            .scaleEffect(1.3)
+                        Text(viewModel.isProcessing ? "Processing pages..." : "Applying filter...")
+                            .font(Font.custom("PlusJakartaSans-SemiBold", size: 15))
+                            .foregroundColor(Color(hex: "#191c1d"))
+                    }
+                    .frame(width: 160, height: 110)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: Color.black.opacity(0.25), radius: 20, x: 0, y: 10)
+                }
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.15), value: viewModel.isApplyingFilter)
+        .animation(.easeInOut(duration: 0.15), value: viewModel.isProcessing)
     }
 
     // MARK: - Toast

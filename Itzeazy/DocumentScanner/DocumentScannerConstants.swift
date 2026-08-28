@@ -1,29 +1,41 @@
 import Foundation
 
 // MARK: - DocumentScannerConstants
-// Mirrors the tuned constants in Android's DocumentScannerRepository.kt so filter output stays
-// visually equivalent, not just structurally similar code.
+// Non-filter constants mirror the tuned values in Android's DocumentScannerRepository.kt so
+// behavior stays equivalent, not just structurally similar code. The filter constants below are
+// the exception — they tune a from-scratch Core Image (GPU) approximation of Android's
+// OpenCV-based filters rather than mirroring OpenCV's own parameters, since Core Image has no
+// direct equivalent to OpenCV's CLAHE/adaptive-threshold and needed its own tuning pass.
 
 enum DocumentScannerConstants {
 
-    // MARK: Filters — Magic White's background-blur kernel is sized relative to the image so
-    // shadow removal scales with resolution instead of a fixed pixel count too weak on a large photo.
+    // MARK: Filters — Core Image (GPU-accelerated) filter tuning. Blur/unsharp radii are
+    // expressed as a divisor of the image's shorter side so the effective "local neighborhood"
+    // size scales with resolution instead of staying a fixed pixel count that's too weak on the
+    // full 2048px working image or too strong on the smaller filter preview.
 
-    static let magicWhiteBlurDivisor = 8
+    /// Magic White's background-estimate blur (divide-by-local-blur shadow removal).
+    static let coreImageMagicWhiteBlurDivisor: CGFloat = 8
+    /// B&W's illumination-normalize blur — smaller/more local than Magic White's, since adaptive
+    /// thresholding needs to react to nearby lighting, not a whole-page background estimate.
+    static let coreImageBWBlurDivisor: CGFloat = 25
+    static let coreImageBWContrastBoost: Double = 1.4
+    /// Levels for the final posterize step that pushes the illumination-normalized image to a
+    /// crisp binary black/white, approximating a true per-pixel adaptive threshold.
+    static let coreImageBWPosterizeLevels: Double = 2
 
-    // MARK: Filters — CLAHE clip limits for the two Magic Colour variants; higher clip = punchier
-    // local contrast. Colour 2 also gets a mild warm shift so the two read as distinct presets.
-
-    static let magicColour1ClaheClip: Double = 3.0
-    static let magicColour2ClaheClip: Double = 1.8
-    static let claheTileGridSize = 8
-    static let magicColour2WarmShift: Double = 8.0
-
-    // MARK: Filters — B&W uses a local (adaptive) threshold rather than a single global cutoff,
-    // since a document photo's lighting is rarely even across the whole page.
-
-    static let bwAdaptiveBlockSize = 35
-    static let bwAdaptiveC: Double = 15.0
+    /// CIUnsharpMask stands in for CLAHE (Core Image has no local-histogram-equalization filter)
+    /// as the "local contrast punch" for Magic Colour 1/2 — intensity mirrors the old CLAHE clip
+    /// limits' relationship (Colour 1 punchier than Colour 2).
+    static let coreImageMagicColourUnsharpRadius: CGFloat = 40
+    static let coreImageMagicColour1UnsharpIntensity: Double = 1.4
+    static let coreImageMagicColour2UnsharpIntensity: Double = 0.9
+    static let coreImageMagicColourContrastBoost: Double = 1.12
+    static let coreImageMagicColourSaturationBoost: Double = 1.08
+    /// Colour 2's warm shift, applied as a direct R+/B- bias via CIColorMatrix (0...1 color
+    /// space) rather than CITemperatureAndTint — same R+/B- nudge the old per-pixel
+    /// implementation used, just without that filter's less certain shift direction.
+    static let coreImageWarmShiftAmount: Double = 8.0 / 255.0
 
     // MARK: Working-image cap — every page decode is capped here (matches Photo Maker's own cap).
 
@@ -33,6 +45,12 @@ enum DocumentScannerConstants {
 
     static let thumbnailMaxDimension: CGFloat = 320
     static let filterThumbnailMaxDimension: CGFloat = 200
+
+    // MARK: Filter screen's large preview — sized for its actual on-screen footprint (337x366pt,
+    // see DocumentScannerFilterView.previewFrame), not the full working resolution. Comfortably
+    // covers 3x Retina (~1100px) with margin; applying the filter math at 2048px for a preview
+    // that never renders past ~1100px was pure wasted work (see DocumentScannerFilterViewModel).
+    static let filterPreviewMaxDimension: CGFloat = 900
 
     // MARK: Capture — page limits handed to VNDocumentCameraViewController's session (VisionKit
     // has no "unlimited" sentinel, so Document Scan just gets a generously high cap).

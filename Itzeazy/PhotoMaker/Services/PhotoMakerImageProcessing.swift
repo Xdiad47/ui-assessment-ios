@@ -77,11 +77,21 @@ enum PhotoMakerColorMath {
 
     // MARK: RGB <-> Lab (per-pixel)
 
+    // The sRGB gamma-decode step only ever takes a UInt8 (0...255), so there are exactly 256
+    // possible outputs — computing them all once here and looking them up is bit-for-bit
+    // identical to calling `pow()` fresh each time, just without repeating the (expensive,
+    // transcendental) math for the same 256 inputs millions of times over. `rgbToLab` is the
+    // single hottest function in every Document Scanner filter but B&W (called once or twice per
+    // pixel per filter application), so this alone removes a large fraction of the `pow()` calls
+    // that were driving that screen's lag — Android's equivalent filters route through OpenCV's
+    // native, SIMD-optimized `cvtColor`, which has no analogous per-call cost to eliminate.
+    private static let sRGBToLinearLUT: [Double] = (0...255).map { byte in
+        let v = Double(byte) / 255.0
+        return v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
+    }
+
     static func rgbToLab(r: UInt8, g: UInt8, b: UInt8) -> (l: Double, a: Double, b: Double) {
-        func toLinear(_ c: UInt8) -> Double {
-            let v = Double(c) / 255.0
-            return v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
-        }
+        func toLinear(_ c: UInt8) -> Double { sRGBToLinearLUT[Int(c)] }
         let rl = toLinear(r), gl = toLinear(g), bl = toLinear(b)
         let x = rl * 0.4124564 + gl * 0.3575761 + bl * 0.1804375
         let y = rl * 0.2126729 + gl * 0.7151522 + bl * 0.0721750
@@ -142,6 +152,45 @@ enum PhotoMakerColorMath {
                 let p = original.pixel(x: x, y: y)
                 let lab = rgbToLab(r: p.r, g: p.g, b: p.b)
                 let rgb = labToRgb(l: newL[y * original.width + x], a: lab.a, b: lab.b)
+                out.setPixel(x: x, y: y, r: rgb.r, g: rgb.g, b: rgb.b, a: p.a)
+            }
+        }
+        return out
+    }
+
+    /// Same as `lChannel`, but also returns the a/b channels from the same pass instead of
+    /// discarding them — for a caller that's about to rebuild RGB afterward (every Document
+    /// Scanner filter but B&W), pairing this with `rebuildRGB(fromL:a:b:original:personMask:)`
+    /// below does the RGB->Lab conversion for each pixel exactly ONCE instead of twice (once
+    /// here, once again inside the original `rebuildRGB` to re-derive the same a/b it could have
+    /// cached). Added alongside the existing `lChannel`/`rebuildRGB(fromL:original:personMask:)`
+    /// rather than changing them, since those are also used by Photo Maker's own filters.
+    static func labChannels(_ buffer: RGBA8Buffer) -> (l: [Double], a: [Double], b: [Double]) {
+        var lArr = [Double](repeating: 0, count: buffer.width * buffer.height)
+        var aArr = [Double](repeating: 0, count: buffer.width * buffer.height)
+        var bArr = [Double](repeating: 0, count: buffer.width * buffer.height)
+        for y in 0..<buffer.height {
+            for x in 0..<buffer.width {
+                let p = buffer.pixel(x: x, y: y)
+                let lab = rgbToLab(r: p.r, g: p.g, b: p.b)
+                let i = y * buffer.width + x
+                lArr[i] = lab.l; aArr[i] = lab.a; bArr[i] = lab.b
+            }
+        }
+        return (lArr, aArr, bArr)
+    }
+
+    /// Rebuilds RGB from a (possibly modified) L channel plus a/b already captured by
+    /// `labChannels(_:)` on the SAME buffer — skips re-deriving a/b via a second `rgbToLab` pass
+    /// per pixel, unlike the `original:`-based overload above.
+    static func rebuildRGB(fromL newL: [Double], a: [Double], b: [Double], original: RGBA8Buffer, personMask: ((Int, Int) -> Bool)? = nil) -> RGBA8Buffer {
+        var out = original
+        for y in 0..<original.height {
+            for x in 0..<original.width {
+                if let personMask, !personMask(x, y) { continue }
+                let i = y * original.width + x
+                let p = original.pixel(x: x, y: y)
+                let rgb = labToRgb(l: newL[i], a: a[i], b: b[i])
                 out.setPixel(x: x, y: y, r: rgb.r, g: rgb.g, b: rgb.b, a: p.a)
             }
         }
