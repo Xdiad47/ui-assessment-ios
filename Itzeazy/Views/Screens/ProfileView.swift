@@ -19,7 +19,10 @@ struct ProfileView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .top) {
-                Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea()
+                // .vertical only — an all-edges ignoresSafeArea on a ZStack sizing child expands
+                // horizontally past the window in iPad's compatibility mode and drags the whole
+                // screen (and MainTabView's tab bar) off the right edge. See HomeView.swift.
+                Color(red: 0.10, green: 0.11, blue: 0.11).ignoresSafeArea(edges: .vertical)
 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 14) {

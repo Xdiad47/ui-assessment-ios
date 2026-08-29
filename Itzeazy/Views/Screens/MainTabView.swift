@@ -23,32 +23,40 @@ struct MainTabView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             // Main Content
+            //
+            // NavigationStack, not the deprecated NavigationView+.navigationViewStyle(.stack) —
+            // NavigationView defaults to split-view/master-detail internally on iPad, and forcing
+            // stack style on top of that has long-documented sizing quirks specifically on iPad,
+            // worse under non-native rendering like an iPhone-only app's iPadOS compatibility
+            // window. NavigationStack doesn't use that split-view machinery at all, avoiding the
+            // whole bug class — same reasoning already applied to LoginView.swift elsewhere in
+            // this app. Every NavigationLink(destination:isActive:) inside these 4 tabs' content
+            // (Home/MyOrders/Call/Profile) keeps working as-is under NavigationStack; none of
+            // those 4 views wrap themselves in their own NavigationView/NavigationStack, so there's
+            // no nesting conflict introduced here.
             Group {
                 switch selectedTab {
                 case .home:
-                    NavigationView {
+                    NavigationStack {
                         HomeView(onMenuTap: { withAnimation(.easeInOut(duration: 0.2)) { showHomeDrawer = true } })
                             .id(homeNavID)
                             .navigationBarTitleDisplayMode(.inline)
                             .navigationBarHidden(true)
                     }
-                    .navigationViewStyle(StackNavigationViewStyle())
                 case .orders:
-                    NavigationView {
+                    NavigationStack {
                         MyOrdersView(onBackToHome: { selectedTab = .home })
                             .navigationBarTitleDisplayMode(.inline)
                             .navigationBarHidden(true)
                     }
-                    .navigationViewStyle(StackNavigationViewStyle())
                 case .call:
-                    NavigationView {
+                    NavigationStack {
                         CallScreen(onBackToHome: { selectedTab = .home })
                             .navigationBarTitleDisplayMode(.inline)
                             .navigationBarHidden(true)
                     }
-                    .navigationViewStyle(StackNavigationViewStyle())
                 case .profile:
-                    NavigationView {
+                    NavigationStack {
                         ProfileView {
                             selectedTab = .home
                             homeNavID = UUID()
@@ -56,7 +64,6 @@ struct MainTabView: View {
                             .navigationBarTitleDisplayMode(.inline)
                             .navigationBarHidden(true)
                     }
-                    .navigationViewStyle(StackNavigationViewStyle())
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -112,35 +119,51 @@ struct MainTabView: View {
 
             // Home hamburger drawer — topmost layer so it covers the custom tab bar too.
             if showHomeDrawer {
-                ZStack(alignment: .leading) {
-                    Color.black.opacity(0.4)
-                        .ignoresSafeArea()
-                        .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showHomeDrawer = false } }
-                        .transition(.opacity)
+                // `UIScreen.main.bounds.width` reports the device's full physical screen width —
+                // for an iPhone-only app running in iPadOS's iPhone-compatibility window, that's
+                // the whole iPad's width, not this window's actual (much smaller) rendered
+                // bounds, so the drawer sized itself to 80% of the wrong, larger number and spilled
+                // off the right edge of the compatibility window. A GeometryReader scoped to this
+                // spot reads the real local space instead, so it adapts correctly to whatever
+                // canvas the app is actually drawn into — the iPad's full width when running
+                // natively, or the compatibility window's smaller width when it isn't.
+                GeometryReader { drawerGeo in
+                    ZStack(alignment: .leading) {
+                        // .vertical, not all edges: this dim backdrop is a sizing child of the
+                        // ZStack, so an all-edges ignoresSafeArea would let it expand horizontally
+                        // past the window on iPad's compatibility window and drag the drawer layer
+                        // off-edge with it — the same defect fixed in HomeView.swift. Vertical
+                        // still covers the status bar and home-indicator areas, which is all this
+                        // scrim actually needs.
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea(edges: .vertical)
+                            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showHomeDrawer = false } }
+                            .transition(.opacity)
 
-                    HamburgerDrawerView(
-                        appVersion: "\(Bundle.main.shortVersion).\(Bundle.main.buildNumber)",
-                        isLoggedIn: isLoggedIn,
-                        onItemTap: { destination in
-                            showHomeDrawer = false
-                            switch destination {
-                            case .myOrders, .overview, .helpSupport:
-                                // These hold personal account data / trigger a generate-token
-                                // web login — require auth before opening, same as the tab bar.
-                                guard authGate.requireAuth() else { return }
-                                homeDrawerDestination = destination
-                            case .videoTutorials, .faqs, .privacyPolicy, .terms:
-                                homeDrawerDestination = destination
-                            }
-                        },
-                        onLogoutTap: {
-                            showHomeDrawer = false
-                            isLoggedIn = false
-                        },
-                        onCloseTap: { withAnimation(.easeInOut(duration: 0.2)) { showHomeDrawer = false } }
-                    )
-                    .frame(width: UIScreen.main.bounds.width * 0.8)
-                    .transition(.move(edge: .leading))
+                        HamburgerDrawerView(
+                            appVersion: "\(Bundle.main.shortVersion).\(Bundle.main.buildNumber)",
+                            isLoggedIn: isLoggedIn,
+                            onItemTap: { destination in
+                                showHomeDrawer = false
+                                switch destination {
+                                case .myOrders, .overview, .helpSupport:
+                                    // These hold personal account data / trigger a generate-token
+                                    // web login — require auth before opening, same as the tab bar.
+                                    guard authGate.requireAuth() else { return }
+                                    homeDrawerDestination = destination
+                                case .videoTutorials, .faqs, .privacyPolicy, .terms:
+                                    homeDrawerDestination = destination
+                                }
+                            },
+                            onLogoutTap: {
+                                showHomeDrawer = false
+                                isLoggedIn = false
+                            },
+                            onCloseTap: { withAnimation(.easeInOut(duration: 0.2)) { showHomeDrawer = false } }
+                        )
+                        .frame(width: drawerGeo.size.width * 0.8)
+                        .transition(.move(edge: .leading))
+                    }
                 }
                 .zIndex(20)
             }
@@ -192,7 +215,7 @@ struct MainTabView: View {
             homeNavID = UUID()
             userSession.didDeleteAccount = false
         }
-        .edgesIgnoringSafeArea(.bottom)
+        .ignoresSafeArea(.container, edges: .bottom)
     }
 }
 

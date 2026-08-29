@@ -106,8 +106,23 @@ struct CreateAccountView: View {
                 
                 VStack(spacing: 0) {
                     Spacer()
-                        .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : geometry.safeAreaInsets.top + 190)
-                        
+                        // +20, not +10 — with the keyboard up the card sits almost flush against
+                        // `safeAreaInsets.top`, which is enough to clear the status bar/notch by
+                        // definition but left the card's title text feeling like it was touching
+                        // the top edge, especially on an iPad in landscape. A bit more breathing
+                        // room here fixes that without needing a different mechanism.
+                        .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 20 : geometry.safeAreaInsets.top + 190)
+
+                    // A ScrollView here (instead of the form VStack sizing straight into this
+                    // fixed-offset card) is the actual fix for the App Review "text cutting off"
+                    // report: this screen stacks a title, 3 text fields, a password field, two
+                    // submit buttons, an OR divider, the Apple button, and a footer link — on an
+                    // iPad Air 11" in landscape (~820pt tall), the fixed 320pt hero banner plus
+                    // this 190pt offset alone consume over half that height, leaving too little
+                    // room for the rest of the form with nowhere for the overflow to go. Wrapping
+                    // in a ScrollView means content can never be permanently clipped again,
+                    // regardless of device, orientation, or how tall the keyboard is.
+                    ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                             HStack {
                                 Text("Create Account")
@@ -148,6 +163,7 @@ struct CreateAccountView: View {
                                                 .font(Font.custom("Inter", size: 14))
                                                 .foregroundColor(Color(hex: "#191c1d"))
                                                 .lineLimit(1)
+                                                .minimumScaleFactor(0.7)
 
                                             Image(systemName: "chevron.down")
                                                 .font(.system(size: 12, weight: .semibold))
@@ -317,6 +333,8 @@ struct CreateAccountView: View {
                                         .font(Font.custom("Inter", size: 13).weight(.medium))
                                         .foregroundColor(.red)
                                         .multilineTextAlignment(.center)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
                                         .padding(.horizontal, 4)
                                 }
 
@@ -344,6 +362,8 @@ struct CreateAccountView: View {
                                         .font(Font.custom("Inter", size: 13).weight(.medium))
                                         .foregroundColor(.red)
                                         .multilineTextAlignment(.center)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
                                         .padding(.horizontal, 4)
                                 }
                             }
@@ -363,19 +383,30 @@ struct CreateAccountView: View {
                     }
                     .padding(.horizontal, 32)
                     .padding(.top, 18)
-                    //.padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 28)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .background(Color.white.ignoresSafeArea(.container, edges: .bottom))
-                    .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 32))
-                    .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: -10)
+                    .padding(.bottom, 28)
+                    // Caps the form to a comfortable reading width instead of stretching
+                    // edge-to-edge on an iPad's much wider screen — on iPhone this ceiling is
+                    // simply wider than the screen, so it has no effect there. The outer
+                    // `maxWidth: .infinity` centers the capped content within the full width.
+                    .frame(maxWidth: 500)
+                    .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         dismissInputUI()
                     }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .background(Color.white.ignoresSafeArea(.container, edges: .bottom))
+                    .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 32))
+                    .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: -10)
                 }
                 .offset(y: isKeyboardPresented ? -12 : 0)
                 .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
-                .edgesIgnoringSafeArea(.bottom)
+                // Explicit `.container` scope (was the legacy `.edgesIgnoringSafeArea(.bottom)`,
+                // whose exact keyboard-region behavior is less certain than the modern API) — so
+                // this card's ScrollView keeps normal automatic keyboard-safe-area avoidance,
+                // matching the same fix applied to LoginView/PasswordEntryView.
+                .ignoresSafeArea(.container, edges: .bottom)
 
                 if isCountryPickerPresented {
                     Color.black.opacity(0.08)
@@ -532,6 +563,8 @@ struct CreateAccountView: View {
         Text(text)
             .font(Font.custom("Inter", size: 12))
             .foregroundColor(.red)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
     }
