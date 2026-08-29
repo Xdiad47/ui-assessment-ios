@@ -21,80 +21,107 @@ struct HomeView: View {
     @AppStorage("hasSeenServicesSpotlight") private var hasSeenSpotlight: Bool = false
     @State private var showSpotlight = false
     @State private var spotlightCardRect: CGRect = .zero
+    @State private var spotlightScreenSize: CGSize = .zero
 
     var body: some View {
-        GeometryReader { outerGeo in
-            ZStack(alignment: .top) {
-                // Base background: completely dark for status bar and bounce area. Prevents white gaps.
-                Color(red: 0.11, green: 0.11, blue: 0.11).ignoresSafeArea()
+        ZStack(alignment: .top) {
+            ScrollViewReader { scrollProxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
 
-                ScrollViewReader { scrollProxy in
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 0) {
-
-                            // Dark Section (Header & Hero)
-                            VStack(spacing: 24) {
-                                HomeHeaderView(onMenuTap: onMenuTap)
-                                    .padding(.horizontal, 0)
-                                HomeHeroCardView()
-                                .padding(.horizontal, 10)
-                                .padding(.bottom, 25)
-                            }
-                            .background(Color(red: 0.11, green: 0.11, blue: 0.11))
-                            .clipShape(RoundedCorner(radius: 20, corners: [.bottomRight, .bottomLeft]))
-
-                            // White Section (Services & Utilities)
-                            VStack(spacing: 8) {
-                                HomeServicesGridView()
-                                    .padding(.top, 32)
-                                    .id("homeSpotlightServicesSection")
-
-                                HomeUtilitiesGridView()
-                                    .padding(.bottom, 20)
-
-                                HomeWorkflowView()
-
-                                HomeValuePropositionView()
-                            }
+                        // Dark Section (Header & Hero)
+                        VStack(spacing: 24) {
+                            HomeHeaderView(onMenuTap: onMenuTap)
+                                .padding(.horizontal, 0)
+                            HomeHeroCardView()
+                            .padding(.horizontal, 10)
+                            .padding(.bottom, 25)
                         }
-                        .background(Color.white)
-                    }
-                    .onAppear {
-                        guard isSpotlightEnabled, !hasSeenSpotlight else { return }
-                        // Mark as seen immediately — this coach mark shows exactly once,
-                        // regardless of how this particular showing ends (tapped "Got it",
-                        // tapped the dimmed backdrop, tapped straight through into Vehicle
-                        // Info, or just navigated away without interacting at all).
-                        hasSeenSpotlight = true
+                        // Same treatment as RTOServicesView's dark top card: round the
+                        // BACKGROUND instead of .clipShape-ing the VStack. .clipShape clips the
+                        // content itself, so anything laid out even slightly wider than the
+                        // container — which is exactly what happens in iPad's compatibility
+                        // window — gets sliced off at the edge instead of fitting. Rounding the
+                        // background leaves the content's own width alone.
+                        .background(
+                            Color(red: 0.1, green: 0.11, blue: 0.11)
+                                .cornerRadius(20, corners: [.bottomLeft, .bottomRight])
+                        )
 
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                            withAnimation(.easeInOut(duration: 0.5)) {
-                                scrollProxy.scrollTo("homeSpotlightServicesSection", anchor: .center)
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    showSpotlight = true
-                                }
-                            }
+                        // White Section (Services & Utilities)
+                        VStack(spacing: 8) {
+                            HomeServicesGridView()
+                                .padding(.top, 32)
+                                .id("homeSpotlightServicesSection")
+
+                            HomeUtilitiesGridView()
+                                .padding(.bottom, 20)
+
+                            HomeWorkflowView()
+
+                            HomeValuePropositionView()
                         }
                     }
+                    // Whole-view horizontal inset. Sits before .frame/.background so the white
+                    // fill still spans edge to edge behind the inset content.
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.white)
                 }
+                .onAppear {
+                    guard isSpotlightEnabled, !hasSeenSpotlight else { return }
+                    // Mark as seen immediately — this coach mark shows exactly once,
+                    // regardless of how this particular showing ends (tapped "Got it",
+                    // tapped the dimmed backdrop, tapped straight through into Vehicle
+                    // Info, or just navigated away without interacting at all).
+                    hasSeenSpotlight = true
 
-                if showSpotlight && spotlightCardRect != .zero {
-                    SpotlightTooltipView(
-                        cardRect: spotlightCardRect,
-                        screenSize: outerGeo.size,
-                        onDismiss: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                showSpotlight = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            scrollProxy.scrollTo("homeSpotlightServicesSection", anchor: .center)
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showSpotlight = true
                             }
                         }
-                    )
+                    }
                 }
             }
-            .coordinateSpace(name: "homeSpotlightSpace")
-            .onPreferenceChange(SpotlightRectKey.self) { spotlightCardRect = $0 }
+
+            if showSpotlight && spotlightCardRect != .zero {
+                SpotlightTooltipView(
+                    cardRect: spotlightCardRect,
+                    screenSize: spotlightScreenSize,
+                    onDismiss: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showSpotlight = false
+                        }
+                    }
+                )
+            }
         }
+        // Base background: dark fill for the status bar and scroll-bounce area, so no white gaps
+        // show through. .vertical is all this needs — it covers the status bar and bounce area
+        // without granting the fill any horizontal reach it has no use for.
+        .background(Color(red: 0.11, green: 0.11, blue: 0.11).ignoresSafeArea(edges: .vertical))
+        .coordinateSpace(name: "homeSpotlightSpace")
+        .onPreferenceChange(SpotlightRectKey.self) { spotlightCardRect = $0 }
+        .background(
+            // Measures the real laid-out size for SpotlightTooltipView. This used to be a
+            // GeometryReader wrapping the whole body — but GeometryReader is greedy and
+            // proposes its own size to its children, and in iPad's iPhone-compatibility window
+            // that proposal came out wider than the window actually is, so everything inside
+            // was laid out too wide and spilled off the right edge. RTOServicesView renders
+            // correctly on iPad precisely because its root is a plain ZStack with no
+            // GeometryReader. Reading the size from .background() instead keeps the
+            // measurement without letting it drive any layout.
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { spotlightScreenSize = geo.size }
+                    .onChange(of: geo.size) { _, newSize in spotlightScreenSize = newSize }
+            }
+        )
         .navigationTitle("")
         .navigationBarHidden(true)
     }
@@ -969,7 +996,10 @@ struct ServiceBoxView: View {
 
 struct HomeView_Previews: PreviewProvider {
     static var previews: some View {
-        HomeView()
+        NavigationStack {
+            HomeView()
+        }
+        .environmentObject(UserSessionViewModel())
+        .environmentObject(AuthGateController())
     }
 }
-

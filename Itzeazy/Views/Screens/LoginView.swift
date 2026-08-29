@@ -92,8 +92,19 @@ struct LoginView: View {
 
                     VStack(spacing: 0) {
                         Spacer()
-                            .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : 288)
+                            // +20, not +10 — see the matching comment in CreateAccountView for
+                            // why: with the keyboard up this otherwise sits close enough to
+                            // `safeAreaInsets.top` to read as touching the status bar, especially
+                            // on an iPad in landscape.
+                            .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 20 : 288)
 
+                        // ScrollView instead of the form sizing straight into this fixed-offset
+                        // card: on a device where the fixed hero+offset above leaves too little
+                        // remaining height for headerSection+contactSection+footerSection (an
+                        // iPad Air 11" in landscape, or this screen with an error message and the
+                        // keyboard both showing at once), content now scrolls into view instead
+                        // of being clipped at the screen edge.
+                        ScrollView(showsIndicators: false) {
                         VStack(spacing: 32) {
                             headerSection
                             contactSection
@@ -102,6 +113,12 @@ struct LoginView: View {
                         .padding(.horizontal, 32)
                         .padding(.top, 18)
                         .padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 48)
+                        // Caps the form to a comfortable reading width instead of stretching
+                        // edge-to-edge on an iPad's much wider screen; on iPhone this ceiling is
+                        // wider than the screen, so it has no effect there.
+                        .frame(maxWidth: 500)
+                        .frame(maxWidth: .infinity)
+                        }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         .background(Color.white)
                         .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 40))
@@ -109,7 +126,15 @@ struct LoginView: View {
                     }
                     .offset(y: isKeyboardPresented ? -12 : 0)
                     .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
-                    .ignoresSafeArea(edges: .bottom)
+                    // `.ignoresSafeArea(edges:)` defaults `regions:` to `.all`, which includes
+                    // `.keyboard` — that was silently telling this card (and the ScrollView
+                    // inside it) to disregard the keyboard's safe-area contribution at the bottom
+                    // edge, defeating the ScrollView's normal automatic "keep the focused field
+                    // and submit buttons above the keyboard" behavior. Scoping this to
+                    // `.container` keeps the intended effect (the white card's background still
+                    // bleeds to the physical bottom edge) without also opting out of keyboard
+                    // avoidance.
+                    .ignoresSafeArea(.container, edges: .bottom)
 
                     if isCountryPickerPresented && shouldShowCountrySelector {
                         Color.black.opacity(0.08)
@@ -271,6 +296,7 @@ struct LoginView: View {
                                     .font(Font.custom("Inter", size: 14))
                                     .foregroundColor(Color(hex: "#0d0d0d"))
                                     .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
 
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 12, weight: .semibold))
@@ -302,7 +328,7 @@ struct LoginView: View {
 
                     ZStack(alignment: .leading) {
                         if emailOrMobile.isEmpty {
-                            Text("Enter your Email / Mobile number")
+                            Text("Email or Mobile Number")
                                 .font(Font.custom("Inter", size: 12))
                                 .foregroundColor(Color(hex: "#c2c5cb"))
                                 .padding(.horizontal, 20)
@@ -335,6 +361,8 @@ struct LoginView: View {
                     Text(emailOrMobileError)
                         .font(Font.custom("Inter", size: 12))
                         .foregroundColor(.red)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 4)
                 }
             }
@@ -541,8 +569,15 @@ private struct PasswordEntryView: View {
 
                 VStack(spacing: 0) {
                     Spacer()
-                        .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : cardTopOffset)
+                        // +20, not +10 — same reasoning as LoginView's own Spacer above.
+                        .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 20 : cardTopOffset)
 
+                    // Same ScrollView fix as LoginView.body — this card stacks a title, the
+                    // password field, the Login button, an optional "Get OTP" button, an OR
+                    // divider, the create-account link, and the Apple button, so a fixed-height
+                    // hero+offset above leaving too little vertical room (iPad landscape, or a
+                    // validation error appearing while the keyboard is up) no longer clips it.
+                    ScrollView(showsIndicators: false) {
                     VStack(spacing: 32) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Login")
@@ -621,6 +656,8 @@ private struct PasswordEntryView: View {
                                     Text(passwordError)
                                         .font(Font.custom("Inter", size: 12))
                                         .foregroundColor(.red)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
                                         .padding(.horizontal, 4)
                                 }
                             }
@@ -629,6 +666,8 @@ private struct PasswordEntryView: View {
                                 Text(error)
                                     .font(Font.custom("Inter", size: 12))
                                     .foregroundColor(.red)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
                                     .padding(.horizontal, 4)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
@@ -722,6 +761,9 @@ private struct PasswordEntryView: View {
                     .padding(.horizontal, 32)
                     .padding(.top, 18)
                     .padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 48)
+                    .frame(maxWidth: 500)
+                    .frame(maxWidth: .infinity)
+                    }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(Color.white)
                     .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 40))
@@ -729,7 +771,10 @@ private struct PasswordEntryView: View {
                 }
                     .offset(y: isKeyboardPresented ? -12 : 0)
                 .animation(.easeInOut(duration: 0.28), value: isKeyboardPresented)
-                .ignoresSafeArea(edges: .bottom)
+                // Scoped to `.container` only — see the matching comment on LoginView's own
+                // card wrapper above — so this doesn't also opt PasswordEntryView's ScrollView
+                // out of automatic keyboard-safe-area avoidance.
+                .ignoresSafeArea(.container, edges: .bottom)
                 }
 
                 if showLoginErrorToast, let error = authViewModel.errorMessage {
