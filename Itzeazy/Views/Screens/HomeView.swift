@@ -522,6 +522,9 @@ struct HomeServicesGridView: View {
     @StateObject private var webLoginVM = WebLoginViewModel()
     @EnvironmentObject private var authGate: AuthGateController
     @State private var showComingSoonToast = false
+    // Traffic Challan opens the same ULIP-backed challan lookup as the Utilities
+    // section's "Challan Info" cell — same screen, same auth gate.
+    @State private var navigateToChallanInfo = false
 
     // Non-web service items kept inline (RTO, Visa, Attestation) — matches Android's
     // HomeRepository.getServices() list exactly, including its "Tanscript" typo (not fixed here
@@ -542,26 +545,38 @@ struct HomeServicesGridView: View {
     ]
 
     // Not functional yet — tapping these shows a "coming soon" toast instead of navigating.
-    // Matches Android's MainScreen.kt onServiceClick, which routes this exact set to a toast.
+    // Mirrors Android's MainScreen.kt onServiceClick, minus "Traffic\nChallan": iOS now routes
+    // that one to ChallanDetailsView (the same screen Utilities' "Challan Info" opens) rather
+    // than a toast, since that lookup already exists natively here. Android still toasts it, so
+    // this set is deliberately one entry ahead of Android until the same change lands there.
     private let comingSoonLabels: Set<String> = [
-        "Attestation", "Traffic\nChallan", "Driving\nClasses",
+        "Attestation", "Driving\nClasses",
         "Degree cert./\nTanscript", "Dummy\nTickets", "Insurance"
     ]
 
     var body: some View {
         ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 10) {
-                NavigationLink(
-                    destination: CitizenServicesWebView(
-                        url: webLoginVM.generatedURL ?? "",
-                        title: webLoginVM.generatedTitle,
-                        showGovDisclaimer: true
-                    ),
-                    isActive: Binding(
-                        get: { webLoginVM.generatedURL != nil },
-                        set: { if !$0 { webLoginVM.reset() } }
-                    )
-                ) { EmptyView() }
+                // Grouped on purpose: each of these is .hidden() (zero visual size) but still
+                // counts as its own child of the enclosing spacing VStack, so two separate
+                // links would charge that 10pt spacing twice as pure invisible space above
+                // the "Services We Provide" title. Grouping charges it once — same reasoning
+                // as HomeUtilitiesGridView's grouped links.
+                Group {
+                    NavigationLink(
+                        destination: CitizenServicesWebView(
+                            url: webLoginVM.generatedURL ?? "",
+                            title: webLoginVM.generatedTitle,
+                            showGovDisclaimer: true
+                        ),
+                        isActive: Binding(
+                            get: { webLoginVM.generatedURL != nil },
+                            set: { if !$0 { webLoginVM.reset() } }
+                        )
+                    ) { EmptyView() }
+
+                    NavigationLink(destination: ChallanDetailsView(), isActive: $navigateToChallanInfo) { EmptyView() }
+                }
                 .hidden()
 
                 VStack(alignment: .leading, spacing: 1) {
@@ -679,6 +694,18 @@ struct HomeServicesGridView: View {
                 ServiceBoxView(title: label, iconName: icon)
             }
             .buttonStyle(PlainButtonStyle())
+
+        // Traffic Challan — opens ChallanDetailsView, the exact same ULIP-backed screen the
+        // Utilities section's "Challan Info" cell opens. Auth-gated for the same reason that
+        // cell is: ULIP lookups need a real session token and no guest token exists.
+        } else if label == "Traffic\nChallan" {
+            Button {
+                guard authGate.requireAuth() else { return }
+                navigateToChallanInfo = true
+            } label: {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(NoHighlightButtonStyle())
 
         // IT Returns, Affidavit, POI/FRRO, Attestation — not functional yet
         } else if comingSoonLabels.contains(label) {

@@ -46,8 +46,6 @@ struct DocumentScannerReviewView: View {
     @State private var showAddPasswordSheet = false
     @State private var showEmptyFoldersDialog = false
     @State private var showPDFPicker = false
-    @State private var shareURLs: [URL] = []
-    @State private var showSystemShareSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -111,11 +109,30 @@ struct DocumentScannerReviewView: View {
             if let doc = viewModel.document {
                 DocumentShareOptionsSheet(document: doc, onShareJPG: {
                     showShareSheet = false
-                    viewModel.shareAsJPG { urls in shareURLs = urls; showSystemShareSheet = true }
+                    // Deferred: this options sheet is still animating out, and presenting the
+                    // system share sheet on a controller mid-dismissal silently does nothing.
+                    viewModel.shareAsJPG { urls in
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            presentShareSheet(items: urls)
+                        }
+                    }
                 }, onSharePDF: {
                     showShareSheet = false
-                    shareURLs = [URL(fileURLWithPath: doc.pdfPath)]
-                    showSystemShareSheet = true
+                    // doc.pdfPath is only a decrypted temp copy if this document was opened via
+                    // the unlock-with-password flow — locking a document and sharing it from the
+                    // same Review session without ever leaving/re-entering it still points here at
+                    // the encrypted original, which most built-in share targets can't preview and
+                    // exclude themselves from entirely, leaving an app-icon-fallback empty sheet.
+                    let url = URL(fileURLWithPath: doc.pdfPath)
+                    guard !DocumentScannerPDFService.isEncrypted(url: url) else {
+                        viewModel.toastMessage = "This document is password protected. Open it from My PDFs and unlock it before sharing."
+                        return
+                    }
+                    // Same deferral as the JPG branch — wait for this options sheet to finish
+                    // dismissing before presenting the system share sheet.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        presentShareSheet(items: [url])
+                    }
                 })
             }
         }
@@ -139,9 +156,6 @@ struct DocumentScannerReviewView: View {
                 viewModel.addPassword(password)
             })
             .presentationDetents([.medium])
-        }
-        .sheet(isPresented: $showSystemShareSheet) {
-            ShareSheet(activityItems: shareURLs)
         }
         .fullScreenCover(isPresented: $showCompressPopup) {
             if let doc = viewModel.document {

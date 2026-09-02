@@ -28,8 +28,6 @@ struct EditPhotoMakerView: View {
     @State private var customWidthText = ""
     @State private var customHeightText = ""
 
-    @State private var shareURL: URL?
-    @State private var showShareSheet = false
 
     @State private var highlightSizeSelector = false
     @State private var isExporting = false
@@ -65,9 +63,6 @@ struct EditPhotoMakerView: View {
         .sheet(isPresented: $showColorPicker) { colorPickerSheet }
         .fullScreenCover(isPresented: $showCustomSizeDialog) {
             customSizeSheet.presentationBackground(.clear)
-        }
-        .sheet(isPresented: $showShareSheet) {
-            if let shareURL { ShareSheet(activityItems: [shareURL]) }
         }
         .alert("Couldn't complete that", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
@@ -567,8 +562,7 @@ struct EditPhotoMakerView: View {
                 let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
                 do {
                     try data.write(to: url, options: .atomic)
-                    shareURL = url
-                    showShareSheet = true
+                    presentShareSheet(items: [url])
                 } catch {
                     viewModel.errorMessage = "Couldn't prepare the file for export."
                 }

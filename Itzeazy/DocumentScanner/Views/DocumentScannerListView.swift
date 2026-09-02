@@ -51,8 +51,6 @@ struct DocumentScannerListView: View {
     @State private var renameFolderText = ""
     @State private var deleteFolderTarget: DocumentFolder?
 
-    @State private var shareURLs: [URL] = []
-    @State private var showShareSheet = false
 
     init(
         startOnFoldersTab: Bool,
@@ -102,7 +100,6 @@ struct DocumentScannerListView: View {
         .sheet(item: $editSheetDocument) { doc in editOptionsSheet(doc) }
         .sheet(item: $addPasswordSheetDocument) { doc in addPasswordSheet(doc) }
         .sheet(isPresented: $showAddFolderSheet) { addFolderSheet }
-        .sheet(isPresented: $showShareSheet) { ShareSheet(activityItems: shareURLs) }
         .fullScreenCover(item: $compressPopupDocument) { doc in
             compressPopup(doc).presentationBackground(.clear)
         }
@@ -458,14 +455,28 @@ struct DocumentScannerListView: View {
             }
             actionRow(icon: "doc.richtext", title: "Save as PDF") {
                 actionsSheetDocument = nil
-                shareURLs = [URL(fileURLWithPath: document.pdfPath)]
-                showShareSheet = true
+                // A password-protected document accessed straight from this 3-dot menu was never
+                // decrypted — document.pdfPath is still the encrypted original here. Handing that
+                // straight to UIActivityViewController makes it come up with the app's own icon as
+                // a generic fallback and no usable destinations, since most built-in share targets
+                // can't preview content they can't decrypt. Block it with a clear message instead.
+                let url = URL(fileURLWithPath: document.pdfPath)
+                guard !DocumentScannerPDFService.isEncrypted(url: url) else {
+                    viewModel.toastMessage = "This document is password protected. Open it and unlock it before sharing."
+                    return
+                }
+                // Deferred: the 3-dot actions sheet is still animating out, and presenting the
+                // system share sheet on a controller mid-dismissal silently does nothing.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    presentShareSheet(items: [url])
+                }
             }
             actionRow(icon: "photo", title: "Save as Image") {
                 actionsSheetDocument = nil
                 viewModel.shareAsJPG(document: document) { urls in
-                    shareURLs = urls
-                    showShareSheet = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        presentShareSheet(items: urls)
+                    }
                 }
             }
             actionRow(icon: "pencil", title: "Rename") {
@@ -519,14 +530,24 @@ struct DocumentScannerListView: View {
             onShareJPG: {
                 shareSheetDocument = nil
                 viewModel.shareAsJPG(document: document) { urls in
-                    shareURLs = urls
-                    showShareSheet = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        presentShareSheet(items: urls)
+                    }
                 }
             },
             onSharePDF: {
                 shareSheetDocument = nil
-                shareURLs = [URL(fileURLWithPath: document.pdfPath)]
-                showShareSheet = true
+                // Same guard as "Save as PDF" above — document.pdfPath is the encrypted original
+                // for a protected document opened straight from this menu, and PDFKit-based share
+                // targets exclude themselves from a file they can't decrypt.
+                let url = URL(fileURLWithPath: document.pdfPath)
+                guard !DocumentScannerPDFService.isEncrypted(url: url) else {
+                    viewModel.toastMessage = "This document is password protected. Open it and unlock it before sharing."
+                    return
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    presentShareSheet(items: [url])
+                }
             }
         )
     }

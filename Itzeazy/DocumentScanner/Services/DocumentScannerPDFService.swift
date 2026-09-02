@@ -109,7 +109,23 @@ enum DocumentScannerPDFService {
             .userPasswordOption: password,
             .ownerPasswordOption: password
         ]
-        guard document.write(to: url, withOptions: options) else {
+        // Write to a sibling temp file, then atomically swap it into place — never straight back
+        // to `url`. PDFDocument loads its page content lazily from the backing file it was opened
+        // from, so writing to that same URL can overwrite the bytes it's still reading mid-write.
+        // The result looked structurally fine (right page count, right file size) but every page
+        // rendered blank, because the page content itself got clobbered while `document` was
+        // still faulting it in from disk. Writing elsewhere first means the read and the write
+        // never touch the same bytes at the same time.
+        let tempURL = url.deletingLastPathComponent()
+            .appendingPathComponent(".\(UUID().uuidString)_protecting.pdf")
+        guard document.write(to: tempURL, withOptions: options) else {
+            try? FileManager.default.removeItem(at: tempURL)
+            throw DocumentScannerPDFServiceError.processingFailed("Couldn't add a password.")
+        }
+        do {
+            _ = try FileManager.default.replaceItemAt(url, withItemAt: tempURL)
+        } catch {
+            try? FileManager.default.removeItem(at: tempURL)
             throw DocumentScannerPDFServiceError.processingFailed("Couldn't add a password.")
         }
     }
@@ -121,20 +137,44 @@ enum DocumentScannerPDFService {
         return document.unlock(withPassword: password)
     }
 
+    /// True if the PDF at [url] is still password-protected — used to block handing a locked
+    /// file's raw URL straight to UIActivityViewController: most built-in share targets (Mail,
+    /// Messages, Save to Files) can't preview or validate content they can't decrypt, so they
+    /// exclude themselves entirely, and the system share sheet comes up with the presenting app's
+    /// own icon as a generic fallback and no usable destinations — indistinguishable from the
+    /// share button silently doing nothing.
+    static func isEncrypted(url: URL) -> Bool {
+        PDFDocument(url: url)?.isEncrypted ?? false
+    }
+
     /// Produces a plaintext (no password) temporary copy of the PDF at [url] in the app cache,
     /// decrypted with [password] — needed because page-rendering elsewhere assumes an unlocked
     /// document. Only used for VIEWING a protected document; the original encrypted file on disk
     /// is never touched here.
+    ///
+    /// Renders pages to images and rebuilds the temp copy from scratch via generatePDF (the same
+    /// path Compress/Split/e-Sign already use) rather than calling PDFDocument.write(to:) on the
+    /// unlocked object directly. That used to unlock `document` in memory and hand the SAME object
+    /// straight to PDFKit's own writer — but a PDFDocument that was loaded as encrypted isn't
+    /// guaranteed to have every trace of that stripped from what write(to:) emits even after
+    /// unlock() succeeds, so the "decrypted" file could come back still carrying stale encryption
+    /// state: a fresh PDFDocument(url:) load of it would then be encrypted-but-unauthenticated,
+    /// rendering as blank pages with an otherwise-correct page count — the password was accepted,
+    /// but the file handed to the viewer was never truly plaintext. Rebuilding through
+    /// UIGraphicsPDFRenderer-based generatePDF sidesteps PDFKit's writer entirely, so the output
+    /// can't carry forward any encryption metadata — it was never encrypted in the first place.
     static func decryptToTempCopy(url: URL, password: String) throws -> URL {
         guard let document = PDFDocument(url: url), document.unlock(withPassword: password) else {
             throw DocumentScannerPDFServiceError.wrongPassword
         }
+        let images = renderPages(document)
+        guard !images.isEmpty else {
+            throw DocumentScannerPDFServiceError.processingFailed("Couldn't unlock the document.")
+        }
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("document_scanner_unlocked", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let fileURL = dir.appendingPathComponent("\(UUID().uuidString).pdf")
-        guard document.write(to: fileURL) else {
-            throw DocumentScannerPDFServiceError.processingFailed("Couldn't unlock the document.")
-        }
+        try generatePDF(pages: images).write(to: fileURL, options: .atomic)
         return fileURL
     }
 

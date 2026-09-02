@@ -19,8 +19,6 @@ struct DocumentScannerViewPdfView: View {
     @State private var showEditSheet = false
     @State private var showCompressPopup = false
     @State private var showAddPasswordSheet = false
-    @State private var shareURLs: [URL] = []
-    @State private var showShareSheet = false
 
     private var liveDocument: ScannedDocument { viewModel.document ?? document }
 
@@ -33,7 +31,17 @@ struct DocumentScannerViewPdfView: View {
         .navigationBarHidden(true)
         .overlay(alignment: .bottomLeading) { editFab }
         .onAppear {
-            viewModel.loadExistingDocument(document.id)
+            // The incoming `document` may carry a temp, already-decrypted pdfPath: opening a
+            // password-protected file from My PDFs verifies the password, decrypts to a temp copy,
+            // and hands that path down through Review. Calling loadExistingDocument(_:) without
+            // passing it re-reads pdfPath from the persisted index — the still-encrypted original —
+            // and PDFKit renders no pages from a locked document, so the viewer came up blank right
+            // after a successful unlock. Forwarding the path keeps this session pointed at the
+            // decrypted copy; the persisted entry and the real encrypted file stay untouched.
+            viewModel.loadExistingDocument(
+                document.id,
+                unlockedPdfPath: document.isPasswordProtected ? document.pdfPath : nil
+            )
             viewModel.refreshDocument()
             viewModel.loadPagesForViewing()
         }
@@ -56,9 +64,6 @@ struct DocumentScannerViewPdfView: View {
                 viewModel.addPassword(password)
             })
             .presentationDetents([.medium])
-        }
-        .sheet(isPresented: $showShareSheet) {
-            ShareSheet(activityItems: shareURLs)
         }
         .fullScreenCover(isPresented: $showCompressPopup) {
             ZStack {
@@ -86,10 +91,7 @@ struct DocumentScannerViewPdfView: View {
                 Text("Scanned • \(formattedFileSize(liveDocument.fileSizeBytes))").font(Font.custom("Inter", size: 12)).foregroundColor(Color(hex: "#9CA3AF"))
             }
             Spacer()
-            Button(action: {
-                shareURLs = [URL(fileURLWithPath: liveDocument.pdfPath)]
-                showShareSheet = true
-            }) {
+            Button(action: shareDocument) {
                 Image(systemName: "square.and.arrow.up").font(.system(size: 16)).foregroundColor(.white)
                     .frame(width: 40, height: 40)
                     .background(Color(hex: "#1A1A1E"))
@@ -128,6 +130,32 @@ struct DocumentScannerViewPdfView: View {
                 }
             }
         }
+    }
+
+    // Shares liveDocument.pdfPath — for a password-protected document that's currently unlocked,
+    // that's the decrypted temp copy, not the encrypted original. That's a deliberate choice, not
+    // an oversight: an earlier version of this method re-read the persisted (still-encrypted) path
+    // instead, on the reasoning that sharing a locked document should keep it locked. In practice
+    // that made the system share sheet come up with the presenting app's own icon as a generic
+    // fallback and an empty destination list — most built-in share targets (Mail, Messages, Save
+    // to Files) can't preview or validate content they can't decrypt, so they exclude themselves
+    // entirely, and the share button looked broken. Sharing the same file the user is already
+    // looking at is guaranteed valid and works with every installed destination — EXCEPT when
+    // liveDocument.pdfPath is still the encrypted original, which happens if this document was
+    // locked and shared from this same screen without ever going through the unlock-with-password
+    // flow (that's the only step that swaps pdfPath to a decrypted copy). The isEncrypted check
+    // below catches that case explicitly instead of silently handing PDFKit an encrypted file.
+    private func shareDocument() {
+        let url = URL(fileURLWithPath: liveDocument.pdfPath)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            viewModel.toastMessage = "Couldn't share this document. Please try again."
+            return
+        }
+        guard !DocumentScannerPDFService.isEncrypted(url: url) else {
+            viewModel.toastMessage = "This document is password protected. Open it from My PDFs and unlock it before sharing."
+            return
+        }
+        presentShareSheet(items: [url])
     }
 
     private var editFab: some View {
