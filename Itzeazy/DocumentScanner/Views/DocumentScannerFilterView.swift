@@ -208,6 +208,7 @@ struct DocumentScannerFilterView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     DocumentScannerFilterView(
         pageURLs: DocumentScannerPreviewSupport.samplePageURLs(),
@@ -215,3 +216,4 @@ struct DocumentScannerFilterView: View {
         onNext: { _ in }
     )
 }
+#endif

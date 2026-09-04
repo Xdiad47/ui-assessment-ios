@@ -91,9 +91,11 @@ struct DocumentScannerOCRView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     DocumentScannerOCRView(
         document: DocumentScannerPreviewSupport.sampleDocument(name: "Electricity Bill"),
         onBack: {}
     )
 }
+#endif

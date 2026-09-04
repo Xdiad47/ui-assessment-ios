@@ -182,6 +182,7 @@ struct DocumentScannerRearrangeView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     DocumentScannerRearrangeView(
         document: DocumentScannerPreviewSupport.sampleDocument(name: "Insurance Policy", pageCount: 4),
@@ -189,3 +190,4 @@ struct DocumentScannerRearrangeView: View {
         onRearrangeComplete: { _ in }
     )
 }
+#endif

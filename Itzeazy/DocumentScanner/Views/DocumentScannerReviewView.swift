@@ -462,6 +462,7 @@ struct DocumentScannerReviewView: View {
 // document" path (`existingDocumentId:`) reads from DocumentScannerRepository's on-device index,
 // which a preview shouldn't seed — that would leave permanent extra entries in the real document
 // list on every canvas refresh.
+#if DEBUG
 #Preview {
     DocumentScannerReviewView(
         session: DocumentScannerPreviewSupport.sampleSession(),
@@ -480,3 +481,4 @@ struct DocumentScannerReviewView: View {
         onFromFolder: {}
     )
 }
+#endif

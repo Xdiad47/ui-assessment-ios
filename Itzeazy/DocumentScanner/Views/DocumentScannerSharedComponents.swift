@@ -417,6 +417,7 @@ func formattedFileSize(_ bytes: Int64) -> String {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("ScannerFlowHeader") {
     VStack(spacing: 0) {
         ScannerFlowHeader(title: "Split PDF", subtitle: "3 pages selected", onBack: {})
@@ -468,3 +469,4 @@ func formattedFileSize(_ bytes: Int64) -> String {
             AddFolderSheetContent(onDismiss: {}, onAdd: { _ in })
         }
 }
+#endif

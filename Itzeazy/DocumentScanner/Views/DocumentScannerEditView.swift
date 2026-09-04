@@ -179,6 +179,7 @@ private struct RotatedPagePreview: View {
     }
 }
 
+#if DEBUG
 #Preview {
     DocumentScannerEditView(
         rawPages: DocumentScannerPreviewSupport.sampleCapturedPages(),
@@ -186,3 +187,4 @@ private struct RotatedPagePreview: View {
         onNext: { _ in }
     )
 }
+#endif

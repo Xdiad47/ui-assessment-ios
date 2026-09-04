@@ -643,6 +643,7 @@ private struct ESignDrawCanvas: View {
     }
 }
 
+#if DEBUG
 #Preview {
     DocumentScannerESignView(
         document: DocumentScannerPreviewSupport.sampleDocument(name: "Rental Agreement"),
@@ -650,3 +651,4 @@ private struct ESignDrawCanvas: View {
         onSaveComplete: { _ in }
     )
 }
+#endif

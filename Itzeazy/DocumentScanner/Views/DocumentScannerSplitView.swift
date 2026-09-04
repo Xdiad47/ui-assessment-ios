@@ -117,6 +117,7 @@ struct DocumentScannerSplitView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     DocumentScannerSplitView(
         document: DocumentScannerPreviewSupport.sampleDocument(name: "Bank Statement", pageCount: 4),
@@ -124,3 +125,4 @@ struct DocumentScannerSplitView: View {
         onSplitComplete: { _ in }
     )
 }
+#endif

@@ -176,6 +176,7 @@ struct DocumentScannerViewPdfView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     DocumentScannerViewPdfView(
         document: DocumentScannerPreviewSupport.sampleDocument(name: "Passport", pageCount: 2),
@@ -186,3 +187,4 @@ struct DocumentScannerViewPdfView: View {
         onOcr: { _ in }
     )
 }
+#endif

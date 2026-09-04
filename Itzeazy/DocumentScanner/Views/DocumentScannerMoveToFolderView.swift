@@ -127,6 +127,7 @@ struct DocumentScannerMoveToFolderView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     DocumentScannerMoveToFolderView(
         document: DocumentScannerPreviewSupport.sampleDocument(withRealFiles: false),
@@ -134,3 +135,4 @@ struct DocumentScannerMoveToFolderView: View {
         onMoved: {}
     )
 }
+#endif
