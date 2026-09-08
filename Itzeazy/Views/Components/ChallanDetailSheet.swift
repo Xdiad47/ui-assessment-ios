@@ -3,6 +3,8 @@ import SwiftUI
 struct ChallanDetailPopup: View {
     let challan: Challan
     var onDismiss: () -> Void
+    var onDownloadPdf: () -> Void = {}
+    var isDownloadingPdf: Bool = false
 
     private var isPending: Bool { challan.status.lowercased() == "pending" }
 
@@ -214,11 +216,31 @@ struct ChallanDetailPopup: View {
                         .cornerRadius(12)
                     }
 
-                    Button(action: {}) {
-                        Text("Receipt")
-                            .font(Font.custom("Inter", size: 11).weight(.semibold))
-                            .foregroundColor(Color(red: 0.10, green: 0.45, blue: 0.91))
+                    // Outlined pill in the same ink as the rest of the sheet, so it reads as
+                    // available without competing with the filled red Pay Now button.
+                    Button(action: onDownloadPdf) {
+                        HStack(spacing: 8) {
+                            if isDownloadingPdf {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.10, green: 0.11, blue: 0.11)))
+                                    .scaleEffect(0.7)
+                            } else {
+                                Image(systemName: "arrow.down.circle")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                            }
+                            Text(isDownloadingPdf ? "Preparing…" : "Download PDF")
+                                .font(Font.custom("Inter", size: 12).weight(.bold))
+                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 9)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(red: 0.10, green: 0.11, blue: 0.11), lineWidth: 1.5)
+                        )
                     }
+                    .disabled(isDownloadingPdf)
                 }
             }
         }

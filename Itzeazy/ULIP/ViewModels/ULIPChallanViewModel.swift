@@ -16,6 +16,11 @@ class ULIPChallanViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var hasSearched: Bool   = false
     @Published var selectedChallanIDs: Set<String> = []
+    @Published var isGeneratingPDF: Bool = false
+
+    // Keyed by challan number — the PDF needs raw fields (department, dl_no, driver_name,
+    // court/offence detail, etc.) that the slimmer `Challan` UI model doesn't carry.
+    private var rawEntries: [String: ULIPChallanEntry] = [:]
 
     var pendingCount: Int { challans.filter { $0.status.lowercased() == "pending" }.count }
     // Total of ALL pending — used in the summary badge
@@ -70,8 +75,15 @@ class ULIPChallanViewModel: ObservableObject {
 
                 let pending  = innerData.pendingData  ?? []
                 let disposed = innerData.disposedData ?? []
-                challans = pending.compactMap  { mapChallan($0) }
-                         + disposed.compactMap { mapChallan($0) }
+                challans = pending.compactMap  { ChallanMapper.map($0, isPending: true) }
+                         + disposed.compactMap { ChallanMapper.map($0, isPending: false) }
+                rawEntries = Dictionary(
+                    (pending + disposed).compactMap { entry -> (String, ULIPChallanEntry)? in
+                        guard let no = ChallanMapper.cleaned(entry.challan_no) else { return nil }
+                        return (no, entry)
+                    },
+                    uniquingKeysWith: { first, _ in first }
+                )
                 ownerName   = nonEmpty(pending.first?.owner_name ?? disposed.first?.owner_name) ?? ""
                 hasSearched = true
 
@@ -92,31 +104,25 @@ class ULIPChallanViewModel: ObservableObject {
         selectedChallanIDs = []
     }
 
-    // MARK: - Mapping
+    // MARK: - PDF
 
-    private func mapChallan(_ c: ULIPChallanEntry) -> Challan? {
-        guard let no = c.challan_no else { return nil }
-        let firstOffence = c.offence_details?.first
-        let amount       = Int(c.fine_imposed ?? "0") ?? 0
-        let court        = [c.court_name, c.court_address]
-            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
-        return Challan(
-            id:             no,
-            title:          nonEmpty(firstOffence?.name) ?? "Traffic Violation",
-            date:           String(c.challan_date_time?.prefix(10) ?? ""),
-            amount:         amount,
-            status:         nonEmpty(c.challan_status)  ?? "Pending",
-            challanNo:      no,
-            dateTime:       c.challan_date_time ?? "",
-            sentToCourt:    c.sent_to_reg_court?.lowercased() == "yes",
-            stateCode:      c.state_code ?? "",
-            offenceName:    nonEmpty(firstOffence?.name) ?? "",
-            act:            nonEmpty(firstOffence?.act)  ?? "",
-            processingDate: c.date_of_proceeding ?? "",
-            rtoDistrict:    c.rto_distric_name  ?? "",
-            courtDetails:   court,
-            totalFine:      amount
+    /// Renders the challan identified by [id] and hands it to the system share sheet —
+    /// `presentShareSheet` finds the top-most presented controller itself, so this needs no
+    /// view reference passed in.
+    func downloadPDF(for id: String) {
+        guard !isGeneratingPDF, let entry = rawEntries[id] else { return }
+        let vehicle = ChallanPDFVehicleContext(
+            vehicleNumber: ChallanMapper.cleaned(vehicleNumber),
+            ownerName: ChallanMapper.cleaned(ownerName)
         )
+        isGeneratingPDF = true
+        Task { @MainActor in
+            defer { isGeneratingPDF = false }
+            let data = ChallanPDFService.generate(challan: entry, vehicle: vehicle)
+            let fileName = "Itzeazy_Challan_\(id.filter { $0.isLetter || $0.isNumber }).pdf"
+            guard let url = createTemporaryFileURL(fileName: fileName, data: data) else { return }
+            presentShareSheet(items: [url])
+        }
     }
 
     private func nonEmpty(_ s: String?) -> String? {

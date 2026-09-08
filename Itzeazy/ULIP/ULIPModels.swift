@@ -179,6 +179,7 @@ struct ULIPChallanRequest: Encodable {
 struct ULIPChallanOffenceDetail: Decodable {
     let act: String?
     let name: String?
+    let offence_id: Int?
 }
 
 // snake_case names match JSON keys exactly — no CodingKeys needed for these

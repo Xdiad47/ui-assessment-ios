@@ -22,6 +22,11 @@ class ULIPVehicleViewModel: ObservableObject {
     // Non-blocking note from the challan lookup (e.g. "No Records Found!") — the
     // vehicle lookup itself still succeeds, this is just shown alongside it.
     @Published var challanInfoMessage: String? = nil
+    @Published var isGeneratingPDF: Bool = false
+
+    // Keyed by challan number — the PDF needs raw fields (department, dl_no, driver_name,
+    // court/offence detail, etc.) that the slimmer `Challan` UI model doesn't carry.
+    private var rawEntries: [String: ULIPChallanEntry] = [:]
 
     // pendingChallans stores ALL challans (pending + disposed); filter for counts/sums
     var pendingChallanCount: Int {
@@ -127,35 +132,43 @@ class ULIPVehicleViewModel: ObservableObject {
             return []
         }
         challanInfoMessage = nil
-        var challans: [Challan] = []
-        challans += (innerData.pendingData  ?? []).compactMap { mapChallan($0) }
-        challans += (innerData.disposedData ?? []).compactMap { mapChallan($0) }
+        let pending  = innerData.pendingData  ?? []
+        let disposed = innerData.disposedData ?? []
+        let challans = pending.compactMap  { ChallanMapper.map($0, isPending: true) }
+                     + disposed.compactMap { ChallanMapper.map($0, isPending: false) }
+        rawEntries = Dictionary(
+            (pending + disposed).compactMap { entry -> (String, ULIPChallanEntry)? in
+                guard let no = ChallanMapper.cleaned(entry.challan_no) else { return nil }
+                return (no, entry)
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
         return challans
     }
 
-    private func mapChallan(_ c: ULIPChallanEntry) -> Challan? {
-        guard let no = c.challan_no else { return nil }
-        let firstOffence = c.offence_details?.first
-        let amount       = Int(c.fine_imposed ?? "0") ?? 0
-        let court        = [c.court_name, c.court_address]
-            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
-        return Challan(
-            id:             no,
-            title:          nonEmpty(firstOffence?.name) ?? "Traffic Violation",
-            date:           String(c.challan_date_time?.prefix(10) ?? ""),
-            amount:         amount,
-            status:         nonEmpty(c.challan_status)  ?? "Pending",
-            challanNo:      no,
-            dateTime:       c.challan_date_time ?? "",
-            sentToCourt:    c.sent_to_reg_court?.lowercased() == "yes",
-            stateCode:      c.state_code ?? "",
-            offenceName:    nonEmpty(firstOffence?.name) ?? "",
-            act:            nonEmpty(firstOffence?.act)  ?? "",
-            processingDate: c.date_of_proceeding ?? "",
-            rtoDistrict:    c.rto_distric_name  ?? "",
-            courtDetails:   court,
-            totalFine:      amount
+    // MARK: - PDF
+
+    /// Renders the challan identified by [id] and hands it to the system share sheet.
+    func downloadPDF(for id: String) {
+        guard !isGeneratingPDF, let entry = rawEntries[id] else { return }
+        let rc = searchResult?.registrationDetails
+        let vehicle = ChallanPDFVehicleContext(
+            vehicleNumber: rc.flatMap { ChallanMapper.cleaned($0.vehicleNo) },
+            ownerName: ChallanMapper.cleaned(searchResult?.ownerDetails.name),
+            model: rc.flatMap { ChallanMapper.cleaned($0.model) },
+            rto: rc.flatMap { ChallanMapper.cleaned($0.registeredAt) },
+            vehicleClass: rc.flatMap { ChallanMapper.cleaned($0.vehicleClass) },
+            chassisNo: rc.flatMap { ChallanMapper.cleaned($0.chassisNo) },
+            engineNo: rc.flatMap { ChallanMapper.cleaned($0.engineNo) }
         )
+        isGeneratingPDF = true
+        Task { @MainActor in
+            defer { isGeneratingPDF = false }
+            let data = ChallanPDFService.generate(challan: entry, vehicle: vehicle)
+            let fileName = "Itzeazy_Challan_\(id.filter { $0.isLetter || $0.isNumber }).pdf"
+            guard let url = createTemporaryFileURL(fileName: fileName, data: data) else { return }
+            presentShareSheet(items: [url])
+        }
     }
 
     // MARK: - Vehicle RC mapping

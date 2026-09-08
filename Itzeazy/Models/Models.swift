@@ -82,6 +82,21 @@ struct VehicleSearchResult {
     let pendingChallans: [Challan]
 }
 
+/// Vehicle facts printed on a challan PDF, sourced from the vahan lookup where one is
+/// available. Every field is optional: the Challan Details / Traffic Challan screen has no
+/// RC lookup of its own and can only ever supply `vehicleNumber` and `ownerName`, while
+/// Vehicle Details has the full RC record. The renderer omits any row it has no value for
+/// rather than printing a blank.
+struct ChallanPDFVehicleContext {
+    var vehicleNumber: String?
+    var ownerName: String?
+    var model: String?
+    var rto: String?
+    var vehicleClass: String?
+    var chassisNo: String?
+    var engineNo: String?
+}
+
 struct DLInfo {
     let dlNumber: String
     let currentStatus: String

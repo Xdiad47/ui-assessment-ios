@@ -206,8 +206,13 @@ struct ChallanDetailsView: View {
                     Color.black.opacity(0.45)
                         .ignoresSafeArea()
                         .onTapGesture { selectedChallan = nil }
-                    ChallanDetailPopup(challan: challan) { selectedChallan = nil }
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    ChallanDetailPopup(
+                        challan: challan,
+                        onDismiss: { selectedChallan = nil },
+                        onDownloadPdf: { viewModel.downloadPDF(for: challan.id) },
+                        isDownloadingPdf: viewModel.isGeneratingPDF
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
