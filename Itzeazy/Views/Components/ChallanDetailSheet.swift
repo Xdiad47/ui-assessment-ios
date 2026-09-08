@@ -216,29 +216,23 @@ struct ChallanDetailPopup: View {
                         .cornerRadius(12)
                     }
 
-                    // Outlined pill in the same ink as the rest of the sheet, so it reads as
-                    // available without competing with the filled red Pay Now button.
+                    // Plain blue text link (icon + label, no border/background), matching
+                    // Figma node 1063:4258.
                     Button(action: onDownloadPdf) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 5) {
                             if isDownloadingPdf {
                                 ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.10, green: 0.11, blue: 0.11)))
+                                    .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.102, green: 0.451, blue: 0.910)))
                                     .scaleEffect(0.7)
                             } else {
-                                Image(systemName: "arrow.down.circle")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                                Image(systemName: "tray.and.arrow.down.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(Color(red: 0.102, green: 0.451, blue: 0.910))
                             }
-                            Text(isDownloadingPdf ? "Preparing…" : "Download PDF")
-                                .font(Font.custom("Inter", size: 12).weight(.bold))
-                                .foregroundColor(Color(red: 0.10, green: 0.11, blue: 0.11))
+                            Text(isDownloadingPdf ? "Preparing…" : "Receipt")
+                                .font(Font.custom("Inter", size: 14).weight(.semibold))
+                                .foregroundColor(Color(red: 0.102, green: 0.451, blue: 0.910))
                         }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 9)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color(red: 0.10, green: 0.11, blue: 0.11), lineWidth: 1.5)
-                        )
                     }
                     .disabled(isDownloadingPdf)
                 }
@@ -285,4 +279,77 @@ struct ChallanDetailPopup: View {
                 .foregroundColor(.black)
         }
     }
+}
+
+#Preview("Pending") {
+    ChallanDetailPopup(
+        challan: Challan(
+            id: "1",
+            title: "Speed limit violation",
+            date: "11.02.2023",
+            amount: 2000,
+            status: "PENDING",
+            challanNo: "UP04231523804092235",
+            dateTime: "11.02.2023 13:26:31",
+            sentToCourt: true,
+            stateCode: "UP",
+            offenceName: "Contravention of the speed limits (In the light motor vehicle)",
+            act: "MV Act 1988 s 112",
+            processingDate: "2023-07-22",
+            rtoDistrict: "Noida, GBN",
+            courtDetails: "CJM GBN, GAUTAMBUDHNAGAR",
+            totalFine: 2000
+        ),
+        onDismiss: {}
+    )
+    .background(Color(white: 0.9))
+}
+
+#Preview("Preparing PDF") {
+    ChallanDetailPopup(
+        challan: Challan(
+            id: "2",
+            title: "Speed limit violation",
+            date: "11.02.2023",
+            amount: 2000,
+            status: "PENDING",
+            challanNo: "UP04231523804092235",
+            dateTime: "11.02.2023 13:26:31",
+            sentToCourt: true,
+            stateCode: "UP",
+            offenceName: "Contravention of the speed limits (In the light motor vehicle)",
+            act: "MV Act 1988 s 112",
+            processingDate: "2023-07-22",
+            rtoDistrict: "Noida, GBN",
+            courtDetails: "CJM GBN, GAUTAMBUDHNAGAR",
+            totalFine: 2000
+        ),
+        onDismiss: {},
+        isDownloadingPdf: true
+    )
+    .background(Color(white: 0.9))
+}
+
+#Preview("Paid") {
+    ChallanDetailPopup(
+        challan: Challan(
+            id: "3",
+            title: "Speed limit violation",
+            date: "11.02.2023",
+            amount: 2000,
+            status: "DISPOSED",
+            challanNo: "UP04231523804092235",
+            dateTime: "11.02.2023 13:26:31",
+            sentToCourt: true,
+            stateCode: "UP",
+            offenceName: "Contravention of the speed limits (In the light motor vehicle)",
+            act: "MV Act 1988 s 112",
+            processingDate: "2023-07-22",
+            rtoDistrict: "Noida, GBN",
+            courtDetails: "CJM GBN, GAUTAMBUDHNAGAR",
+            totalFine: 2000
+        ),
+        onDismiss: {}
+    )
+    .background(Color(white: 0.9))
 }
