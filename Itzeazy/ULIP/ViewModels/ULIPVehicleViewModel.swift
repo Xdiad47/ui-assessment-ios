@@ -23,6 +23,9 @@ class ULIPVehicleViewModel: ObservableObject {
     // vehicle lookup itself still succeeds, this is just shown alongside it.
     @Published var challanInfoMessage: String? = nil
     @Published var isGeneratingPDF: Bool = false
+    // Kept separate from isGeneratingPDF (the per-challan one) so downloading the full
+    // certificate and downloading one challan's PDF never fight over the same loading flag.
+    @Published var isGeneratingRegistrationPDF: Bool = false
 
     // Keyed by challan number — the PDF needs raw fields (department, dl_no, driver_name,
     // court/offence detail, etc.) that the slimmer `Challan` UI model doesn't carry.
@@ -166,6 +169,20 @@ class ULIPVehicleViewModel: ObservableObject {
             defer { isGeneratingPDF = false }
             let data = ChallanPDFService.generate(challan: entry, vehicle: vehicle)
             let fileName = "Itzeazy_Challan_\(id.filter { $0.isLetter || $0.isNumber }).pdf"
+            guard let url = createTemporaryFileURL(fileName: fileName, data: data) else { return }
+            presentShareSheet(items: [url])
+        }
+    }
+
+    /// Renders the current vehicle's profile (registration, owner, insurance/PUC, other details —
+    /// no challans, those get their own per-challan PDF) and hands it to the system share sheet.
+    func downloadRegistrationPDF() {
+        guard !isGeneratingRegistrationPDF, let result = searchResult else { return }
+        isGeneratingRegistrationPDF = true
+        Task { @MainActor in
+            defer { isGeneratingRegistrationPDF = false }
+            let data = RegistrationPDFService.generate(result: result)
+            let fileName = "Itzeazy_RC_\(result.registrationDetails.vehicleNo.filter { $0.isLetter || $0.isNumber }).pdf"
             guard let url = createTemporaryFileURL(fileName: fileName, data: data) else { return }
             presentShareSheet(items: [url])
         }

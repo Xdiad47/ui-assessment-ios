@@ -69,6 +69,16 @@ struct TSVehicleScreen: View {
 
                         VStack(spacing: 24) {
                             TSVehicleHeaderCard(data: data)
+
+                            HStack {
+                                Spacer()
+                                PDFDownloadButton(
+                                    isDownloading: viewModel.isGeneratingPDF,
+                                    onTap: { viewModel.downloadPDF() }
+                                )
+                            }
+                            .padding(.horizontal)
+
                             TSRegistrationDetailsCard(data: data)
                             TSOwnerDetailsCard(data: data)
 

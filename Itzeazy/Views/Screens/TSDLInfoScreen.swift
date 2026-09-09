@@ -204,6 +204,15 @@ struct TSDLInfoScreen: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 14) {
                     TSDLHeaderCard(data: data)
+
+                    HStack {
+                        Spacer()
+                        PDFDownloadButton(
+                            isDownloading: viewModel.isGeneratingPDF,
+                            onTap: { viewModel.downloadPDF() }
+                        )
+                    }
+
                     TSDLPersonalCard(data: data)
                     TSDLAddressCard(data: data)
                     TSDLLicenceCard(data: data)

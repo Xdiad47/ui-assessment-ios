@@ -95,6 +95,16 @@ struct VehicleSearchResultsView: View {
                                 ownerName: result.ownerDetails.name
                             )
 
+                            HStack {
+                                Spacer()
+                                PDFDownloadButton(
+                                    isDownloading: viewModel.isGeneratingRegistrationPDF,
+                                    onTap: { viewModel.downloadRegistrationPDF() },
+                                    label: "Download Certificate"
+                                )
+                            }
+                            .padding(.horizontal)
+
                             VStack(spacing: 24) {
                                 RegistrationDetailsView(details: result.registrationDetails)
                                 OwnerDetailsView(details: result.ownerDetails)

@@ -92,6 +92,7 @@ class ULIPTGDLViewModel: ObservableObject {
     @Published var isLoading: Bool        = false
     @Published var errorMessage: String?  = nil
     @Published var hasSearched: Bool      = false
+    @Published var isGeneratingPDF: Bool  = false
 
     func search() {
         let number = dlNumber.trimmingCharacters(in: .whitespaces)
@@ -146,6 +147,21 @@ class ULIPTGDLViewModel: ObservableObject {
         dlData       = nil
         errorMessage = nil
         hasSearched  = false
+    }
+
+    // MARK: - PDF
+
+    /// Renders the currently fetched TS DL details and hands the PDF to the system share sheet.
+    func downloadPDF() {
+        guard !isGeneratingPDF, let dlData else { return }
+        isGeneratingPDF = true
+        Task { @MainActor in
+            defer { isGeneratingPDF = false }
+            let data = TSDLPDFService.generate(data: dlData)
+            let fileName = "Itzeazy_TS_DL_\(dlData.dlNumber.filter { $0.isLetter || $0.isNumber }).pdf"
+            guard let url = createTemporaryFileURL(fileName: fileName, data: data) else { return }
+            presentShareSheet(items: [url])
+        }
     }
 
     // MARK: - Mapping

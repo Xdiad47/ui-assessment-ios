@@ -99,6 +99,7 @@ class ULIPTGVehicleViewModel: ObservableObject {
     @Published var isLoading: Bool    = false
     @Published var errorMessage: String? = nil
     @Published var hasSearched: Bool  = false
+    @Published var isGeneratingPDF: Bool = false
 
     func search() {
         let number = vehicleNumber.trimmingCharacters(in: .whitespaces)
@@ -153,6 +154,21 @@ class ULIPTGVehicleViewModel: ObservableObject {
         vehicleData   = nil
         errorMessage  = nil
         hasSearched   = false
+    }
+
+    // MARK: - PDF
+
+    /// Renders the currently fetched TS vehicle details and hands the PDF to the system share sheet.
+    func downloadPDF() {
+        guard !isGeneratingPDF, let vehicleData else { return }
+        isGeneratingPDF = true
+        Task { @MainActor in
+            defer { isGeneratingPDF = false }
+            let data = TSVehiclePDFService.generate(data: vehicleData)
+            let fileName = "Itzeazy_TS_Vehicle_\(vehicleData.regNo.filter { $0.isLetter || $0.isNumber }).pdf"
+            guard let url = createTemporaryFileURL(fileName: fileName, data: data) else { return }
+            presentShareSheet(items: [url])
+        }
     }
 
     // MARK: - Mapping

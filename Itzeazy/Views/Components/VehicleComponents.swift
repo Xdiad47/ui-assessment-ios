@@ -325,24 +325,20 @@ struct ChallanCardView: View {
     var isSelected: Bool = false
     var onToggleSelection: () -> Void = {}
 
-    private var iconAssetName: String {
-        challan.title.lowercased().replacingOccurrences(of: " ", with: "_")
-    }
     private var isPending: Bool { challan.status.lowercased() == "pending" }
 
     var body: some View {
         VStack(spacing: 16) {
             // Header
             HStack {
-                Circle()
-                    .fill(Color.gray.opacity(0.15))
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        Image(iconAssetName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 18, height: 18)
-                    )
+                ZStack {
+                    Circle()
+                        .fill(Color(white: 0.95))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: isPending ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                        .foregroundColor(isPending ? .red : .gray)
+                        .font(.system(size: 20))
+                }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(challan.title)

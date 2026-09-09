@@ -203,6 +203,13 @@ struct DLInfoView: View {
                     } else if viewModel.hasSearched, let info = viewModel.dlInfo {
                         ScrollView(.vertical, showsIndicators: false) {
                             VStack(spacing: 24) {
+                                HStack {
+                                    Spacer()
+                                    PDFDownloadButton(
+                                        isDownloading: viewModel.isGeneratingPDF,
+                                        onTap: { viewModel.downloadPDF() }
+                                    )
+                                }
                                 DLBasicInfoSection(info: info)
                                 DLInitialDetailsSection(info: info)
                                 DLValiditySection(info: info)

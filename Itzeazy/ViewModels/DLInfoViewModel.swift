@@ -32,6 +32,7 @@ class DLInfoViewModel: ObservableObject {
     @Published var dlInfo: DLInfo? = nil
     @Published var errorMessage: String? = nil
     @Published var hasSearched: Bool = false
+    @Published var isGeneratingPDF: Bool = false
 
     func getDetails() {
         let number = dlNumber.trimmingCharacters(in: .whitespaces)
@@ -78,6 +79,21 @@ class DLInfoViewModel: ObservableObject {
         dlInfo      = nil
         errorMessage = nil
         hasSearched = false
+    }
+
+    // MARK: - PDF
+
+    /// Renders the currently fetched DL details and hands the PDF to the system share sheet.
+    func downloadPDF() {
+        guard !isGeneratingPDF, let dlInfo else { return }
+        isGeneratingPDF = true
+        Task { @MainActor in
+            defer { isGeneratingPDF = false }
+            let data = DLPDFService.generate(dl: dlInfo)
+            let fileName = "Itzeazy_DL_\(dlInfo.dlNumber.filter { $0.isLetter || $0.isNumber }).pdf"
+            guard let url = createTemporaryFileURL(fileName: fileName, data: data) else { return }
+            presentShareSheet(items: [url])
+        }
     }
 
     // MARK: - Helpers
