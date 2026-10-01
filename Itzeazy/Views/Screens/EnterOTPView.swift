@@ -97,7 +97,11 @@ struct EnterOTPView: View {
                 VStack(spacing: 0) {
                     Spacer()
                         .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : geometry.safeAreaInsets.top + 218)
-                    
+
+                    // ScrollView, not a fixed VStack: on a short device or with the keyboard up,
+                    // the OTP fields + resend link + submit button can exceed the available
+                    // height, clipping the button off-screen with no way to reach it.
+                    ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         // Header
                         VStack(alignment: .leading, spacing: 12) {
@@ -249,6 +253,7 @@ struct EnterOTPView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 40)
                     .padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 76)
+                    }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(Color.white)
                     .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 40))

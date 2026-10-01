@@ -91,44 +91,54 @@ struct OnboardingView: View {
     @ViewBuilder
     private func sheetContent(safeBottom: CGFloat, buttonShadow: Color) -> some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 16) {
-                // Title: Plus Jakarta Sans Bold — size/line-height vary per page
-                let page = viewModel.pages[viewModel.currentPage]
-                Group {
-                    if page.titleInline {
-                        (
-                            Text(page.titleLine1).foregroundColor(Color(hex: "#191c1d"))
-                            + Text(page.titleLine2).foregroundColor(page.titleLine2Color)
-                        )
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(page.titleLine1)
-                                .foregroundColor(Color(hex: "#191c1d"))
-                            if !page.titleLine2.isEmpty {
-                                Text(page.titleLine2)
-                                    .foregroundColor(page.titleLine2Color)
+            // ScrollView around just the title/subtitle block, not the whole sheet: the sheet's
+            // height is a fixed frame (sheetHeight + safeBottom) at the call site, deliberately —
+            // that's what keeps the hero image visible above it. An earlier attempt to fix a long
+            // disclaimer page's text overflowing here by switching that outer frame to a minHeight
+            // let the sheet grow tall enough to cover the image entirely, which was worse. Scrolling
+            // only this inner block keeps the sheet's height and the image untouched, while a page
+            // whose subtitle runs longer than the other pages' can still be read in full instead of
+            // silently clipping against the fixed-height Spacer/indicator/button below it.
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Title: Plus Jakarta Sans Bold — size/line-height vary per page
+                    let page = viewModel.pages[viewModel.currentPage]
+                    Group {
+                        if page.titleInline {
+                            (
+                                Text(page.titleLine1).foregroundColor(Color(hex: "#191c1d"))
+                                + Text(page.titleLine2).foregroundColor(page.titleLine2Color)
+                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(page.titleLine1)
+                                    .foregroundColor(Color(hex: "#191c1d"))
+                                if !page.titleLine2.isEmpty {
+                                    Text(page.titleLine2)
+                                        .foregroundColor(page.titleLine2Color)
+                                }
                             }
                         }
                     }
-                }
-                .font(Font.custom("PlusJakartaSans-Bold", size: page.titleFontSize))
-                .tracking(-0.8)
-                .lineSpacing(page.titleLineSpacing)
-                // Subtitle: Inter Regular — size/line-height vary per page
-                Text(page.subtitle)
-                    .font(Font.custom("Inter", size: page.subtitleFontSize))
-                    .foregroundColor(Color(hex: "#5f5e5e"))
-                    .lineSpacing(page.subtitleLineSpacing)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .font(Font.custom("PlusJakartaSans-Bold", size: page.titleFontSize))
+                    .tracking(-0.8)
+                    .lineSpacing(page.titleLineSpacing)
+                    // Subtitle: Inter Regular — size/line-height vary per page
+                    Text(page.subtitle)
+                        .font(Font.custom("Inter", size: page.subtitleFontSize))
+                        .foregroundColor(Color(hex: "#5f5e5e"))
+                        .lineSpacing(page.subtitleLineSpacing)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                if page.showLegalLinks {
-                    legalLinksRow
+                    if page.showLegalLinks {
+                        legalLinksRow
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 32)
+                .padding(.top, 36)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 32)
-            .padding(.top, 36)
 
             Spacer(minLength: 24)
 

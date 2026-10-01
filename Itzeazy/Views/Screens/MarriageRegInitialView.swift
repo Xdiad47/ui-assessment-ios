@@ -19,12 +19,17 @@ struct MarriageRegInitialView: View {
                 backgroundLayer
 
                 VStack(spacing: 0) {
-                    VStack(spacing: 0) {
-                        header(safeAreaTop: proxy.safeAreaInsets.top)
+                    header(safeAreaTop: proxy.safeAreaInsets.top)
+
+                    // ScrollView, not a fixed VStack + Spacer: on a short device (iPhone SE) the
+                    // hero heading + selection card together can exceed the available height,
+                    // silently clipping the Get Started button off-screen with no way to reach
+                    // it. Scrolling adapts to any screen size — same fix applied across every
+                    // *InitialView* screen in this app.
+                    ScrollView(showsIndicators: false) {
                         heroContent
                     }
-
-                    Spacer()
+                    .frame(maxHeight: .infinity)
                 }
 
                 NavigationLink(
@@ -46,7 +51,13 @@ struct MarriageRegInitialView: View {
                     .zIndex(30)
                 }
             }
-            .ignoresSafeArea()
+            // .vertical, not a bare .ignoresSafeArea(): with no edges: argument this defaults to
+            // ALL regions, including left/right safe-area insets, which grow substantially in
+            // landscape (notch/home indicator sit on the long edges there). Letting the whole
+            // ZStack — including the ScrollView inside it — ignore them was throwing off how much
+            // vertical space the ScrollView calculated it had, breaking scroll specifically after
+            // rotating to landscape.
+            .ignoresSafeArea(edges: .vertical)
         }
         .navigationBarHidden(true)
         .onAppear {

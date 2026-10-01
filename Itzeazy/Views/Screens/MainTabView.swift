@@ -105,7 +105,15 @@ struct MainTabView: View {
                             .onChange(of: geo.size.height) { tabBarState.height = $0 }
                     }
                 )
-            } } // end ZStack + if
+            }
+            // Without this, this whole card stack sits inside the default SwiftUI keyboard
+            // safe area, so focusing any TextField anywhere in the 4 tabs (e.g. Dummy Tickets'
+            // From/To fields) shifts the entire tab bar UP along with the keyboard instead of
+            // leaving it pinned to the physical bottom edge — it ends up floating above the
+            // keyboard instead of being covered by it. Scoped to just this card stack (not the
+            // whole MainTabView) so it doesn't change keyboard behavior for any screen's own content.
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            } // end ZStack + if
 
             if authGate.isPopupPresented {
                 AuthGatePopupView(

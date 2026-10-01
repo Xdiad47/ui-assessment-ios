@@ -545,13 +545,13 @@ struct HomeServicesGridView: View {
     ]
 
     // Not functional yet — tapping these shows a "coming soon" toast instead of navigating.
-    // Mirrors Android's MainScreen.kt onServiceClick, minus "Traffic\nChallan": iOS now routes
-    // that one to ChallanDetailsView (the same screen Utilities' "Challan Info" opens) rather
-    // than a toast, since that lookup already exists natively here. Android still toasts it, so
-    // this set is deliberately one entry ahead of Android until the same change lands there.
+    // Mirrors Android's MainScreen.kt onServiceClick, minus "Traffic\nChallan" and
+    // "Dummy\nTickets": iOS now routes those to native screens (ChallanDetailsView and
+    // DummyTicketInitialView respectively) rather than a toast. Android still toasts both, so
+    // this set is deliberately ahead of Android until the same changes land there.
     private let comingSoonLabels: Set<String> = [
         "Attestation", "Driving\nClasses",
-        "Degree cert./\nTanscript", "Dummy\nTickets", "Insurance"
+        "Degree cert./\nTanscript", "Insurance"
     ]
 
     var body: some View {
@@ -706,6 +706,14 @@ struct HomeServicesGridView: View {
                 ServiceBoxView(title: label, iconName: icon)
             }
             .buttonStyle(NoHighlightButtonStyle())
+
+        // Dummy Tickets — native booking-intent screen (dummy return-flight tickets for visa
+        // proof), no auth/ULIP gate: it's not a government-data lookup like Traffic Challan.
+        } else if label == "Dummy\nTickets" {
+            NavigationLink(destination: DummyTicketInitialView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
 
         // IT Returns, Affidavit, POI/FRRO, Attestation — not functional yet
         } else if comingSoonLabels.contains(label) {

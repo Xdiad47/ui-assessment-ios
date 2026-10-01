@@ -35,13 +35,18 @@ struct ForgotPasswordView: View {
                     Spacer()
                         .frame(height: isKeyboardPresented ? geometry.safeAreaInsets.top + 10 : 288)
 
-                    VStack(spacing: 32) {
-                        headerSection
-                        contactSection
+                    // ScrollView, not a fixed VStack: on a short device or with the keyboard up,
+                    // the form content can exceed the available height, clipping the submit
+                    // button off-screen with no way to reach it.
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 32) {
+                            headerSection
+                            contactSection
+                        }
+                        .padding(.horizontal, 32)
+                        .padding(.top, 18)
+                        .padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 48)
                     }
-                    .padding(.horizontal, 32)
-                    .padding(.top, 18)
-                    .padding(.bottom, isKeyboardPresented ? max(28, keyboardHeight - geometry.safeAreaInsets.bottom + 20) : 48)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(Color.white)
                     .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 40))
