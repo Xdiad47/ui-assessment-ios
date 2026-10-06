@@ -781,7 +781,7 @@ struct EditPhotoMakerView: View {
 // to its own label rather than stretching to equal columns, and wraps to a new row when it no
 // longer fits, matching the Figma reference exactly.
 
-private struct FlowLayout: Layout {
+struct FlowLayout: Layout {
     var horizontalSpacing: CGFloat = 8
     var verticalSpacing: CGFloat = 8
 

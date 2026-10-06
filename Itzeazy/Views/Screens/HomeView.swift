@@ -546,11 +546,11 @@ struct HomeServicesGridView: View {
 
     // Not functional yet — tapping these shows a "coming soon" toast instead of navigating.
     // Mirrors Android's MainScreen.kt onServiceClick, minus "Traffic\nChallan" and
-    // "Dummy\nTickets": iOS now routes those to native screens (ChallanDetailsView and
-    // DummyTicketInitialView respectively) rather than a toast. Android still toasts both, so
+    // "Dummy\nTickets" and "Attestation": iOS now routes those to native screens (ChallanDetailsView,
+    // DummyTicketInitialView and AttestationInitialView respectively) rather than a toast. Android still toasts both, so
     // this set is deliberately ahead of Android until the same changes land there.
     private let comingSoonLabels: Set<String> = [
-        "Attestation", "Driving\nClasses",
+        "Driving\nClasses",
         "Degree cert./\nTanscript", "Insurance"
     ]
 
@@ -715,7 +715,13 @@ struct HomeServicesGridView: View {
             }
             .buttonStyle(PlainButtonStyle())
 
-        // IT Returns, Affidavit, POI/FRRO, Attestation — not functional yet
+        } else if label == "Attestation" {
+            NavigationLink(destination: AttestationInitialView()) {
+                ServiceBoxView(title: label, iconName: icon)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+        // IT Returns, Affidavit, POI/FRRO — not functional yet
         } else if comingSoonLabels.contains(label) {
             Button {
                 showComingSoonToast = true

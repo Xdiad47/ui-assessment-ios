@@ -34,7 +34,6 @@ struct DummyTicketBothPersonalDetailsView: View {
     @State private var showNationalityPicker = false
     @State private var showCountryCodePicker = false
     @State private var showDOBPicker = false
-    @State private var showComingSoonToast = false
 
     private enum Field {
         case mobile, email, firstName, lastName, passport, specialRequests
@@ -98,15 +97,6 @@ struct DummyTicketBothPersonalDetailsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
 
-                if showComingSoonToast {
-                    VStack {
-                        Spacer()
-                        ToastView(icon: "hourglass", message: "Coming soon! We're working hard to bring this to you.")
-                            .padding(.bottom, 24)
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-
                 NavigationLink(
                     destination: DummyTicketBothAdditionalDetailsView().environmentObject(booking),
                     isActive: $booking.showAdditionalDetails
@@ -116,7 +106,6 @@ struct DummyTicketBothPersonalDetailsView: View {
                 .hidden()
             }
             .ignoresSafeArea(.container, edges: .vertical)
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showComingSoonToast)
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $showTitlePicker) {
@@ -170,11 +159,6 @@ struct DummyTicketBothPersonalDetailsView: View {
         .onDisappear {
             tabBarState.isHidden = false
         }
-    }
-
-    private func showComingSoon() {
-        showComingSoonToast = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { showComingSoonToast = false }
     }
 
     // MARK: - Header (back row + 5-step progress)
@@ -330,7 +314,7 @@ struct DummyTicketBothPersonalDetailsView: View {
     // MARK: - Contact Information card
 
     private var contactInformationCard: some View {
-        infoCard(icon: "phone.circle.fill", title: "Contact Information", trailingLabel: "Edit", trailingAction: showComingSoon) {
+        infoCard(icon: "phone.circle.fill", title: "Contact Information", trailingLabel: "Edit", trailingAction: { focusedField = .mobile }) {
             mobileNumberField
             formField(label: "EMAIL ADDRESS", value: $booking.emailAddress, placeholder: "Email Address", keyboardType: .emailAddress, focus: .email)
         }
